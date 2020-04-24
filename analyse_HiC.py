@@ -252,8 +252,8 @@ def interactionMatrix(hiccontactsfile, fragmentList, coverage):
                 contig1 = fragmentList[contact[0]][0]
                 contig2 = fragmentList[contact[1]][0]
                 
-                interactionMatrix[contig1][contig2] += contact[2]/coverage[contig1]/coverage[contig2]
-                interactionMatrix[contig2][contig1] += contact[2]/coverage[contig1]/coverage[contig2]
+                interactionMatrix[contig1][contig2] += contact[2]*1000000/coverage[contig1]/coverage[contig2] #*1000000 so that the numbers are not too small (the risk being their being considered 0)
+                interactionMatrix[contig2][contig1] += contact[2]*1000000/coverage[contig1]/coverage[contig2]
     return interactionMatrix
 
 #hiccontacts = read_abs_fragments_contact_weighted('data/results/abs_fragments_contacts_weighted.txt')
@@ -294,4 +294,4 @@ interaction_Matrix = interactionMatrix('data/results/abs_fragments_contacts_weig
 bf.export_to_csv(interaction_Matrix, 'listsPython/interactionMatrix.csv')
 print(interaction_Matrix[217][323], interaction_Matrix[217][359])
 
-print('Terminé')
+print('Finished')

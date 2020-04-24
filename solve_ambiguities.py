@@ -92,15 +92,26 @@ def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix
     return absoluteScore, relativeScore
     
 #we're going to look specifically at one contig and its immediate surroundings
-def solve_ambiguity_around_this_contig(contig, links, hiccontactfile, fragmentList, infContigs):
-         return 0
+def solve_ambiguity_around_this_contig(contig, links, interactionMatrix):
+         
+    linksStrengthEvenEnd = intensity_of_interactions([contig*2, contig*2+1], [[x, x +1-2*(x%2)] for x in links[contig*2]], interactionMatrix)[1]
+    maxStrength = np.max(linksStrengthEvenEnd)
+    
+    newSuperContigs = []
+    for i in range(len(linksStrengthEvenEnd)) :
+        if linksStrengthEvenEnd[i] > maxStrength/4 :
+            newSuperContigs += [[links[contig*2][i], links[contig*2][i] +1-2*(links[contig*2][i]%2), contig*2, contig*2+1]]
+    print (newSuperContigs)
 
-#links = bf.import_links('listsPython/links.csv')
+links = bf.import_links('listsPython/links.csv')
 #infContigs = bf.read_info_contig('data/results/info_contigs.txt')
 interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
 
 print('coucou')
-print(intensity_of_interactions([246,247], [[1716, 1717], [1978,1979]], interactionMatrix))
+solve_ambiguity_around_this_contig(802, links, interactionMatrix)
+#print(intensity_of_interactions([874*2, 874*2+1], [[584*2,584*2+1,1120*2,1120*2+1], [584*2,584*2+1,78*2,78*2+1]], interactionMatrix))
+#print(intensity_of_interactions([584*2,584*2+1,78*2,78*2+1], [[802*2,802*2+1,874*2, 874*2+1], [802*2,802*2+1,743*2,743*2+1]], interactionMatrix))
+
 print('Finished')
 
     
