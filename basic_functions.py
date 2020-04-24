@@ -24,6 +24,7 @@ def read_abs_fragments_contact_weighted(file):
     return (content[1:]) #because the first line is a header
 
 
+# /!\ for many functions to work, fragmentList has to be sorted (first contig1, then contig2...)
 def read_fragment_list(file) :
     
     with open(file) as f:
@@ -51,9 +52,9 @@ def read_info_contig(file):
 def export_to_csv(l, file):
     df = pd.DataFrame(l)
     df.to_csv(file)
-    
 
 def import_from_csv(file):
+
     df = pd.read_csv(file)
     l = df.values.tolist()
     

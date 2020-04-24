@@ -4,7 +4,6 @@
 Created on Wed Apr 22 17:19:55 2020
 """
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import basic_functions as bf
@@ -13,11 +12,12 @@ def determine_HiC_coverage(hiccontactsfile, info_contig, fragment_list) : #retur
     
     with open(hiccontactsfile) as f:
     
+        coverage = [0]*(info_contig[-1][0]+1)
+
         for line in f :
             
             line = line.strip('\n')
             line = line.split('\t')
-            coverage = [0]*(info_contig[-1][0]+1)
             
             if line[0] != '487796' :#because the first line is a header
                 contact = [int(line[0]), int(line[1]), int(line[2])]
@@ -27,13 +27,9 @@ def determine_HiC_coverage(hiccontactsfile, info_contig, fragment_list) : #retur
                 coverage[contig1] += contact[2]
                 coverage[contig2] += contact[2]
     
-    
-    for i in range(len(coverage)) :
-        coverage[i] /= info_contig[i][1]
-    
     xrange = [i for i in range(len(coverage))] 
     plt.scatter(xrange, coverage)
-    plt.ylim([0,1])
+    #plt.ylim([0,1])
     
     return coverage
 
@@ -115,15 +111,17 @@ def correlation_GCcontent_HiCcoverage(coverage, genomeFastaFile, unconnectedCont
         plt.ylim([0,1])
     
 
-#fragmentList = import_from_csv('listsPython/fragmentList.csv')
-#infcontigs = read_info_contig('data/results/info_contigs.txt')
-unconnectedcontigs = bf.import_from_csv('listsPython/unconnectedContigs.csv')
-unconnectedcontigs = [x[0] for x in unconnectedcontigs]
-print(len(unconnectedcontigs))
-check_if_there_are_restriction_fragments_in_unconnected_contigs(unconnectedcontigs, 'GATC','data/Assembly.fasta') #GATC corresponds to the cutting site of DpnII
+fragmentList = bf.import_from_csv('listsPython/fragmentList.csv')
+infcontigs = bf.read_info_contig('data/results/info_contigs.txt')
+#unconnectedcontigs = bf.import_from_csv('listsPython/unconnectedContigs.csv')
+#unconnectedcontigs = [x[0] for x in unconnectedcontigs]
+#print(len(unconnectedcontigs))
+#check_if_there_are_restriction_fragments_in_unconnected_contigs(unconnectedcontigs, 'GATC','data/Assembly.fasta') #GATC corresponds to the cutting site of DpnII
 
-coverage = bf.import_from_csv('listsPython/HiCcoverage.csv')
-coverage = [x[0] for x in coverage]
+coverage = determine_HiC_coverage('data/results/abs_fragments_contacts_weighted.txt', infcontigs, fragmentList)
+bf.export_to_csv(coverage, 'listsPython/HiCcoverage.csv')
+#coverage = bf.import_from_csv('listsPython/HiCcoverage.csv')
+#coverage = [x[0] for x in coverage]
     
 #coverageWithoutTheZeros = [x for x in coverage if x != 0]
 #coverageLog = [np.log10(x) for x in coverageWithoutTheZeros]

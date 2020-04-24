@@ -3,8 +3,7 @@ import pandas as pd
 import numpy as np
 import random
 from transform_gfa import gfa_to_python
-import basic_functions as bf
-    
+import basic_functions as bf   
 
 def short_distance_interactions(fragcontacts, fraglist):
         
@@ -25,7 +24,6 @@ def short_distance_interactions(fragcontacts, fraglist):
     plt.ylim([0, 1000])
     plt.show()    
         
-
 def HiC_vs_GFA(hiccontacts, links, fragment_list) :
     
     confirmationOfLinks = [[0 for i in j] for j in links] #a list of list of 0 of the same dimensions as links
@@ -49,7 +47,6 @@ def HiC_vs_GFA(hiccontacts, links, fragment_list) :
                         confirmationOfLinks[links[contig1*2+1][j]][i] += contact[2]
     
     return confirmationOfLinks
-
 
 def HiC_vs_GFAtwo(hiccontacts, links, fragment_list, coverage) : #this time we take into account contigs that are two connexions away
     
@@ -125,7 +122,6 @@ def HiC_vs_GFAtwo(hiccontacts, links, fragment_list, coverage) : #this time we t
                      #   print ('il y a un probleme')
     
     return confirmationOfLinks, weightedconfirmationOfLinks
-
 
 def distance_law(hiccontacts, fragmentList):
     tableDistance = [] # we're going to visualize distance law by looking at the inside of contigs
@@ -210,7 +206,6 @@ def testHiC_vs_GFA(hiccontacts, info_contigs) :
     print(score)
     plt.hist(score)
     
-
 def detect_fishy_links(links, confirmationOfLinks, coverage):
     
     #we're going to detect, when there is an ambiguity, if one path looks unlikely
@@ -241,16 +236,31 @@ def detect_fishy_links(links, confirmationOfLinks, coverage):
                               confirmationOfLinks[endOfContig],\
                               weightedConfirmation,)
     return badlinks
+     
+def interactionMatrix(hiccontactsfile, fragmentList, coverage):
+    with open(hiccontactsfile) as f:
     
-    
-    
-
+        interactionMatrix = [[0 for i in range(fragmentList[-1][0]+1)] for j in range(fragmentList[-1][0]+1)]
+        for line in f :
+            
+            line = line.strip('\n')
+            line = line.split('\t')
+            
+            if line[0] != '487796' :#because the first line is a header
+                contact = [int(line[0]), int(line[1]), int(line[2])]
+                                
+                contig1 = fragmentList[contact[0]][0]
+                contig2 = fragmentList[contact[1]][0]
+                
+                interactionMatrix[contig1][contig2] += contact[2]/coverage[contig1]/coverage[contig2]
+                interactionMatrix[contig2][contig1] += contact[2]/coverage[contig1]/coverage[contig2]
+    return interactionMatrix
 
 #hiccontacts = read_abs_fragments_contact_weighted('data/results/abs_fragments_contacts_weighted.txt')
 #hiccontacts = import_from_csv('listsPython/hiccontacts.csv')
 #print(hiccontacts[:20])
 #print(hiccontacts[:100])
-#fragmentList = read_fragment_list('data/results/fragments_list.txt')
+fragmentList = bf.read_fragment_list('data/results/fragments_list.txt')
 #print(fragmentList[:100])
 #infcontigs = read_info_contig('data/results/info_contigs.txt')
 #links = gfa_to_python(1312)
@@ -262,11 +272,6 @@ def detect_fishy_links(links, confirmationOfLinks, coverage):
 #hiccontacts = import_from_csv('listsPython/hiccontacts.csv')
 
 #confirmationOfLinks = HiC_vs_GFAtwo('data/results/abs_fragments_contacts_weighted.txt', links, fragmentList)
-#export_to_csv(links, 'listsPython/links.csv')
-#export_to_csv(hiccontacts, 'listsPython/hiccontacts.csv')
-#export_to_csv(fragmentList, 'listsPython/fragmentList.csv')
-#export_to_csv(infcontigs, 'listsPython/infcontigs.csv')
-#export_to_csv(confirmationOfLinks, 'listsPython/confirmationsDeslinks.csv')
 
 #distance_law(hiccontacts, fragmentList)
 #testHiC_vs_GFA(hiccontacts, infcontigs)
@@ -274,17 +279,19 @@ def detect_fishy_links(links, confirmationOfLinks, coverage):
 #confirmationOfLinks = import_from_csv('listsPython/confirmationsDeslinks.csv')
 #print(confirmationOfLinks[:19])
 
-#print(links[:20])
-#print(len(links))
 #check_links(links)
 #coverage = determine_HiC_coverage(hiccontacts, infcontigs, fragmentList)
-#coverage = import_from_csv('listsPython/HiCcoverage.csv')
-#coverage = [x[0] for x in coverage]
+coverage = bf.import_from_csv('listsPython/HiCcoverage.csv')
+coverage = [x[0] for x in coverage]
 
 #conf, confweight = HiC_vs_GFAtwo('data/results/abs_fragments_contacts_weighted.txt', links, fragmentList, coverage)
 #print(conf[:20],confweight[:20])
 #print(links[:20])
 
 #with_how_many_contig_does_one_contig_interact('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
+
+interaction_Matrix = interactionMatrix('data/results/abs_fragments_contacts_weighted.txt', fragmentList, coverage)
+bf.export_to_csv(interaction_Matrix, 'listsPython/interactionMatrix.csv')
+print(interaction_Matrix[217][323], interaction_Matrix[217][359])
 
 print('Terminé')
