@@ -4,14 +4,12 @@
 Created on Thu Apr 23 15:30:45 2020
 
 @author: zaltabar
-
-In this file we will use a lot of "supercontigs", meaning an assembly of several contigs. The syntax is a list
-of end of contigs, e.g. [40,41, 104,105,523,522] (and not [20,52,261])
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 import basic_functions as bf
+import random
 
 def how_far_away_are_those_contigs(contig1, contig2, links, infContigs):
     connectedToContig1 = [contig1*2, contig1*2+1]
@@ -65,6 +63,7 @@ def how_far_away_are_those_contigs(contig1, contig2, links, infContigs):
         return -1 #meaning contig1 and contig2 are not connected in this graph
 
 #this function measures the intensity of interactions between one supercontig and several candidate, including without taking account of the common parts of the supercontigs
+#the contig in this function are not numbered by their end, i.e. give it [1234] and not [2468,2469]
 def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix) :
     commonContigs = []
     for contig in listOfSuperContigs[0] :
@@ -82,35 +81,103 @@ def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix
     for sg in range(len(listOfSuperContigs)) :
         for c in listOfSuperContigs[sg] :
             for contig in supercontig :
-                if c%2 == 0 and contig%2 == 0  :#to count each interaction only once
-                    if c not in commonContigs :
-                        absoluteScore[sg] += interactionMatrix[int(c/2)][int(contig/2)]
-                        relativeScore[sg] += interactionMatrix[int(c/2)][int(contig/2)]
-                    else :
-                        absoluteScore[sg] += interactionMatrix[int(c/2)][int(contig/2)]
+                if c not in commonContigs :
+                    absoluteScore[sg] += interactionMatrix[c][contig]
+                    relativeScore[sg] += interactionMatrix[c][contig]
+                else :
+                    absoluteScore[sg] += interactionMatrix[c][contig]
     
     return absoluteScore, relativeScore
     
 #we're going to look specifically at one contig and its immediate surroundings
-def solve_ambiguity_around_this_contig(contig, links, interactionMatrix):
+def solve_ambiguity_around_this_end_of_contig(endOfContig, links, listOfContigs, interactionMatrix):
          
-    linksStrengthEvenEnd = intensity_of_interactions([contig*2, contig*2+1], [[x, x +1-2*(x%2)] for x in links[contig*2]], interactionMatrix)[1]
-    maxStrength = np.max(linksStrengthEvenEnd)
+    linksStrength = intensity_of_interactions([int(endOfContig/2)], [[int(x/2)] for x in links[endOfContig]], interactionMatrix)[1]
+    maxStrength = np.max(linksStrength)
     
-    newSuperContigs = []
-    for i in range(len(linksStrengthEvenEnd)) :
-        if linksStrengthEvenEnd[i] > maxStrength/4 :
-            newSuperContigs += [[links[contig*2][i], links[contig*2][i] +1-2*(links[contig*2][i]%2), contig*2, contig*2+1]]
-    print (newSuperContigs)
+    validatedLinks = []
+    for i in range(len(linksStrength)) :
+        if linksStrength[i] >= maxStrength/3 : #we consider then that the link is real
+            validatedLinks += [links[endOfContig][i]]
+            print('Validated : ' , links[endOfContig][i])
+        #else : we consider that the link does not exist
+        suppress here links that are rejected
+        
+    links[endOfContig] = [validatedLinks[0]]
+    
+    for i in validatedLinks[1:]:
+        listOfContigs += [int(endOfContig/2)]
+        if endOfContig%2 == 0 :
+            links += [[i]]
+            
+            #now we reroute the link arriving there
+            
+            links[i].remove(endOfContig)
+            links[i] += [len(links)-1]
+            
+            links += [[l for l in links[endOfContig+1]]]
+            for l in links[endOfContig+1] :
+                links[l]+=[len(links)-1]
+        else : #if endOfContig%2 == 1
+            links += [[l for l in links[endOfContig-1]]]
+            for l in links[endOfContig-1] :
+                links[l]+=[len(links)-1]
+            
+            links += [[i]]
+            
+            links[i].remove(endOfContig)
+            links[i] += [len(links)-1]
+            
+        #updating the interaction matrix
+        interactionMatrix += [interactionMatrix[int(endOfContig/2)]]
+        interactionMatrix = [interactionMatrix[j]+[interactionMatrix[j][int(endOfContig/2)]] for j in range(len(interactionMatrix))]
+        interactionMatrix[int(endOfContig/2)][-1] = 0 #because our two new contigs don't interact particularly
+        interactionMatrix[-1][int(endOfContig/2)] = 0
+        
+        print(len(interactionMatrix[-2]))
+    
+    return links, listOfContigs, interactionMatrix
+
+def export_to_GFA(links, listOfContigs, fastaFile):
+    
+    f = open('results/newAssembly.gfa', 'w')
+    f.write('H\tVN:Z:1.0\n')
+    
+    for i in range(len(listOfContigs)) :
+        if i%200 == 0 :
+            print(i)
+        f.write('S\t'+str(i*2)+'\t'+bf.get_contig(fastaFile, listOfContigs[i])+'\tR:i:'+str(i*10000)+'\n')
+    for i in range(len(links)) :
+        for j in range(len(links[i])):
+            if i < links[i][j] :
+                if i%2 == 0 and links[i][j]%2 == 0:
+                    f.write('L\t'+str(i)+'\t-\t'+str(links[i][j])+'\t+\t*\n')
+                elif i%2 == 1 and links[i][j]%2 == 0:
+                    f.write('L\t'+str(i-1)+'\t+\t'+str(links[i][j])+'\t+\t*\n')
+                elif i%2 == 0 and links[i][j]%2 == 1:
+                    f.write('L\t'+str(i)+'\t-\t'+str(links[i][j]-1)+'\t-\t*\n')
+                elif i%2 == 1 and links[i][j]%2 == 1:
+                    f.write('L\t'+str(i-1)+'\t+\t'+str(links[i][j]-1)+'\t-\t*\n')
+
+def solve_ambiguities(links, listOfContigs, interactionMatrix): #look at ambilguities one after the other 
+    for i in range(15000) :
+        inspectedContig = random.randint(0, len(links)-1)
+        if len(links[inspectedContig]) > 1 :
+            print('Let us try and solve contig number '+str(inspectedContig))
+            links, listOfContigs, interactionMatrix = solve_ambiguity_around_this_end_of_contig(inspectedContig, links, listOfContigs, interactionMatrix)
+    
+    return links, listOfContigs 
 
 links = bf.import_links('listsPython/links.csv')
 #infContigs = bf.read_info_contig('data/results/info_contigs.txt')
 interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+print('Loaded')
 
-print('coucou')
-solve_ambiguity_around_this_contig(802, links, interactionMatrix)
+#print(links)
+links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
 #print(intensity_of_interactions([874*2, 874*2+1], [[584*2,584*2+1,1120*2,1120*2+1], [584*2,584*2+1,78*2,78*2+1]], interactionMatrix))
 #print(intensity_of_interactions([584*2,584*2+1,78*2,78*2+1], [[802*2,802*2+1,874*2, 874*2+1], [802*2,802*2+1,743*2,743*2+1]], interactionMatrix))
+export_to_GFA(links, listOfContigs, 'data/Assembly.fasta')
 
 print('Finished')
 

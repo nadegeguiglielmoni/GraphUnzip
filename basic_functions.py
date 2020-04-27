@@ -23,7 +23,6 @@ def read_abs_fragments_contact_weighted(file):
 
     return (content[1:]) #because the first line is a header
 
-
 # /!\ for many functions to work, fragmentList has to be sorted (first contig1, then contig2...)
 def read_fragment_list(file) :
     
@@ -35,7 +34,6 @@ def read_fragment_list(file) :
     content = [[int(x[1].strip('sequence')), int(x[2]), int(x[3]), int(x[4])] for x in content]
 
     return (content)
-
 
 def read_info_contig(file):
     
@@ -64,3 +62,18 @@ def import_from_csv(file):
 def import_links(file): 
     links = import_from_csv(file)
     return [[int(i) for i in j] for j in links]
+
+def get_contig(fastaFile, contig) :
+    
+    with open(fastaFile) as f :
+        
+        lookAtNextLine = False
+        for line in f :
+            
+            if lookAtNextLine :
+                return line
+            target= '>sequence'+str(contig)
+            if target in line :
+                lookAtNextLine = True
+    
+    return 'In get_contig : the contig you are seeking is not in the fasta file'

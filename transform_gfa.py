@@ -124,7 +124,7 @@ def print_short():
     
     for i in range(len(r)) :
         if r[i] in bases :
-            if count%500000000==0 :
+            if count%5000000==0 :
                 s+= r[i]
         else :
             s+=r[i]
@@ -146,3 +146,4 @@ def check_links(links):
             if not found :
                 print('Problem : ', i, neighbor)
                 
+print_short()
