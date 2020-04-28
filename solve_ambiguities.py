@@ -58,7 +58,11 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
 
         otherEnd = i + 1 - 2 * (i % 2)
         links += [links[otherEnd]]
-
+        
+        if endOfSuperContig+1-(endOfSuperContig%2)*2 in links[otherEnd] : #this loop is too difficult for us
+            return -1,-1
+        if endOfSuperContig-1 in links[otherEnd] :
+            print('Strange...')
         for j in links[otherEnd] :
             links[j] += [len(links)-1]
             
@@ -265,13 +269,12 @@ def solve_ambiguities(
 
     return links, listOfSuperContigs
 
-
-# links = bf.import_links('listsPython/links.csv')
+links = bf.import_links('listsPython/links.csv')
 # print(links[1465])
 # infContigs = bf.read_info_contig('data/results/info_contigs.txt')
-# interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
-# for i in range(len(interactionMatrix)):
-#     interactionMatrix[i][i] = 0
+interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+for i in range(len(interactionMatrix)):
+     interactionMatrix[i][i] = 0
 print('Loaded')
 
 # links, listOfSuperContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
@@ -281,33 +284,23 @@ print('Loaded')
 # print(intensity_of_interactions([874*2, 874*2+1], [[584*2,584*2+1,1120*2,1120*2+1], [584*2,584*2+1,78*2,78*2+1]], interactionMatrix))
 # print(intensity_of_interactions([584*2,584*2+1,78*2,78*2+1], [[802*2,802*2+1,874*2, 874*2+1], [802*2,802*2+1,743*2,743*2+1]], interactionMatrix))
 
-print(
-    solve_ambiguities(
-        [[], [4], [], [4], [1, 3], [6, 8], [5], [], [5], []],
-        [0, 1, 2, 3, 4],
-        [
-            [1, 1, 1, 1, 0],
-            [1, 1, 1, 0, 1],
-            [1, 1, 1, 1, 1],
-            [1, 0, 1, 1, 1],
-            [0, 1, 1, 1, 1],
-        ],
-    )
-)
-
-<<<<<<< HEAD
-# print(solve_ambiguities([[],[4],[],[4],[1,3],[6,8],[5],[],[5],[]], [0,1,2,3,4], [[1,1,1,1,0],[1,1,1,0,1],\
-#                                                                                 [1,1,1,1,1],[1,0,1,1,1],\
-#                                                                                     [0,1,1,1,1]]))
+# print(
+#     solve_ambiguities(
+#         [[], [4], [], [4], [1, 3], [6, 8], [5], [], [5], []],
+#         [0, 1, 2, 3, 4],
+#         [
+#             [1, 1, 1, 1, 0],
+#             [1, 1, 1, 0, 1],
+#             [1, 1, 1, 1, 1],
+#             [1, 0, 1, 1, 1],
+#             [0, 1, 1, 1, 1],
+#         ],
+#     )
+# )
         
 links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
 print(listOfContigs)
                          
 print('Finished')
-=======
-# links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
-# print(listOfContigs)
 
-print("Finished")
->>>>>>> c57acad37f6a4b4596ef44a53c1c5af7332fe75a
 
