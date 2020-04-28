@@ -4,6 +4,8 @@
 Created on Thu Apr 23 15:59:45 2020
 
 @author: zaltabar
+
+File basically dedicated to small functions involving reading and writing files
 """
 import pandas as pd
 import numpy as np

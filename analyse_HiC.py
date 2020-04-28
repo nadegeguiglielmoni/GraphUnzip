@@ -237,7 +237,7 @@ def detect_fishy_links(links, confirmationOfLinks, coverage):
                               weightedConfirmation,)
     return badlinks
      
-def interactionMatrix(hiccontactsfile, fragmentList, coverage):
+def interactionMatrix(hiccontactsfile, fragmentList, coverage, header = True):
     with open(hiccontactsfile) as f:
     
         interactionMatrix = [[0 for i in range(fragmentList[-1][0]+1)] for j in range(fragmentList[-1][0]+1)]
@@ -246,7 +246,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, coverage):
             line = line.strip('\n')
             line = line.split('\t')
             
-            if line[0] != '487796' :#because the first line is a header
+            if not header :#because the first line is a header
                 contact = [int(line[0]), int(line[1]), int(line[2])]
                                 
                 contig1 = fragmentList[contact[0]][0]
@@ -254,6 +254,8 @@ def interactionMatrix(hiccontactsfile, fragmentList, coverage):
                 
                 interactionMatrix[contig1][contig2] += contact[2]*1000000/coverage[contig1]/coverage[contig2] #*1000000 so that the numbers are not too small (the risk being their being considered 0)
                 interactionMatrix[contig2][contig1] += contact[2]*1000000/coverage[contig1]/coverage[contig2]
+            header = False
+            
     return interactionMatrix
 
 #hiccontacts = read_abs_fragments_contact_weighted('data/results/abs_fragments_contacts_weighted.txt')

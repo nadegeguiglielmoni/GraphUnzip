@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Apr 22 17:19:55 2020
+
+File dedicated to the analysis of the HiC coverage of contigs
 """
 
 import matplotlib.pyplot as plt
