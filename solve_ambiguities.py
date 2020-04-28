@@ -41,7 +41,7 @@ def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix
     
     return absoluteScore, relativeScore
     
-#here we look specifically at one contig and its immediate surroundings
+#here we look specifically at one contig and its immediate surroundings (can return -1 if fails in short loop)
 def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSuperContigs):
             
     #we add all the new supercontigs
@@ -60,22 +60,32 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
             
     #now we delete the merged supercontigs
     #we start by deleting the links that linked the merged supercontigs to the outside
-    
        
     deletedContigs = [int(endOfSuperContig/2)]
     otherEnd = endOfSuperContig + 1- 2*(endOfSuperContig%2)
     for i in links[otherEnd]:
-        links[i].remove(otherEnd)
+        try :
+            links[i].remove(otherEnd)
+        except ValueError : #that means we're in a small loop which whe can't solve
+            print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(i) +' . Please check that there is indeed a loop there.')
+            return -1, -1
     
     for merged in links[endOfSuperContig]:       
         if len(links[merged]) == 1 : #then the original copy is fully integrated in the supercontig
-            print(endOfSuperContig, merged, links[merged+1-2*(merged%2)], links[merged])
             deletedContigs += [int(merged/2)]
             otherEnd = merged + 1- 2*(merged%2)
             for i in links[otherEnd]:
-                links[i].remove(otherEnd)
+                try :
+                    links[i].remove(otherEnd)
+                except ValueError : #that means we're in a small loop which whe can't solve
+                    print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(merged) +' . Please check that there is indeed a loop there.')
+                    return -1, -1
         else : #then the original contig still exists by itself, we just delete the link
-            links[merged].remove(endOfSuperContig)
+            try :
+                links[merged].remove(endOfSuperContig)
+            except ValueError : #that means we're in a small loop which whe can't solve
+                    print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(merged) +' . Please check that there is indeed a loop there.')
+                    return -1, -1
     
     #then we replace the merged supercontigs and all their links by empty lists (we do not delete them to keep the indexes right)
 
@@ -165,6 +175,7 @@ def merge_contigs (links, listOfSuperContigs):
     locked = [False for i in listOfSuperContigs]
     
     for endOfSuperContig in range(len(locked)*2):
+        print(endOfSuperContig, len(locked)*2)
         #print('end of supercontig that is looked at : ', endOfSuperContig)
         if len(links[endOfSuperContig]) > 1 :
             startMerging = not locked[int(endOfSuperContig/2)]
@@ -175,17 +186,21 @@ def merge_contigs (links, listOfSuperContigs):
                     startMerging = False
             
             if startMerging : #if nothing is locked for now
-                links, listOfSuperContigs = solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSuperContigs)
-                links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))] #we might want to see where that comes from if we want speed
-                locked[int(endOfSuperContig/2)] = True
-                for i in links[endOfSuperContig] :
-                    locked[int(i/2)] = True
+                li, lsc = solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSuperContigs)
+                if li != -1 : 
+                    links, listOfSuperContigs = li, lsc
+                    links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))] #we might want to see where that comes from if we want speed
+                    locked[int(endOfSuperContig/2)] = True
+                    for i in links[endOfSuperContig] :
+                        locked[int(i/2)] = True
             
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
-    
+    locked = [False for i in listOfSuperContigs]
+
+    print('COCUOU!!!!!!!!!!!!')
     for endOfSuperContig in range(len(locked)*2):
         if len(links[endOfSuperContig]) == 1 and len(links[links[endOfSuperContig][0]])==1 : #then we just merge
-            links, listOfSuperContigs = merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs)
+                links, listOfSuperContigs = merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs)
         
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     return links, listOfSuperContigs
@@ -221,13 +236,13 @@ def solve_ambiguities(links, listOfContigs, interactionMatrix): #look at ambilgu
         
     return links, listOfSuperContigs 
 
-#links = bf.import_links('listsPython/links.csv')
+links = bf.import_links('listsPython/links.csv')
 #print(links[1465])
 #infContigs = bf.read_info_contig('data/results/info_contigs.txt')
-# interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
 # for i in range(len(interactionMatrix)):
 #     interactionMatrix[i][i] = 0
-# print('Loaded')
+print('Loaded')
 
 #links, listOfSuperContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
 #print(listOfSuperContigs)
@@ -236,12 +251,12 @@ def solve_ambiguities(links, listOfContigs, interactionMatrix): #look at ambilgu
 #print(intensity_of_interactions([874*2, 874*2+1], [[584*2,584*2+1,1120*2,1120*2+1], [584*2,584*2+1,78*2,78*2+1]], interactionMatrix))
 #print(intensity_of_interactions([584*2,584*2+1,78*2,78*2+1], [[802*2,802*2+1,874*2, 874*2+1], [802*2,802*2+1,743*2,743*2+1]], interactionMatrix))
 
-print(solve_ambiguities([[],[4],[],[4],[1,3],[6,8],[5],[],[5],[]], [0,1,2,3,4], [[1,1,1,1,0],[1,1,1,0,1],\
-                                                                                [1,1,1,1,1],[1,0,1,1,1],\
-                                                                                    [0,1,1,1,1]]))
-
-#links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
-#print(listOfContigs)    
+# print(solve_ambiguities([[],[4],[],[4],[1,3],[6,8],[5],[],[5],[]], [0,1,2,3,4], [[1,1,1,1,0],[1,1,1,0,1],\
+#                                                                                 [1,1,1,1,1],[1,0,1,1,1],\
+#                                                                                     [0,1,1,1,1]]))
+        
+links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
+print(listOfContigs)
                          
 print('Finished')
 
