@@ -4,6 +4,8 @@
 Created on Thu Apr 23 15:30:45 2020
 
 @author: zaltabar
+
+File dedicated to the algorithm af making bigger contigs, including solving bubbles
 """
 
 import matplotlib.pyplot as plt
@@ -11,57 +13,6 @@ import numpy as np
 import basic_functions as bf
 import random
 from shutil import copyfile
-
-def how_far_away_are_those_contigs(contig1, contig2, links, infContigs):
-    connectedToContig1 = [contig1*2, contig1*2+1]
-    
-    distanceToContig1 = [0,0]
-    
-    pathToContig1 = [[],[]]
-    
-    pastLengthOfconnexion1 = 1
-    
-    while pastLengthOfconnexion1 < len(connectedToContig1) :
-        
-        pastLengthOfconnexion1 = len(connectedToContig1)
-        newConnectedToContig1 = connectedToContig1[:]
-        
-        #we spread one step from contig1
-        for cc, connectedContig in enumerate(connectedToContig1) : #that can be optimized if we need speed, since we go through the first contigs many times
-            
-            if cc < 2 or cc%2 == 1 : #that's to move only one way in the contig graph
-                for newContig in links[connectedContig] :
-                            
-                    newdist = distanceToContig1[cc]+infContigs[int(connectedContig/2)][1]
-                    if newContig in newConnectedToContig1 :
-                        
-                        oldpos = newConnectedToContig1.index(newContig)
-                        
-                        if newdist < distanceToContig1[oldpos] :
-                            distanceToContig1[oldpos] = newdist
-                            pathToContig1[oldpos] = pathToContig1[cc]+[cc]
-                            
-                            distanceToContig1[oldpos+1-2*(oldpos%2)] = newdist
-                            pathToContig1[oldpos+1-2*(oldpos%2)] = pathToContig1[cc]+[cc]
-                    else :
-                        #we add both end of the contig to the connected contig
-                        newConnectedToContig1 += [newContig]
-                        distanceToContig1 += [newdist]
-                        pathToContig1 += [pathToContig1[cc]+[cc]]
-                        
-                        newConnectedToContig1 += [newContig + 1 - 2*(newContig%2)]
-                        distanceToContig1 += [newdist]
-                        pathToContig1 += [pathToContig1[cc]+[connectedContig]]
-        connectedToContig1 = newConnectedToContig1[:]
-        
-    #now we see where contig2 stands with respect to contig1
-    if contig2*2 in connectedToContig1 :
-        print(connectedToContig1)
-        indexContig2 = connectedToContig1.index(contig2*2)
-        return distanceToContig1[indexContig2]-infContigs[contig1][1], pathToContig1[indexContig2][1:] #because the length of contig 1 is always taken into account in the path length while it shouldn't
-    else :
-        print(connectedToContig1)
-        return -1 #meaning contig1 and contig2 are not connected in this graph
 
 #this function measures the intensity of interactions between one supercontig and several candidate, including without taking account of the common parts of the supercontigs
 #the contig in this function are not numbered by their end, i.e. give it [1234] and not [2468,2469]
@@ -90,7 +41,7 @@ def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix
     
     return absoluteScore, relativeScore
     
-#we're going to look specifically at one contig and its immediate surroundings
+#here we look specifically at one contig and its immediate surroundings
 def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSuperContigs):
             
     #we add all the new supercontigs
@@ -135,6 +86,7 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
     
     return links, listOfSuperContigs
 
+#similar to the function above, but simpler : put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
 def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs):
     
     #we add the new supercontigs
@@ -169,9 +121,8 @@ def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs
         links[2*i+1] = [-1]
         
     return links, listOfSuperContigs
-    
 
-def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix) :
+def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, strengthThreshold = 3) :
     
     for endOfContig in range(len(links)):
         if len(links[endOfContig]) > 1 :
@@ -180,11 +131,12 @@ def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix) :
             maxStrength = np.max(linksStrength)
             
             for i in range(len(links[endOfContig])-1,-1,-1) :
-                if linksStrength[i] < maxStrength/3 : #we consider then that the link does not exist
+                if linksStrength[i] < maxStrength/strengthThreshold : #we consider then that the link does not exist
                     links[links[endOfContig][i]].remove(endOfContig)
                     del links[endOfContig][i]
     return links
 
+#this function is needed because solve_ambiguity_at_this_end_of_contig creates a lot of useless lists ([-1]) in listOfSuperContigs and in lists
 def clean_listOfSuperContigs(links, listOfSuperContigs):
      
     if links[0] == [-1]:
@@ -238,6 +190,7 @@ def merge_contigs (links, listOfSuperContigs):
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     return links, listOfSuperContigs
             
+#the only parameter is links, because the part with 'sequences' is already in the file results/sequencesWithoutLinks.gfa, which we copy
 def export_to_GFA(links):
     
     copyfile('results/sequencesWithoutLinks.gfa', 'results/newAssembly.gfa')
@@ -268,13 +221,13 @@ def solve_ambiguities(links, listOfContigs, interactionMatrix): #look at ambilgu
         
     return links, listOfSuperContigs 
 
-links = bf.import_links('listsPython/links.csv')
-print(links[1465])
+#links = bf.import_links('listsPython/links.csv')
+#print(links[1465])
 #infContigs = bf.read_info_contig('data/results/info_contigs.txt')
-interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
-for i in range(len(interactionMatrix)):
-    interactionMatrix[i][i] = 0
-print('Loaded')
+# interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+# for i in range(len(interactionMatrix)):
+#     interactionMatrix[i][i] = 0
+# print('Loaded')
 
 #links, listOfSuperContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
 #print(listOfSuperContigs)
@@ -283,12 +236,12 @@ print('Loaded')
 #print(intensity_of_interactions([874*2, 874*2+1], [[584*2,584*2+1,1120*2,1120*2+1], [584*2,584*2+1,78*2,78*2+1]], interactionMatrix))
 #print(intensity_of_interactions([584*2,584*2+1,78*2,78*2+1], [[802*2,802*2+1,874*2, 874*2+1], [802*2,802*2+1,743*2,743*2+1]], interactionMatrix))
 
-#print(solve_ambiguities([[],[4],[],[4],[1,3],[6,8],[5],[],[5],[]], [0,1,2,3,4], [[1,1,1,1,0],[1,1,1,0,1],\
-#                                                                                 [1,1,1,1,1],[1,0,1,1,1],\
-#                                                                                     [0,1,1,1,1]]))
+print(solve_ambiguities([[],[4],[],[4],[1,3],[6,8],[5],[],[5],[]], [0,1,2,3,4], [[1,1,1,1,0],[1,1,1,0,1],\
+                                                                                [1,1,1,1,1],[1,0,1,1,1],\
+                                                                                    [0,1,1,1,1]]))
 
-links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
-print(listOfContigs)    
+#links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
+#print(listOfContigs)    
                          
 print('Finished')
 

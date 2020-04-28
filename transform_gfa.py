@@ -1,5 +1,7 @@
 # -*- coding: latin-1 -*-
-
+"""
+This file is for handling the gfa : loading it into python lists, transforming it into fasta, reading it...
+"""
 import time
 #from analyse_HiC import lookForStrings
 #print(r[:100000])
@@ -54,7 +56,7 @@ def gfa_to_fasta() :
     return seqs
 
 #Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
-def gfa_to_python(lenseqs): #algo marche si les noms des séquences sont leur indice *2
+def load_gfa(lenseqs): #algo marche si les noms des séquences sont leur indice *2
     
     gfa_read = open('Assembly.gfa')
     r = gfa_read.read()
