@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import basic_functions as bf
 import random
+from shutil import copyfile
 
 def how_far_away_are_those_contigs(contig1, contig2, links, infContigs):
     connectedToContig1 = [contig1*2, contig1*2+1]
@@ -117,6 +118,7 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
     
     for merged in links[endOfSuperContig]:       
         if len(links[merged]) == 1 : #then the original copy is fully integrated in the supercontig
+            print(endOfSuperContig, merged, links[merged+1-2*(merged%2)], links[merged])
             deletedContigs += [int(merged/2)]
             otherEnd = merged + 1- 2*(merged%2)
             for i in links[otherEnd]:
@@ -132,6 +134,42 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
         links[2*i+1] = [-1]
     
     return links, listOfSuperContigs
+
+def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs):
+    
+    #we add the new supercontigs
+    deleted = links[endOfSuperContig][0]
+    listOfSuperContigs += [listOfSuperContigs[int(endOfSuperContig/2)]+listOfSuperContigs[int(deleted/2)]]
+    
+    otherEnd = endOfSuperContig +1 - 2*(endOfSuperContig%2)
+    links += [links[otherEnd]]
+
+    for j in links[otherEnd] :
+        links[j] += [len(links)-1]
+        
+    otherEnd = deleted + 1 - 2*(deleted%2)
+    links += [links[otherEnd]]
+    for j in links[otherEnd] :
+        links[j] += [len(links)-1]
+            
+    #now we delete the merged supercontig    
+    deletedContigs = [int(endOfSuperContig/2), int(deleted/2)]
+    otherEnd = endOfSuperContig + 1- 2*(endOfSuperContig%2)
+    for i in links[otherEnd]:
+        links[i].remove(otherEnd)
+         
+    otherEnd = deleted + 1- 2*(deleted%2)
+    for i in links[otherEnd]:
+        links[i].remove(otherEnd)
+    
+    #then we replace the merged supercontigs and all their links by empty lists (we do not delete them to keep the indexes right)
+    for i in deletedContigs :
+        listOfSuperContigs[i] = [-1]
+        links[2*i] = [-1]
+        links[2*i+1] = [-1]
+        
+    return links, listOfSuperContigs
+    
 
 def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix) :
     
@@ -174,12 +212,15 @@ def merge_contigs (links, listOfSuperContigs):
     #each contig can be multiplied only once in this function (to ensure it is not multiplied by both ends)
     locked = [False for i in listOfSuperContigs]
     
-    for endOfSuperContig in range(len(locked)):
-        
+    for endOfSuperContig in range(len(locked)*2):
+        #print('end of supercontig that is looked at : ', endOfSuperContig)
         if len(links[endOfSuperContig]) > 1 :
             startMerging = not locked[int(endOfSuperContig/2)]
             for i in links[endOfSuperContig] :
-                startMerging = startMerging and (not(locked[int(i/2)]))
+                if i < len(locked)*2 :
+                    startMerging = startMerging and (not(locked[int(i/2)]))
+                else :
+                    startMerging = False
             
             if startMerging : #if nothing is locked for now
                 links, listOfSuperContigs = solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSuperContigs)
@@ -187,21 +228,21 @@ def merge_contigs (links, listOfSuperContigs):
                 locked[int(endOfSuperContig/2)] = True
                 for i in links[endOfSuperContig] :
                     locked[int(i/2)] = True
-        elif len(links[endOfSuperContig]) == 1 and len(links[links[endOfSuperContig][0]])==1 : #then we just merge
-            links, listOfSuperContigs =  solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSuperContigs)
-                
+            
+    links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
+    
+    for endOfSuperContig in range(len(locked)*2):
+        if len(links[endOfSuperContig]) == 1 and len(links[links[endOfSuperContig][0]])==1 : #then we just merge
+            links, listOfSuperContigs = merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs)
+        
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     return links, listOfSuperContigs
             
-def export_to_GFA(links, listOfContigs, fastaFile):
+def export_to_GFA(links):
     
-    f = open('results/newAssembly.gfa', 'w')
-    f.write('H\tVN:Z:1.0\n')
+    copyfile('results/sequencesWithoutLinks.gfa', 'results/newAssembly.gfa')
+    f = open('results/newAssembly.gfa', 'a')
     
-    for i in range(len(listOfContigs)) :
-        if i%200 == 0 :
-            print(i)
-        f.write('S\t'+str(i*2)+'\t'+bf.get_contig(fastaFile, listOfContigs[i])+'\tR:i:'+str(i*10000)+'\n')
     for i in range(len(links)) :
         for j in range(len(links[i])):
             if i < links[i][j] :
@@ -216,19 +257,23 @@ def export_to_GFA(links, listOfContigs, fastaFile):
 
 def solve_ambiguities(links, listOfContigs, interactionMatrix): #look at ambilguities one after the other 
     listOfSuperContigs = [[x] for x in listOfContigs]
-    steps = 3
+    steps = 1
     for i in range(steps) :
         if i%100 == 0 :
             print (str(i/steps*100)+'% done')
         
         links = get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix)
+        print('Bad links deleted')
         links, listOfSuperContigs = merge_contigs(links, listOfSuperContigs)
         
     return links, listOfSuperContigs 
 
-#links = bf.import_links('listsPython/links.csv')
+links = bf.import_links('listsPython/links.csv')
+print(links[1465])
 #infContigs = bf.read_info_contig('data/results/info_contigs.txt')
 interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+for i in range(len(interactionMatrix)):
+    interactionMatrix[i][i] = 0
 print('Loaded')
 
 #links, listOfSuperContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
@@ -237,11 +282,14 @@ print('Loaded')
 #print(links[2600:])
 #print(intensity_of_interactions([874*2, 874*2+1], [[584*2,584*2+1,1120*2,1120*2+1], [584*2,584*2+1,78*2,78*2+1]], interactionMatrix))
 #print(intensity_of_interactions([584*2,584*2+1,78*2,78*2+1], [[802*2,802*2+1,874*2, 874*2+1], [802*2,802*2+1,743*2,743*2+1]], interactionMatrix))
-#export_to_GFA(links, listOfContigs, 'data/Assembly.fasta')
-print(solve_ambiguities([[],[4],[],[4],[1,3],[6,8],[5],[],[5],[]], [0,1,2,3,4], [[1,1,1,1,0],[1,1,1,0,1],\
-                                                                                 [1,1,1,1,1],[1,0,1,1,1],\
-                                                                                     [0,1,1,1,1]]))
-                                         
+
+#print(solve_ambiguities([[],[4],[],[4],[1,3],[6,8],[5],[],[5],[]], [0,1,2,3,4], [[1,1,1,1,0],[1,1,1,0,1],\
+#                                                                                 [1,1,1,1,1],[1,0,1,1,1],\
+#                                                                                     [0,1,1,1,1]]))
+
+links, listOfContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
+print(listOfContigs)    
+                         
 print('Finished')
 
     
