@@ -73,18 +73,20 @@ def import_links(file):
     return [[int(i) for i in j] for j in links]
 
 
-def get_contig(fastaFile, contig):
+def get_contig(fastaFile, contig, firstline = 0):
 
     with open(fastaFile) as f:
 
         lookAtNextLine = False
+        linenumber = 0
         for line in f:
+            if linenumber >= firstline :
+                if lookAtNextLine:
+                    return line
+                target = ">sequence" + str(contig)
+                if target in line:
+                    lookAtNextLine = True
 
-            if lookAtNextLine:
-                return line
-            target = ">sequence" + str(contig)
-            if target in line:
-                lookAtNextLine = True
-
+            linenumber += 1
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
