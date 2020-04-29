@@ -43,7 +43,6 @@ def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix
     
 #here we look specifically at one contig and its immediate surroundings (can return -1 if fails in short loop)
 def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSuperContigs, copiesnumber):
-            
     #we change copiesnumber
     for i in listOfSuperContigs[int(endOfSuperContig/2)]:
         copiesnumber[i] += len(links[endOfSuperContig])-1
@@ -65,10 +64,10 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
         
         if endOfSuperContig+1-(endOfSuperContig%2)*2 in links[otherEnd] : #this loop is too difficult for us
             print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(i) +' . Please check that there is indeed a loop there.')    
-        return -1,-1,-1
+            return -1,-1,-1
         for j in links[otherEnd] :
             links[j] += [len(links)-1]
-            
+     
     #now we delete the merged supercontigs
     #we start by deleting the links that linked the merged supercontigs to the outside
        
@@ -254,7 +253,6 @@ def export_to_GFA(links, listOfSuperContigs, originalLinks, copiesnumber, fastaF
             f.write('S\t'+str(contig*2)+'-'+str(copiesUsed[contig])+'\t'+bf.get_contig(fastaFile, supercontig[0], supercontig[0]*2-1)+'\n')
             #print(supercontig)
             if c > 0:
-                print('coucou')
                 f.write('L\t'+str(supercontig[c-1]*2)+'-'+str(copiesUsed[supercontig[c-1]]-1)+\
                         '\t+\t' + str(contig*2)+'-'+\
                             str(copiesUsed[contig])+'\t+\t*\n')
@@ -262,7 +260,8 @@ def export_to_GFA(links, listOfSuperContigs, originalLinks, copiesnumber, fastaF
             copiesUsed[contig] += 1
 
 
-def solve_ambiguities(links, listOfContigs, interactionMatrix, copiesnumber):  # look at ambilguities one after the other
+def solve_ambiguities(links, listOfContigs, interactionMatrix):  # look at ambilguities one after the other
+    copiesnumber = [1 for i in listOfContigs]
     listOfSuperContigs = [[x] for x in listOfContigs]
     steps = 1
     for i in range(steps):
@@ -279,7 +278,7 @@ links = bf.import_links('listsPython/links.csv')
 # infContigs = bf.read_info_contig('data/results/info_contigs.txt')
 interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
 for i in range(len(interactionMatrix)):
-     interactionMatrix[i][i] = 0
+      interactionMatrix[i][i] = 0
 print('Loaded')
 
 # links, listOfSuperContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
@@ -299,14 +298,16 @@ print('Loaded')
 #             [1, 1, 1, 1, 1],
 #             [1, 0, 1, 1, 1],
 #             [0, 1, 1, 1, 1],
-#         ],
+#         ]
 #     )
 # )
         
-newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix, [1 for i in range(1312)])
-print('Now exporting')
+newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
+
 print(listOfSuperContigs)
 #print(copiesnumber)
+
+print('Now exporting')
 export_to_GFA(newlinks, listOfSuperContigs, links, copiesnumber, 'data/Assembly.fasta') 
                         
 print('Finished')
