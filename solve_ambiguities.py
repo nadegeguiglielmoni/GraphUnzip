@@ -16,6 +16,7 @@ from shutil import copyfile
 from copy import deepcopy
 from transform_gfa import check_links
 
+
 # this function measures the intensity of interactions between one supercontig and several candidate, including without taking account of the common parts of the supercontigs
 # the contig in this function are not numbered by their end, i.e. give it [1234] and not [2468,2469]
 def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix, copiesnumber):
@@ -133,7 +134,6 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
     
     return links, listOfSuperContigs, copiesnumber
 
-
 # similar to the function above, but simpler : put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
 def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs):
 
@@ -193,6 +193,9 @@ def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnum
             maxStrength = np.max(linksStrength)
 
             for i in range(len(links[endOfContig]) - 1, -1, -1):
+                if linksStrength[i] != maxStrength :
+                    file = open('ratio.txt','a')
+                    file.write(str(linksStrength[i]/maxStrength)+'\n')
                 if (linksStrength[i] < maxStrength / strengthThreshold):  # we consider then that the link does not exist
                     links[links[endOfContig][i]].remove(endOfContig)
                     del links[endOfContig][i]
@@ -338,7 +341,7 @@ print('Loaded')
 #     )
 # )
     
-newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix, 2, 1)
+newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix, 2, 12)
 
 #print(copiesnumber)
 

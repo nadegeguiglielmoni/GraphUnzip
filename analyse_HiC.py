@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import random
-from transform_gfa import gfa_to_python
+from transform_gfa import load_gfa
 import basic_functions as bf
+import pickle
 
 
 def short_distance_interactions(fragcontacts, fraglist):
@@ -212,9 +213,7 @@ def distance_law(hiccontacts, fragmentList):
     # plt.xlim([0, 150000])
     plt.ylim([0, 20])
     plt.show()
-
-    # export_to_csv([tableDistance, tableIntensity], 'listsPython/distanceIntensite')
-
+# export_to_csv([tableDistance, tableIntensity], 'listsPython/distanceIntensite')
 
 def with_how_many_contig_does_one_contig_interact(hiccontactsfile, fragmentList):
 
@@ -253,7 +252,6 @@ def with_how_many_contig_does_one_contig_interact(hiccontactsfile, fragmentList)
         )
         plt.ylabel("Number of contig interacting with x others")
         plt.show()
-
 
 # here comes the neutral test for our test_HiC_vs_GFA : we're going to break down contigs and see how much HiC contact they have
 def testHiC_vs_GFA(hiccontacts, info_contigs):
@@ -402,10 +400,10 @@ coverage = [x[0] for x in coverage]
 
 # with_how_many_contig_does_one_contig_interact('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
 
-interaction_Matrix = interactionMatrix(
-    "data/results/abs_fragments_contacts_weighted.txt", fragmentList, coverage
-)
-bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv")
+interaction_Matrix = interactionMatrix("data/results/abs_fragments_contacts_weighted.txt", fragmentList, coverage)
+im = sp.lil_matrix(interaction_Matrix)
+pickle.dump(im, 'listsPython/interactionMatrix.pickle')
+#bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv")
 print(interaction_Matrix[217][323], interaction_Matrix[217][359])
 
 print("Finished")
