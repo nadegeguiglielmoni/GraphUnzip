@@ -153,8 +153,9 @@ def check_links(links):
             for k in links[neighbor]:
                 if k == i:
                     found = True
-            if not found:
-                print("Problem : ", i, neighbor)
-
-
-print_short()
+            if not found and neighbor != -1:
+                print("Problem in links, a one-end link : ", i, neighbor)
+                while 1 :
+                    r = 0
+                return False
+    return True

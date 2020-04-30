@@ -14,10 +14,11 @@ import basic_functions as bf
 import random
 from shutil import copyfile
 from copy import deepcopy
+from transform_gfa import check_links
 
 # this function measures the intensity of interactions between one supercontig and several candidate, including without taking account of the common parts of the supercontigs
 # the contig in this function are not numbered by their end, i.e. give it [1234] and not [2468,2469]
-def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix):
+def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix, copiesnumber):
     commonContigs = []
     for contig in listOfSuperContigs[0]:
         common = True
@@ -27,6 +28,7 @@ def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix
             commonContigs += [contig]
     # now we have a list of common contigs
 
+    bestSignature = np.min([copiesnumber[x] for x in supercontig])
     # we return for each supercontig its absolute score and its relative score (wihtout the common parts)
     absoluteScore = [0 for i in range(len(listOfSuperContigs))]
     relativeScore = [0 for i in range(len(listOfSuperContigs))]
@@ -34,7 +36,7 @@ def intensity_of_interactions(supercontig, listOfSuperContigs, interactionMatrix
     for sg in range(len(listOfSuperContigs)):
         for c in listOfSuperContigs[sg]:
             for contig in supercontig:
-                if c not in commonContigs:
+                if c not in commonContigs and copiesnumber[contig] == bestSignature :
                     absoluteScore[sg] += interactionMatrix[c][contig]
                     relativeScore[sg] += interactionMatrix[c][contig]
                 else:
@@ -50,30 +52,54 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
     
     #we add all the new supercontigs
     for i in links[endOfSuperContig]:
-        listOfSuperContigs += [
-            listOfSuperContigs[int(endOfSuperContig / 2)]
-            + listOfSuperContigs[int(i / 2)]
-        ]
 
+        otherEndNeighbor = i + 1 - 2 * (i % 2)
         otherEnd = endOfSuperContig + 1 - 2 * (endOfSuperContig % 2)
-        links += [links[otherEnd]]
-        for j in links[otherEnd]:
-            links[j] += [len(links) - 1]
 
-        otherEnd = i + 1 - 2 * (i % 2)
-        links += [links[otherEnd]]
+        if endOfSuperContig in links[otherEndNeighbor] or int(endOfSuperContig/2) == int(i/2) :
+            print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(i) +' . Please check that there is indeed a loop there.')
+            return -1, -1,-1
+        
+        if endOfSuperContig%2 == 1 :
+            if i%2 == 0 :
+                listOfSuperContigs += [listOfSuperContigs[int(endOfSuperContig / 2)]+ listOfSuperContigs[int(i / 2)]]
+            else :
+                listOfSuperContigs += [listOfSuperContigs[int(endOfSuperContig / 2)]+ listOfSuperContigs[int(i / 2)][::-1]]
+            
+            links += [links[otherEnd]] 
+            for j in links[otherEnd]:
+                links[j] += [len(links) - 1]
+            
+            links += [links[otherEndNeighbor]]        
+            for j in links[otherEndNeighbor]:
+                links[j] += [len(links) - 1]
+        
+        else : 
+            if i%2 == 0 :
+                listOfSuperContigs += [listOfSuperContigs[int(i / 2)][::-1]+ listOfSuperContigs[int(endOfSuperContig / 2)]]
+            else :
+                listOfSuperContigs += [listOfSuperContigs[int(i / 2)]+ listOfSuperContigs[int(endOfSuperContig / 2)]]
+            
+            links += [links[otherEndNeighbor]]             
+            for j in links[otherEndNeighbor]:
+                links[j] += [len(links) - 1]
+            
+            links += [links[otherEnd]] 
+            for j in links[otherEnd]:
+                links[j] += [len(links) - 1]
         
         if endOfSuperContig+1-(endOfSuperContig%2)*2 in links[otherEnd] : #this loop is too difficult for us
             print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(i) +' . Please check that there is indeed a loop there.')    
             return -1,-1,-1
-        for j in links[otherEnd] :
-            links[j] += [len(links)-1]
      
     #now we delete the merged supercontigs
     #we start by deleting the links that linked the merged supercontigs to the outside
        
     deletedContigs = [int(endOfSuperContig/2)]
     otherEnd = endOfSuperContig + 1- 2*(endOfSuperContig%2)
+    
+    #print(endOfSuperContig, listOfSuperContigs[-1], listOfSuperContigs[-2], listOfSuperContigs[int(endOfSuperContig/2)], listOfSuperContigs[int(links[endOfSuperContig][0]/2)], links[otherEnd])
+    
     for i in links[otherEnd]:
         try :
             links[i].remove(otherEnd)
@@ -104,7 +130,7 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
         listOfSuperContigs[i] = [-1]
         links[2 * i] = [-1]
         links[2 * i + 1] = [-1]
-
+    
     return links, listOfSuperContigs, copiesnumber
 
 
@@ -158,13 +184,12 @@ def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs
 
     return links, listOfSuperContigs
 
-
-def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, strengthThreshold=3):
+def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, strengthThreshold=3):
 
     for endOfContig in range(len(links)):
         if len(links[endOfContig]) > 1:
             absoluteLinksStrength, linksStrength = intensity_of_interactions(listOfSuperContigs[int(endOfContig / 2)],
-                [listOfSuperContigs[int(x / 2)] for x in links[endOfContig]],interactionMatrix)
+                [listOfSuperContigs[int(x / 2)] for x in links[endOfContig]],interactionMatrix, copiesnumber)
             maxStrength = np.max(linksStrength)
 
             for i in range(len(links[endOfContig]) - 1, -1, -1):
@@ -172,7 +197,6 @@ def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, strengthT
                     links[links[endOfContig][i]].remove(endOfContig)
                     del links[endOfContig][i]
     return links
-
 
 # this function is needed because solve_ambiguity_at_this_end_of_contig creates a lot of useless lists ([-1]) in listOfSuperContigs and in lists
 def clean_listOfSuperContigs(links, listOfSuperContigs):
@@ -217,17 +241,15 @@ def merge_contigs(links, listOfSuperContigs, copiesnumber):
                     startMerging = False
             
             if startMerging : #if nothing is locked for now
-
                 li, lsc, cn = solve_ambiguity_around_this_end_of_contig(endOfSuperContig, deepcopy(links), deepcopy(listOfSuperContigs), copiesnumber.copy())
-
                 if li != -1 : #the function returns -1 when it fell on an unsolvable loop
-                    links, listOfSuperContigs, copiesnumber = li[:], lsc[:], cn[:]
+                    links, listOfSuperContigs, copiesnumber = deepcopy(li), deepcopy(lsc), deepcopy(cn)
                     links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))] #we might want to see where that comes from if we want speed
                     locked[int(endOfSuperContig/2)] = True
                     for i in links[endOfSuperContig] :
                         locked[int(i/2)] = True
-        
-    
+     
+
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     locked = [False for i in listOfSuperContigs]
 
@@ -280,15 +302,15 @@ def export_to_GFA(links, listOfSuperContigs, originalLinks, copiesnumber, fastaF
                 elif endOfSuperContig%2 == 1 and l%2 == 1 :         
                     f.write('L\t'+addresses[endOfSuperContig]+'\t+\t' + addresses[l]+'\t-\t*\n')
 
-def solve_ambiguities(links, listOfContigs, interactionMatrix):  # look at ambiguities one after the other
+def solve_ambiguities(links, listOfContigs, interactionMatrix, stringence, steps):  # look at ambiguities one after the other
     copiesnumber = [1 for i in listOfContigs]
     listOfSuperContigs = [[x] for x in listOfContigs]
-    steps = 5
     for i in range(steps):
         
         print(str(i / steps * 100) + "% of solving ambiguities done")
 
-        links = get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, 1.5)
+        links = get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, stringence)
+
         links, listOfSuperContigs, copiesnumber = merge_contigs(links, listOfSuperContigs, copiesnumber)
 
     return links, listOfSuperContigs, copiesnumber
@@ -300,13 +322,6 @@ interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
 for i in range(len(interactionMatrix)):
       interactionMatrix[i][i] = 0
 print('Loaded')
-
-# links, listOfSuperContigs = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
-# print(listOfSuperContigs)
-# print('Now the end of links ')
-# print(links[2600:])
-# print(intensity_of_interactions([874*2, 874*2+1], [[584*2,584*2+1,1120*2,1120*2+1], [584*2,584*2+1,78*2,78*2+1]], interactionMatrix))
-# print(intensity_of_interactions([584*2,584*2+1,78*2,78*2+1], [[802*2,802*2+1,874*2, 874*2+1], [802*2,802*2+1,743*2,743*2+1]], interactionMatrix))
 
 # print(
 #     solve_ambiguities(
@@ -322,8 +337,8 @@ print('Loaded')
 #         ]
 #     )
 # )
-        
-newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix)
+    
+newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix, 2, 1)
 
 #print(copiesnumber)
 
