@@ -97,8 +97,6 @@ def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
                 interactionMatrix[names.index(con1)][names.index(con2)] += dist_law((c2-c1)*lengthOfContigs)
                 interactionMatrix[names.index(con2)][names.index(con1)] += dist_law((c2-c1)*lengthOfContigs)
     
-    sums = [np.sum(i) for i in interactionMatrix]
-    interactionMatrix = [[interactionMatrix[i][j]/sums[i]/sums[j]*1000000 for j in range(len(interactionMatrix[i]))] for i in range(len(interactionMatrix))]
     for i in range(len(interactionMatrix)):
         interactionMatrix[i][i] = 0
     return interactionMatrix
@@ -111,8 +109,10 @@ interactionMatrix = constructFakeInteractionMatrix(chromosomes, names)
 print_chromosomes(chromosomes)
 print(names)
 
-links, listOfSuperContigs, cn = solve_ambiguities(links, [x for x in range(len(names))], interactionMatrix, 5, 1)
-export_to_GFA(links, listOfSuperContigs, cn, names, exportFile = 'tests/fake2.gfa')
+links, listOfSuperContigs, cn = solve_ambiguities(links, [x for x in range(len(names))], interactionMatrix, 2.5 ,5, names)
+#2 is the minimum for a decent threshold, elsewise links that are on only one chromosome are suppressed compared to those on both chromosomes
+
+#export_to_GFA(links, listOfSuperContigs, cn, names, exportFile = 'tests/fake2.gfa')
 #export_to_GFA(links, [[i] for i in range(len(names))], [1 for i in names], names, exportFile = 'tests/reexport.gfa')
 print('Finished')
     
