@@ -63,63 +63,50 @@ def gfa_to_fasta():
 
 
 # Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
-def load_gfa(lenseqs):  # algo marche si les noms des séquences sont leur indice *2
+def load_gfa(file):
 
-    gfa_read = open("Assembly.gfa")
-    r = gfa_read.read()
+    gfa_read = open(file,'r')
+    
+    names = []
+    for line in gfa_read :
+        if line[0] == 'S' :
+            l = line.split('\t')
+            names  += [l[1]]
 
-    count = 0
-    digits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-    orientation = ["-", "+"]
+    links = [[] for i in range(len(names) * 2)]  # a list of links at one end of a contig
+    
+    gfa_read = open(file,'r')
+    
+    for line in gfa_read :
+        print('Salut')
+        if line[0] == 'L':
+            print('Resalut')
+            l = line.split('\t')
+            contig1 = l[1]
+            contig2 = l[3]
 
-    links = [[] for i in range(lenseqs * 2)]  # a list of links at one end of a contig
-    number = ""
-    n1 = -1  # integers that refer to the two contigs of interest
-    n2 = -1
-    n1orientation = -1  # refer to the orientation of the contig (0 if -, 1 if +)
-    n2orientation = -1
-    link = False
+            contig1index = names.index(contig1)
+            contig2index = names.index(contig2)
+            
+            if l[2] == '+' and l[4] == '+' :
+                links[contig1index*2+1] += [contig2index*2]
+                links[contig2index*2] += [contig1index*2+1]
+               
+            elif l[2] == '+' and l[4] == '-' :
+                links[contig1index*2+1] += [contig2index*2+1]
+                links[contig2index*2+1] += [contig1index*2+1]
+                
+            elif l[2] == '-' and l[4] == '-' :
+                links[contig1index*2] += [contig2index*2+1]
+                links[contig2index*2+1] += [contig1index*2]
+                
+            elif l[2] == '-' and l[4] == '+' :
+                links[contig1index*2] += [contig2index*2]
+                links[contig2index*2] += [contig1index*2]
+            else :
+                print('There seem to be a problem in the gfa file')
 
-    for i in range(len(r)):
-        count += 1
-        if r[i] == "L":
-            link = True
-
-        if link == True:
-
-            if r[i] in digits:
-                number += r[i]
-
-            if r[i] in orientation:
-
-                n = int(number)
-                number = ""
-
-                if n1 == -1:
-                    n1 = n
-                    if r[i] == "-":
-                        n1orientation = 0
-                    else:
-                        n1orientation = 1
-
-                else:
-                    n2 = n
-                    if r[i] == "-":
-                        n2orientation = 0
-                    else:
-                        n2orientation = 1
-
-                    links[int(n1 + n1orientation)] += [int(n2 + 1 - n2orientation)]
-                    links[int(n2 + 1 - n2orientation)] += [int(n1 + n1orientation)]
-
-                    # resetting all the parameters
-                    n1 = -1
-                    n2 = -1
-                    n1orientation = -1
-                    n2orientation = -1
-                    link = False
-
-    return links
+    return links, names
 
 
 def print_short():
