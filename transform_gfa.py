@@ -61,7 +61,6 @@ def gfa_to_fasta():
 
     return seqs
 
-
 # Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
 def load_gfa(file):
 
@@ -78,9 +77,7 @@ def load_gfa(file):
     gfa_read = open(file,'r')
     
     for line in gfa_read :
-        print('Salut')
         if line[0] == 'L':
-            print('Resalut')
             l = line.split('\t')
             contig1 = l[1]
             contig2 = l[3]

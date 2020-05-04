@@ -13,7 +13,7 @@ import numpy as np
 import basic_functions as bf
 import random
 from shutil import copyfile
-from copy import deepcopy
+from copy import deepcopy 
 from transform_gfa import check_links
 
 
@@ -267,10 +267,12 @@ def merge_contigs(links, listOfSuperContigs, copiesnumber):
     #links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     return links, listOfSuperContigs, copiesnumber
 
-def export_to_GFA(links, listOfSuperContigs, originalLinks, copiesnumber, fastaFile):
+def export_to_GFA(links, listOfSuperContigs, copiesnumber, names = None, fastaFile = '', exportFile = "results/newAssembly.gfa"):
 
+    if names == None :
+        names = [2*i for i in range(len(links)/2)]
   #  copyfile("results/sequencesWithoutLinks.gfa", "results/newAssembly.gfa")
-    f = open("results/newAssembly.gfa", "w")
+    f = open(exportFile, "w")
     addresses = ['' for i in range(len(listOfSuperContigs)*2)]
     copiesUsed = [0 for i in copiesnumber]
     
@@ -278,17 +280,21 @@ def export_to_GFA(links, listOfSuperContigs, originalLinks, copiesnumber, fastaF
         if sc%30 == 0 :
             print(int(sc/len(listOfSuperContigs)*1000)/10, '% of exporting done')
         for c, contig in enumerate(supercontig) :
-            f.write('S\t'+str(contig*2)+'-'+str(copiesUsed[contig])+'\t'+bf.get_contig(fastaFile, contig, contig*2-1)+'\n')
+            f.write('S\t'+names[contig]+'-'+str(copiesUsed[contig])+'\t')
+            if fastaFile != '':
+                f.write(bf.get_contig(fastaFile, contig, contig*2-1)+'\n')
+            else :
+                f.write('*\n')
             #print(supercontig)
             if c == 0 :
-                addresses[sc*2] = str(contig*2)+'-'+str(copiesUsed[contig])
-            elif c == len(supercontig)-1:
-                addresses[sc*2+1] = str(contig*2)+'-'+str(copiesUsed[contig])
+                addresses[sc*2] = names[contig]+'-'+str(copiesUsed[contig])
+            if c == len(supercontig)-1:
+                addresses[sc*2+1] = names[contig]+'-'+str(copiesUsed[contig])
                 
             if c > 0:
                 # /!\ the + orientation of both contigs next line is arbitrary, do NOT trust it to build an actual genome
-                f.write('L\t'+str(supercontig[c-1]*2)+'-'+str(copiesUsed[supercontig[c-1]]-1)+\
-                        '\t+\t' + str(contig*2)+'-'+\
+                f.write('L\t'+names[supercontig[c-1]]+'-'+str(copiesUsed[supercontig[c-1]]-1)+\
+                        '\t+\t' + names[contig]+'-'+\
                             str(copiesUsed[contig])+'\t+\t*\n')
             
             copiesUsed[contig] += 1
@@ -318,36 +324,36 @@ def solve_ambiguities(links, listOfContigs, interactionMatrix, stringence, steps
 
     return links, listOfSuperContigs, copiesnumber
 
-links = bf.import_links('listsPython/links.csv')
-# print(links[1465])
-# infContigs = bf.read_info_contig('data/results/info_contigs.txt')
-interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
-for i in range(len(interactionMatrix)):
-      interactionMatrix[i][i] = 0
-print('Loaded')
+# links = bf.import_links('listsPython/links.csv')
+# # print(links[1465])
+# # infContigs = bf.read_info_contig('data/results/info_contigs.txt')
+# interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+# for i in range(len(interactionMatrix)):
+#       interactionMatrix[i][i] = 0
+# print('Loaded')
 
-# print(
-#     solve_ambiguities(
-#         [[], [4], [], [4], [1, 3], [6, 8], [5], [10], [5], [10], [7,9], []],
-#         [0, 1, 2, 3, 4, 5],
-#         [
-#             [1, 1, 1, 1, 0, 1],
-#             [1, 1, 1, 0, 1, 1],
-#             [1, 1, 1, 1, 1, 1],
-#             [1, 0, 1, 1, 1, 1],
-#             [0, 1, 1, 1, 1, 1],
-#             [1, 1, 1, 1, 1, 1]
-#         ]
-#     )
-# )
+# # print(
+# #     solve_ambiguities(
+# #         [[], [4], [], [4], [1, 3], [6, 8], [5], [10], [5], [10], [7,9], []],
+# #         [0, 1, 2, 3, 4, 5],
+# #         [
+# #             [1, 1, 1, 1, 0, 1],
+# #             [1, 1, 1, 0, 1, 1],
+# #             [1, 1, 1, 1, 1, 1],
+# #             [1, 0, 1, 1, 1, 1],
+# #             [0, 1, 1, 1, 1, 1],
+# #             [1, 1, 1, 1, 1, 1]
+# #         ]
+# #     )
+# # )
     
-newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix, 2, 12)
+# newlinks, listOfSuperContigs, copiesnumber = solve_ambiguities(links, [x for x in range(1312)], interactionMatrix, 2, 12)
 
-#print(copiesnumber)
+# #print(copiesnumber)
 
-print('Now exporting')
-export_to_GFA(newlinks, listOfSuperContigs, links, copiesnumber, 'data/Assembly.fasta') 
+# print('Now exporting')
+# export_to_GFA(newlinks, listOfSuperContigs, links, copiesnumber, 'data/Assembly.fasta') 
                         
-print('Finished')
+# print('Finished')
 
 
