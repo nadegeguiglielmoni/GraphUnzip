@@ -3,6 +3,7 @@
 This file is for handling the gfa : loading it into python lists, transforming it into fasta, reading it...
 """
 import time
+import sys
 
 # from analyse_HiC import lookForStrings
 # print(r[:100000])
@@ -70,7 +71,8 @@ def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.f
     fasta_file = open(fastaFilename, "w")
 
     # line count
-    i = 0
+    i = 1
+    seq_i = 0
 
     seqs = []
 
@@ -80,13 +82,15 @@ def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.f
             if len(line) >= 3:
                 fasta_file.write(">{0}\n{1}\n".format(line[1], line[2]))
                 seqs.append(line[2])
-                i = i + 1
+                seq_i = seq_i + 1
             else:
                 print("Wrong format in line {0}: expected three fields.".format(i))
+                sys.exit(1)
+        i = i + 1
 
     fasta_file.close()
 
-    print("Processed {0} sequences.".format(i))
+    print("Processed {0} sequences.".format(seq_i))
     print(time.time() - t1)
 
     return seqs
@@ -101,7 +105,7 @@ def load_gfa(file):
     for line in gfa_read:
         if line[0] == "S":
             l = line.split("\t")
-            names += [l[1]]
+            names.append(l[1])
 
     links = [
         [] for i in range(len(names) * 2)
@@ -111,6 +115,14 @@ def load_gfa(file):
 
     for line in gfa_read:
         if line[0] == "L":
+
+            if len(line) < 5:
+                print(
+                    "Wrong format: expected at least 5 fields in line:\n{0}\n".format(
+                        line
+                    )
+                )
+
             l = line.split("\t")
             contig1 = l[1]
             contig2 = l[3]
@@ -134,7 +146,7 @@ def load_gfa(file):
                 links[contig1index * 2] += [contig2index * 2]
                 links[contig2index * 2] += [contig1index * 2]
             else:
-                print("There seem to be a problem in the gfa file")
+                print("There seems to be a problem in the gfa file.")
 
     return links, names
 
@@ -162,7 +174,7 @@ def print_short():
 # print_short()
 
 
-# a function to test that our gfa_to_python worked ok
+# a function to test that load_gfa worked ok
 def check_links(links):
     for i, noeud in enumerate(links):
         for j, neighbor in enumerate(noeud):
