@@ -9,60 +9,6 @@ import sys
 # print(r[:100000])
 
 
-# def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.fasta"):
-#
-#    gfa_read = open(gfaFilename)
-#    r = gfa_read.read()
-#
-#    seqs = []
-#    current = ""
-#    count = 0
-#    bases = ["A", "C", "G", "T"]
-#
-#    t1 = time.time()
-#
-#    for i in range(len(r)):
-#        count += 1
-#        if current == "":
-#            if (
-#                r[i] in bases
-#                and r[i + 1] in bases
-#                and r[i + 2] in bases
-#                and r[i + 3] in bases
-#            ):
-#                current = r[i]
-#
-#        else:
-#            # if i%4 == 0 :
-#            if r[i] in bases:
-#                current += r[i]
-#            else:
-#                seqs += [current]
-#                current = ""
-#            # else :
-#            #   current += r[i]
-#
-#        if count % 1000000 == 0:
-#            print(count / 1000000)
-#
-#        if count == 123533473:
-#            # print(current)
-#            break
-#
-#    fasta_file = open(fastaFilename, "w")
-#
-#    for i in range(len(seqs)):
-#        name = ">sequence" + str(i)
-#        fasta_file.write(name + "\n")
-#        fasta_file.write(seqs[i] + "\n")
-#
-#    print(len(seqs))
-#    print(len(r))
-#    print(time.time() - t1)
-#
-#    return seqs
-
-
 def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.fasta"):
 
     t1 = time.time()
