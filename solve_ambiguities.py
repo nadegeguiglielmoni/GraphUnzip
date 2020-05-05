@@ -140,46 +140,59 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
 # similar to the function above, but simpler : put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
 def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs):
 
-    if links[endOfSuperContig][0] == endOfSuperContig+1-2*(endOfSuperContig%2) : #then we do not merge a contig with itself
+    otherEnd = endOfSuperContig+1-2*(endOfSuperContig%2)
+    if links[endOfSuperContig][0] == otherEnd : #then we do not merge a contig with itself
         return -1, -1
     
+    otherEndNeighbor = links[endOfSuperContig][0]+1-2*(links[endOfSuperContig][0]%2)
     # we add the new supercontigs
     deleted = links[endOfSuperContig][0]
-    listOfSuperContigs += [
-        listOfSuperContigs[int(endOfSuperContig / 2)]
-        + listOfSuperContigs[int(deleted / 2)]
-    ]
 
-    otherEnd = endOfSuperContig + 1 - 2 * (endOfSuperContig % 2)
-    links += [links[otherEnd]]
+    if endOfSuperContig%2 == 1 :
+             if deleted%2 == 0 :
+                 listOfSuperContigs += [listOfSuperContigs[int(endOfSuperContig / 2)]+ listOfSuperContigs[int(deleted / 2)]]
+             else :
+                 listOfSuperContigs += [listOfSuperContigs[int(endOfSuperContig / 2)]+ listOfSuperContigs[int(deleted / 2)][::-1]]
+             
+             links += [links[otherEnd]] 
+             for j in links[otherEnd]:
+                 links[j] += [len(links) - 1]
+             
+             links += [links[otherEndNeighbor]]        
+             for j in links[otherEndNeighbor]:
+                 links[j] += [len(links) - 1]
+         
+    else : 
+        if deleted%2 == 0 :
+            listOfSuperContigs += [listOfSuperContigs[int(deleted / 2)][::-1]+ listOfSuperContigs[int(endOfSuperContig / 2)]]
+        else :
+            listOfSuperContigs += [listOfSuperContigs[int(deleted / 2)]+ listOfSuperContigs[int(endOfSuperContig / 2)]]
+        
+        links += [links[otherEndNeighbor]]             
+        for j in links[otherEndNeighbor]:
+            links[j] += [len(links) - 1]
+        
+        links += [links[otherEnd]] 
+        for j in links[otherEnd]:
+            links[j] += [len(links) - 1]
 
     if endOfSuperContig+1-(endOfSuperContig%2)*2 in links[otherEnd] : #this loop is too difficult for us
         print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(deleted) +' . Please check that there is indeed a loop there.')    
         return -1,-1
     
-    for j in links[otherEnd]:
-        links[j] += [len(links) - 1]
-
-    otherEnd = deleted + 1 - 2 * (deleted % 2)
-    links += [links[otherEnd]]
-    
     if links[otherEnd] == [-1]:
         print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(deleted) +' . Please check that there is indeed a loop there.')    
         return -1,-1
-    for j in links[otherEnd]:
-        links[j] += [len(links) - 1]
 
     # now we delete the merged supercontig
     deletedContigs = [int(endOfSuperContig / 2), int(deleted / 2)]
-    otherEnd = endOfSuperContig + 1 - 2 * (endOfSuperContig % 2)
     for i in links[otherEnd]:
         links[i].remove(otherEnd)
 
-    otherEnd = deleted + 1 - 2 * (deleted % 2)
-    for i in links[otherEnd]:
-        links[i].remove(otherEnd)
+    for i in links[otherEndNeighbor]:
+        links[i].remove(otherEndNeighbor)
 
-    # then we replace the merged supercontigs and all their links by empty lists (we do not delete them to keep the indexes right)
+    # then we replace the merged supercontigs and all their links by empty lists (we do not delete them for now to keep the indexes right)
     for i in deletedContigs:
         listOfSuperContigs[i] = [-1]
         links[2 * i] = [-1]
@@ -263,23 +276,23 @@ def merge_contigs(links, listOfSuperContigs, copiesnumber, freezed):
                     for i in links[endOfSuperContig] :
                         locked[int(i/2)] = True
                     
-                    links, listOfSuperContigs, copiesnumber = deepcopy(li), deepcopy(lsc), deepcopy(cn)
-                    print(listOfSuperContigs)
+                    links, listOfSuperContigs, copiesnumber = deepcopy(li), deepcopy(lsc), deepcopy(cn) #doing all these deepcopies takes time, we might want to reconsider to gain time
                     links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))] #we might want to see where that comes from if we want speed
      
 
+    #now we are just going to merge two contigs that are next to each other
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     locked = [False for i in listOfSuperContigs]
 
-    # for endOfSuperContig in range(len(locked)*2): 
-    #     if len(links[endOfSuperContig]) == 1 and len(links[links[endOfSuperContig][0]])==1 : #then we just merge
-    #         if links[endOfSuperContig] != [-1] :
-    #             li, lsc = merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs)  
-    #             if li != -1 :
-    #                 links, listOfSuperContigs = li, lsc
-    #                 links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))]
+    for endOfSuperContig in range(len(locked)*2): 
+        if len(links[endOfSuperContig]) == 1 and len(links[links[endOfSuperContig][0]])==1 : #then we just merge
+            if links[endOfSuperContig] != [-1] :
+                li, lsc = merge_simply_two_adjacent_contig(endOfSuperContig, deepcopy(links), deepcopy(listOfSuperContigs))  
+                if li != -1 :
+                    links, listOfSuperContigs = deepcopy(li), deepcopy(lsc)
+                    links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))]
 
-    #links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
+    links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     return links, listOfSuperContigs, copiesnumber
 
 def export_to_GFA(links, listOfSuperContigs, copiesnumber, names = None, fastaFile = '', exportFile = "results/newAssembly.gfa"):
