@@ -187,15 +187,16 @@ def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs
 
     return links, listOfSuperContigs
 
-def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, strengthThreshold=3):
+def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, thresholdRejected, thresholdAccepted):
 
-    freezed = []
-    for endOfContig in range(len(links)):
+    freezed = [] #that's the places where we won't make choices
+    for endOfContig in range(len(links)): 
         if len(links[endOfContig]) > 1:
             absoluteLinksStrength, linksStrength = intensity_of_interactions(listOfSuperContigs[int(endOfContig / 2)],
                 [listOfSuperContigs[int(x / 2)] for x in links[endOfContig]],interactionMatrix, copiesnumber)
             if absoluteLinksStrength == [-1]:
                 freezed += [endOfContig]
+                freezed += [eoc for eoc in links[endOfContig]]
             else :
                 maxStrength = np.max(linksStrength)
     
@@ -204,9 +205,12 @@ def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnum
                     # if linksStrength[i] != maxStrength :
                     #     file = open('ratio.txt','a')
                     #     file.write(str(linksStrength[i]/maxStrength)+'\n')
-                    if (linksStrength[i] < maxStrength / strengthThreshold):  # we consider then that the link does not exist
+                    if (linksStrength[i] < maxStrength / thresholdRejected):  # we consider then that the link does not exist
                         links[links[endOfContig][i]].remove(endOfContig)
                         del links[endOfContig][i]
+                    elif linksStrength[i] < maxStrength / thresholdAccepted :
+                        freezed += [endOfContig]
+                        print('Freezed because of ', listOfSuperContigs[int(endOfContig/2)])
     return links, freezed
 
 # this function is needed because solve_ambiguity_at_this_end_of_contig creates a lot of useless lists ([-1]) in listOfSuperContigs and in lists
@@ -248,17 +252,20 @@ def merge_contigs(links, listOfSuperContigs, copiesnumber, freezed):
             for i in links[endOfSuperContig] :
                 if i < len(locked)*2 :
                     startMerging = startMerging and (not(locked[int(i/2)]))
-                else :
+                else : #meaning we're looking at a freshly created supercontig 
                     startMerging = False
             
             if startMerging : #if nothing is locked for now
                 li, lsc, cn = solve_ambiguity_around_this_end_of_contig(endOfSuperContig, deepcopy(links), deepcopy(listOfSuperContigs), copiesnumber.copy())
                 if li != -1 : #the function returns -1 when it fell on an unsolvable loop
-                    links, listOfSuperContigs, copiesnumber = deepcopy(li), deepcopy(lsc), deepcopy(cn)
-                    links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))] #we might want to see where that comes from if we want speed
+
                     locked[int(endOfSuperContig/2)] = True
                     for i in links[endOfSuperContig] :
                         locked[int(i/2)] = True
+                    
+                    links, listOfSuperContigs, copiesnumber = deepcopy(li), deepcopy(lsc), deepcopy(cn)
+                    print(listOfSuperContigs)
+                    links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))] #we might want to see where that comes from if we want speed
      
 
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
@@ -319,14 +326,14 @@ def export_to_GFA(links, listOfSuperContigs, copiesnumber, names = None, fastaFi
                 elif endOfSuperContig%2 == 1 and l%2 == 1 :         
                     f.write('L\t'+addresses[endOfSuperContig]+'\t+\t' + addresses[l]+'\t-\t*\n')
 
-def solve_ambiguities(links, listOfContigs, interactionMatrix, stringence, steps, names):  # look at ambiguities one after the other
+def solve_ambiguities(links, listOfContigs, interactionMatrix, stringenceReject, stringenceAccept, steps, names):  # look at ambiguities one after the other
     copiesnumber = [1 for i in listOfContigs]
     listOfSuperContigs = [[x] for x in listOfContigs]
     for i in range(steps):
         
         print(str(i / steps * 100) + "% of solving ambiguities done")
 
-        links, freezed = get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, stringence)
+        links, freezed = get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, stringenceReject, stringenceAccept)
 
         links, listOfSuperContigs, copiesnumber = merge_contigs(links, listOfSuperContigs, copiesnumber, freezed)
         export_to_GFA(links, listOfSuperContigs, copiesnumber, names, exportFile = 'tests/fake'+str(i)+'.gfa')
