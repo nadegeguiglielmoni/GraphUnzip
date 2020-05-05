@@ -10,28 +10,39 @@ File basically dedicated to small functions involving reading and writing files
 import pandas as pd
 import numpy as np
 
-
-def read_abs_fragments_contact_weighted(file):
+# Read sparse matrix
+# input :
+#   file : sparse matrix with 3 fields: frag1, frag2, contacts
+# output :
+#   content : list of parsed contacts
+def read_abs_fragments_contact_weighted(file, header=True):
 
     content = []
-    with open(file) as f:
 
+    with open(file) as f:
         for line in f:
-            content += [line]
-    # we want to remove whitespace characters like `\n` at the end of each line
+            content.append([line])
+
+    # parsing lines
     content = [x.strip("\n") for x in content]
     content = [x.split("\t") for x in content]
     content = [[int(x[0]), int(x[1]), int(x[2])] for x in content]
 
-    return content[1:]  # because the first line is a header
+    # remove header
+    if header:
+        content = content[1:]
+
+    return content
 
 
+# Read fragments list file
 # /!\ for many functions to work, fragmentList has to be sorted (first contig1, then contig2...)
 def read_fragment_list(file):
 
     with open(file) as f:
         content = f.readlines()
-    # you may also want to remove whitespace characters like `\n` at the end of each line
+
+    # parsing
     content = [x.strip("\n") for x in content[1:]]
     content = [x.split("\t") for x in content]
     content = [
@@ -45,7 +56,8 @@ def read_info_contig(file):
 
     with open(file) as f:
         content = f.readlines()
-    # we want to remove whitespace characters like `\n` at the end of each line
+
+    # parsing
     content = [x.strip("\n") for x in content[1:]]
     content = [x.strip("sequence") for x in content]
     content = [x.split("\t") for x in content]
@@ -73,14 +85,14 @@ def import_links(file):
     return [[int(i) for i in j] for j in links]
 
 
-def get_contig(fastaFile, contig, firstline = 0):
+def get_contig(fastaFile, contig, firstline=0):
 
     with open(fastaFile) as f:
 
         lookAtNextLine = False
         linenumber = 0
         for line in f:
-            if linenumber >= firstline :
+            if linenumber >= firstline:
                 if lookAtNextLine:
                     return line
                 target = ">sequence" + str(contig)
