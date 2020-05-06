@@ -58,3 +58,44 @@ def how_far_away_are_those_contigs(contig1, contig2, links, infContigs):
     else :
         print(connectedToContig1)
         return -1 #meaning contig1 and contig2 are not connected in this graph
+
+def detect_fishy_links(links, confirmationOfLinks, coverage):
+
+    # we're going to detect, when there is an ambiguity, if one path looks unlikely
+    badlinks = [] * len(links)
+    for i in coverage:  # to ensure we don't get absurdly high multiplicative factors
+        if i < 0.01:
+            i = 0.01
+
+    for endOfContig in range(len(links)):
+
+        if len(links[endOfContig]) > 1:
+
+            weightedConfirmation = [-1] * len(links[endOfContig])
+            for i in range(len(links[endOfContig])):
+
+                if (
+                    coverage[int(endOfContig / 2)] > 0.01
+                    and coverage[int(links[endOfContig][i] / 2)] > 0.01
+                ):
+                    weightedConfirmation[i] = (
+                        confirmationOfLinks[endOfContig][i]
+                        / coverage[int(links[endOfContig][i] / 2)]
+                    )
+
+            maximum = np.max(weightedConfirmation)
+            reliable = -1 not in weightedConfirmation
+
+            if reliable:
+                for i in range(len(weightedConfirmation)):
+                    if weightedConfirmation[i] < 0.1 * maximum:
+
+                        badlinks += [[endOfContig, i]]
+                        print(
+                            "There is a suspect link here : ",
+                            endOfContig,
+                            links[endOfContig],
+                            confirmationOfLinks[endOfContig],
+                            weightedConfirmation,
+                        )
+    return badlinks

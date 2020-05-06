@@ -4,8 +4,6 @@ import numpy as np
 import random
 from transform_gfa import load_gfa
 import basic_functions as bf
-import pickle
-
 
 def short_distance_interactions(fragcontacts, fraglist):
 
@@ -253,7 +251,7 @@ def with_how_many_contig_does_one_contig_interact(hiccontactsfile, fragmentList)
         plt.ylabel("Number of contig interacting with x others")
         plt.show()
 
-# here comes the neutral test for our test_HiC_vs_GFA : we're going to break down contigs and see how much HiC contact they have
+# here comes the neutral test for our HiC_vs_GFA : we're going to break down contigs and see how much HiC contact they have
 def testHiC_vs_GFA(hiccontacts, info_contigs):
 
     contactNumber = 0
@@ -294,50 +292,7 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
     print(score)
     plt.hist(score)
 
-
-def detect_fishy_links(links, confirmationOfLinks, coverage):
-
-    # we're going to detect, when there is an ambiguity, if one path looks unlikely
-    badlinks = [] * len(links)
-    for i in coverage:  # to ensure we don't get absurdly high multiplicative factors
-        if i < 0.01:
-            i = 0.01
-
-    for endOfContig in range(len(links)):
-
-        if len(links[endOfContig]) > 1:
-
-            weightedConfirmation = [-1] * len(links[endOfContig])
-            for i in range(len(links[endOfContig])):
-
-                if (
-                    coverage[int(endOfContig / 2)] > 0.01
-                    and coverage[int(links[endOfContig][i] / 2)] > 0.01
-                ):
-                    weightedConfirmation[i] = (
-                        confirmationOfLinks[endOfContig][i]
-                        / coverage[int(links[endOfContig][i] / 2)]
-                    )
-
-            maximum = np.max(weightedConfirmation)
-            reliable = -1 not in weightedConfirmation
-
-            if reliable:
-                for i in range(len(weightedConfirmation)):
-                    if weightedConfirmation[i] < 0.1 * maximum:
-
-                        badlinks += [[endOfContig, i]]
-                        print(
-                            "There is a suspect link here : ",
-                            endOfContig,
-                            links[endOfContig],
-                            confirmationOfLinks[endOfContig],
-                            weightedConfirmation,
-                        )
-    return badlinks
-
-
-def interactionMatrix(hiccontactsfile, fragmentList, coverage, header=True):
+def interactionMatrix(hiccontactsfile, fragmentList, header=True): #the header refers to the hiccontactsfile
     with open(hiccontactsfile) as f:
 
         interactionMatrix = [
@@ -355,12 +310,9 @@ def interactionMatrix(hiccontactsfile, fragmentList, coverage, header=True):
                 contig1 = fragmentList[contact[0]][0]
                 contig2 = fragmentList[contact[1]][0]
 
-                interactionMatrix[contig1][contig2] += (
-                    contact[2] * 1000000 / coverage[contig1] / coverage[contig2]
-                )  # *1000000 so that the numbers are not too small (the risk being their being considered 0)
-                interactionMatrix[contig2][contig1] += (
-                    contact[2] * 1000000 / coverage[contig1] / coverage[contig2]
-                )
+                interactionMatrix[contig1][contig2] += contact[2]
+                interactionMatrix[contig2][contig1] += contact[2]
+
             header = False
 
     return interactionMatrix

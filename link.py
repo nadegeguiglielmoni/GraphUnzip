@@ -7,9 +7,7 @@ class Link:
         self.ends = [seg1, seg2]
         self.hicValue = hicVal
 
-
 # getters
-
 
 def _get_ends(self):
     return self._ends

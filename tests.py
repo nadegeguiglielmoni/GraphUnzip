@@ -5,7 +5,7 @@ Created on Thu Apr 30 13:05:13 2020
 
 @author: zaltabar
 
-In this file we're going to create test functions to test our algorithm
+In this file, test functions to test our algorithm
 """
 
 import matplotlib.pyplot as plt
@@ -101,11 +101,11 @@ def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
         interactionMatrix[i][i] = 0
     return interactionMatrix
 
-#chromosomes = buildFakeChromosomes(10)
-#exportFakeToGFA(chromosomes, 'tests/fake.gfa')
-chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9*'.split('-'), 'A0-B7-A1-A2-A3*-A4-A5-A6-A7-A8-A9*'.split('-'),\
-               'B0-B1-B2-B3-B4-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
-print(chromosomes)
+chromosomes = buildFakeChromosomes(10)
+exportFakeToGFA(chromosomes, 'tests/fake.gfa')
+# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9*'.split('-'), 'A0-B7-A1-A2-A3*-A4-A5-A6-A7-A8-A9*'.split('-'),\
+#                'B0-B1-B2-B3-B4-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
+# print(chromosomes)
 links, names = load_gfa('tests/fake.gfa')
 
 interactionMatrix = constructFakeInteractionMatrix(chromosomes, names)

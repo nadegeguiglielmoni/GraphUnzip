@@ -218,15 +218,15 @@ def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnum
                     # if linksStrength[i] != maxStrength :
                     #     file = open('ratio.txt','a')
                     #     file.write(str(linksStrength[i]/maxStrength)+'\n')
-                    if (linksStrength[i] < maxStrength / thresholdRejected):  # we consider then that the link does not exist
+                    if (linksStrength[i] < maxStrength * thresholdRejected):  # then that the link does not exist
                         links[links[endOfContig][i]].remove(endOfContig)
                         del links[endOfContig][i]
-                    elif linksStrength[i] < maxStrength / thresholdAccepted :
+                    elif linksStrength[i] < maxStrength * thresholdAccepted : # then it's not clear, the link is freezed
                         freezed += [endOfContig]
                         print('Freezed because of ', listOfSuperContigs[int(endOfContig/2)])
     return links, freezed
 
-# this function is needed because solve_ambiguity_at_this_end_of_contig creates a lot of useless lists ([-1]) in listOfSuperContigs and in lists
+# this function is needed because solve_ambiguity_at_this_end_of_contig creates a lot of useless lists ([-1]) in listOfSuperContigs and in lists, which this fucntion clean
 def clean_listOfSuperContigs(links, listOfSuperContigs):
 
     if links[0] == [-1]:
@@ -295,53 +295,11 @@ def merge_contigs(links, listOfSuperContigs, copiesnumber, freezed):
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
     return links, listOfSuperContigs, copiesnumber
 
-def export_to_GFA(links, listOfSuperContigs, copiesnumber, names = None, fastaFile = '', exportFile = "results/newAssembly.gfa"):
 
-    if names == None :
-        names = [2*i for i in range(len(links)/2)]
-  #  copyfile("results/sequencesWithoutLinks.gfa", "results/newAssembly.gfa")
-    f = open(exportFile, "w")
-    addresses = ['' for i in range(len(listOfSuperContigs)*2)]
-    copiesUsed = [0 for i in copiesnumber]
-    
-    for sc,supercontig in enumerate(listOfSuperContigs) :
-        if sc%30 == 0 :
-            print(int(sc/len(listOfSuperContigs)*1000)/10, '% of exporting done')
-        for c, contig in enumerate(supercontig) :
-            f.write('S\t'+names[contig]+'-'+str(copiesUsed[contig])+'\t')
-            if fastaFile != '':
-                f.write(bf.get_contig(fastaFile, contig, contig*2-1)+'\n')
-            else :
-                f.write('*\n')
-            #print(supercontig)
-            if c == 0 :
-                addresses[sc*2] = names[contig]+'-'+str(copiesUsed[contig])
-            if c == len(supercontig)-1:
-                addresses[sc*2+1] = names[contig]+'-'+str(copiesUsed[contig])
-                
-            if c > 0:
-                # /!\ the + orientation of both contigs next line is arbitrary, do NOT trust it to build an actual genome
-                f.write('L\t'+names[supercontig[c-1]]+'-'+str(copiesUsed[supercontig[c-1]]-1)+\
-                        '\t+\t' + names[contig]+'-'+\
-                            str(copiesUsed[contig])+'\t+\t*\n')
-            
-            copiesUsed[contig] += 1
+def solve_ambiguities(links, interactionMatrix, stringenceReject, stringenceAccept, steps, names):  # look at ambiguities one after the other
 
-    for endOfSuperContig in range(len(links)) :
-        for l in links[endOfSuperContig] :
-            if endOfSuperContig < l : #to write each link only once
-                if endOfSuperContig%2 == 1 and l%2 == 0 :         
-                    f.write('L\t'+addresses[endOfSuperContig]+'\t+\t' + addresses[l]+'\t+\t*\n')
-                elif endOfSuperContig%2 == 0 and l%2 == 0 :         
-                    f.write('L\t'+addresses[endOfSuperContig]+'\t-\t' + addresses[l]+'\t+\t*\n')
-                elif endOfSuperContig%2 == 0 and l%2 == 1 :         
-                    f.write('L\t'+addresses[endOfSuperContig]+'\t-\t' + addresses[l]+'\t-\t*\n')
-                elif endOfSuperContig%2 == 1 and l%2 == 1 :         
-                    f.write('L\t'+addresses[endOfSuperContig]+'\t+\t' + addresses[l]+'\t-\t*\n')
-
-def solve_ambiguities(links, listOfContigs, interactionMatrix, stringenceReject, stringenceAccept, steps, names):  # look at ambiguities one after the other
-    copiesnumber = [1 for i in listOfContigs]
-    listOfSuperContigs = [[x] for x in listOfContigs]
+    copiesnumber = [1 for i in names]
+    listOfSuperContigs = [[x] for x in range(len(names))] #The contigs are numbered in listOfSuperContigs, correspondance can be made in the list 'names'
     for i in range(steps):
         
         print(str(i / steps * 100) + "% of solving ambiguities done")
@@ -349,14 +307,13 @@ def solve_ambiguities(links, listOfContigs, interactionMatrix, stringenceReject,
         links, freezed = get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, stringenceReject, stringenceAccept)
 
         links, listOfSuperContigs, copiesnumber = merge_contigs(links, listOfSuperContigs, copiesnumber, freezed)
-        export_to_GFA(links, listOfSuperContigs, copiesnumber, names, exportFile = 'tests/fake'+str(i)+'.gfa')
+        bf.export_to_GFA(links, listOfSuperContigs, copiesnumber, names, exportFile = 'tests/fake'+str(i)+'.gfa')
         
-
     return links, listOfSuperContigs, copiesnumber
 
 # links = bf.import_links('listsPython/links.csv')
 # # print(links[1465])
-# # infContigs = bf.read_info_contig('data/results/info_contigs.txt')
+# # infContigs = bf.read_info_contig('data/results/info_contigs.txt') 
 # interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
 # for i in range(len(interactionMatrix)):
 #       interactionMatrix[i][i] = 0

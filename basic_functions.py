@@ -46,7 +46,7 @@ def read_fragment_list(file):
     content = [x.strip("\n") for x in content[1:]]
     content = [x.split("\t") for x in content]
     content = [
-        [int(x[1].strip("sequence")), int(x[2]), int(x[3]), int(x[4])] for x in content
+        [x[1].strip("sequence"), int(x[2]), int(x[3]), int(x[4])] for x in content
     ]
 
     return content
@@ -95,10 +95,55 @@ def get_contig(fastaFile, contig, firstline=0):
             if linenumber >= firstline:
                 if lookAtNextLine:
                     return line
-                target = ">sequence" + str(contig)
+                target = ">" + str(contig)
                 if target in line:
                     lookAtNextLine = True
 
             linenumber += 1
     return "In get_contig : the contig you are seeking is not in the fasta file"
+
+
+def export_to_GFA(links, listOfSuperContigs, copiesnumber, names = None, fastaFile = '', exportFile = "results/newAssembly.gfa"):
+
+    if names == None :
+        names = [2*i for i in range(len(links)/2)]
+  #  copyfile("results/sequencesWithoutLinks.gfa", "results/newAssembly.gfa")
+    f = open(exportFile, "w")
+    addresses = ['' for i in range(len(listOfSuperContigs)*2)]
+    copiesUsed = [0 for i in copiesnumber]
+    
+    for sc,supercontig in enumerate(listOfSuperContigs) :
+        if sc%30 == 0 :
+            print(int(sc/len(listOfSuperContigs)*1000)/10, '% of exporting done')
+        for c, contig in enumerate(supercontig) :
+            f.write('S\t'+names[contig]+'-'+str(copiesUsed[contig])+'\t')
+            if fastaFile != '':
+                f.write(get_contig(fastaFile, contig, contig*2-1)+'\n')
+            else :
+                f.write('*\n')
+            #print(supercontig)
+            if c == 0 :
+                addresses[sc*2] = names[contig]+'-'+str(copiesUsed[contig])
+            if c == len(supercontig)-1:
+                addresses[sc*2+1] = names[contig]+'-'+str(copiesUsed[contig])
+                
+            if c > 0:
+                # /!\ the + orientation of both contigs next line is arbitrary, do NOT trust it to build an actual genome
+                f.write('L\t'+names[supercontig[c-1]]+'-'+str(copiesUsed[supercontig[c-1]]-1)+\
+                        '\t+\t' + names[contig]+'-'+\
+                            str(copiesUsed[contig])+'\t+\t*\n')
+            
+            copiesUsed[contig] += 1
+
+    for endOfSuperContig in range(len(links)) :
+        for l in links[endOfSuperContig] :
+            if endOfSuperContig < l : #to write each link only once
+                if endOfSuperContig%2 == 1 and l%2 == 0 :         
+                    f.write('L\t'+addresses[endOfSuperContig]+'\t+\t' + addresses[l]+'\t+\t*\n')
+                elif endOfSuperContig%2 == 0 and l%2 == 0 :         
+                    f.write('L\t'+addresses[endOfSuperContig]+'\t-\t' + addresses[l]+'\t+\t*\n')
+                elif endOfSuperContig%2 == 0 and l%2 == 1 :         
+                    f.write('L\t'+addresses[endOfSuperContig]+'\t-\t' + addresses[l]+'\t-\t*\n')
+                elif endOfSuperContig%2 == 1 and l%2 == 1 :         
+                    f.write('L\t'+addresses[endOfSuperContig]+'\t+\t' + addresses[l]+'\t-\t*\n')
 
