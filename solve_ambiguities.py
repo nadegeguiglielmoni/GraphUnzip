@@ -203,27 +203,49 @@ def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs
 def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, thresholdRejected, thresholdAccepted):
 
     freezed = [] #that's the places where we won't make choices
-    for endOfContig in range(len(links)): 
-        if len(links[endOfContig]) > 1:
-            absoluteLinksStrength, linksStrength = intensity_of_interactions(listOfSuperContigs[int(endOfContig / 2)],
-                [listOfSuperContigs[int(x / 2)] for x in links[endOfContig]],interactionMatrix, copiesnumber)
-            if absoluteLinksStrength == [-1]:
-                freezed += [endOfContig]
-                freezed += [eoc for eoc in links[endOfContig]]
-            else :
-                maxStrength = np.max(linksStrength)
     
-                print('I am ', listOfSuperContigs[int(endOfContig/2)],' and here is the choice I have to make : ', [listOfSuperContigs[int(x / 2)] for x in links[endOfContig]], linksStrength)
-                for i in range(len(links[endOfContig]) - 1, -1, -1):
-                    # if linksStrength[i] != maxStrength :
-                    #     file = open('ratio.txt','a')
-                    #     file.write(str(linksStrength[i]/maxStrength)+'\n')
-                    if (linksStrength[i] < maxStrength * thresholdRejected):  # then that the link does not exist
-                        links[links[endOfContig][i]].remove(endOfContig)
-                        del links[endOfContig][i]
-                    elif linksStrength[i] < maxStrength * thresholdAccepted : # then it's not clear, the link is freezed
+    #loop through all end of contigs, to inspect the robustness of all the links.
+    for endOfContig in range(len(links)): 
+        if len(links[endOfContig]) > 1: # When there is a 'choice', measurement of the HiC intensity of links
+            
+            mustBeDeleted = []
+            #links are pairwise compared
+            
+            #first, comparison pairwise the links, those that should be deleted are stored in mustBeDeleted
+            for neighbor1 in range(len(links[endOfContig])-1) :
+                for neighbor2 in range(neighbor1+1, len(links[endOfContig])):
+                    absoluteLinksStrength, linksStrength = intensity_of_interactions(listOfSuperContigs[int(endOfContig / 2)],
+                                                                                     [listOfSuperContigs[int(links[endOfContig][neighbor1] / 2)], listOfSuperContigs[int(links[endOfContig][neighbor2] / 2)]],interactionMatrix, copiesnumber)
+                    if absoluteLinksStrength == [-1]: 
                         freezed += [endOfContig]
-                        print('Freezed because of ', listOfSuperContigs[int(endOfContig/2)])
+                        freezed += [eoc for eoc in links[endOfContig]]
+                    else :
+                        print('I am ', listOfSuperContigs[int(endOfContig/2)],' and here is the choice I have to make : ', [listOfSuperContigs[int(neighbor1 / 2)], listOfSuperContigs[int(neighbor2 / 2)]], linksStrength)
+
+                        if linksStrength[0]>linksStrength[1] :
+                            #     file = open('ratio.txt','a')
+                            #     file.write(str(linksStrength[i]/maxStrength)+'\n')
+                            if linksStrength[1] < linksStrength[0] * thresholdRejected:  # then that the link does not exist
+                                mustBeDeleted.append(neighbor2)
+                            elif linksStrength[1] < linksStrength[0] * thresholdAccepted : # then it's not clear, the link is freezed
+                                freezed += [endOfContig]
+                                print('Freezed because of ', listOfSuperContigs[int(endOfContig/2)])
+                                
+                        else :
+                            #     file = open('ratio.txt','a')
+                            #     file.write(str(linksStrength[i]/maxStrength)+'\n')
+                            if linksStrength[0] < linksStrength[1] * thresholdRejected:  # then that the link does not exist
+                                mustBeDeleted.append(neighbor1)
+                            elif linksStrength[0] < linksStrength[1] * thresholdAccepted : # then it's not clear, the link is freezed
+                                freezed += [endOfContig]
+                                print('Freezed because of ', listOfSuperContigs[int(endOfContig/2)])
+                            
+            #second, the links that should be deleted are deleted                
+            for i in range(len(links[endOfContig]) - 1, -1, -1):
+                if i in mustBeDeleted:
+                    links[links[endOfContig][i]].remove(endOfContig)
+                    del links[endOfContig][i]
+            
     return links, freezed
 
 # this function is needed because solve_ambiguity_at_this_end_of_contig creates a lot of useless lists ([-1]) in listOfSuperContigs and in lists, which this fucntion clean
