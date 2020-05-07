@@ -11,36 +11,125 @@ import analyse_HiC
 from transform_gfa import load_gfa
 from transform_gfa import gfa_to_fasta
 from solve_ambiguities import solve_ambiguities
+import argparse
+import os.path
+import sys
 
-#Loading the data
-links, names = load_gfa('data/Assembly.gfa')
 
-"""  #Uncomment if it's the first time the data is ran
+def parse_args():
+    """ 
+	Gets the arguments from the command line.
+	"""
 
-fragmentList = bf.read_fragment_list('data/results/fragments_list.txt')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-g", "--gfa", required=True, help="""GFA file""")
+    parser.add_argument(
+        "-o", "--output", required=False, default="output.gfa", help="""Output GFA"""
+    )
+    parser.add_argument(
+        "-A",
+        "--accepted",
+        required=False,
+        default=0.45,
+        help="""Threshold to accept links.""",
+    )
+    parser.add_argument(
+        "-R",
+        "--rejected",
+        required=False,
+        default=0.20,
+        help="""Threshold to reject links.""",
+    )
+    parser.add_argument(
+        "-s",
+        "--steps",
+        required=False,
+        default=10,
+        help="""Number of steps to get rid of bad links.""",
+    )
+    parser.add_argument(
+        "-f",
+        "--fasta",
+        required=False,
+        default="Empty",
+        help="""Segments from the GFA in fasta format""",
+    )
+    parser.add_argument(
+        "-m", "--matrix", required=False, default="Empty", help="""Sparse contact map"""
+    )
+    parser.add_argument(
+        "-F", "--fragments", required=False, default="Empty", help="""Fragments list"""
+    )
+    parser.add_argument(
+        "-i",
+        "--interactions",
+        required=False,
+        default="interactionMatrix.csv",
+        help="""File with interactions""",
+    )
+    return parser.parse_args()
 
-#Now computing the interaction matrix
-interactionMatrix = analyse_HiC.interactionMatrix('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
 
-#exporting it as to never have to do it again
-bf.export_to_csv(interactionMatrix, 'listsPython/interactionMatrix.csv')
+def main():
 
-"""
+    args = parse_args()
+    gfaFile = args.gfa
+    fastaFile = args.fasta
+    matrixFile = args.matrix
+    fragmentsFile = args.fragments
+    interactionFile = args.interaction
+    stringenceReject = float(args.rejected)
+    stringenceAccept = float(args.accepted)
+    steps = int(args.step)
 
-""" #Uncomment if the GFA file does not have a fasta equivalent yet, and if you want to export the output in a GFA complete with sequences
+    if not os.path.exists(gfaFile):
+        print("Error: could not find GFA file {0}.".format(gfaFile))
+        sys.exit(1)
 
-gfa_to_fasta('data/Assembly.gfa','data/Assembly.fasta')
+    # Loading the data
+    links, names = load_gfa(gfaFile)
 
-"""
+    if fragmentsFile is not "Empty" and matrixFile is not "Empty":
+        if os.path.exists(fragmentsFile):
+            fragmentList = bf.read_fragment_list(fragmentsFile)
 
-#Importing interactionMatrix if it was already computed
-interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+            # Now computing the interaction matrix
+            interactionMatrix = analyse_HiC.interactionMatrix(matrixFile, fragmentList)
 
-stringenceReject = 0.2 #when comparing two links, if the intensity of one is below stringenceReject*intensity of the other, it is deleted
-stringenceAccept = 0.45 #when comparing two links, if the intensity of one is above stringenceAccept*intensity of the other, it is confirmed
-steps = 10 #number of cycles get_rid_of_bad_links - merge_contigs
+            # exporting it as to never have to do it again
+            if os.path.exists(interactionFile):
+                bf.export_to_csv(interactionMatrix, interactionFile)
+            else:
+                print(
+                    "Error: {0} already exists, please remove it.".format(
+                        interactionFile
+                    )
+                )
+                sys.exit(1)
+        else:
+            print("Error: could not find fragments file {0}.".format(fragmentsFile))
+            sys.exit(1)
+    else:
+        if not os.path.exists(interactionFile):
+            print(
+                "Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map."
+            )
+            sys.exit(1)
 
-links, listOfSuperContigs, copiesnumber = solve_ambiguities(links, interactionMatrix, stringenceReject, stringenceAccept, steps, names)
+    if fastaFile is "Empty":
+        gfa_to_fasta(gfaFile, "gfa_to_fasta.fasta")
 
-#now exporting the output
-bf.export_to_GFA(links, listOfSuperContigs, copiesnumber, names, 'data/Assempbly.fasta', exportFile = 'results/output.gfa')
+    interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
+
+    links, listOfSuperContigs, copiesnumber = solve_ambiguities(
+        links, interactionMatrix, stringenceReject, stringenceAccept, steps, names
+    )
+
+    # now exporting the output
+    bf.export_to_GFA(
+        links, listOfSuperContigs, copiesnumber, names, fastaFile, exportFile=outFile
+    )
+
+
+if __name__ == "__main__":
+    main()
