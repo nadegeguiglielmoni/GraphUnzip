@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 from transform_gfa import load_gfa
-from solve_ambiguities import export_to_GFA
+from basic_functions import export_to_GFA
 from solve_ambiguities import solve_ambiguities
 
 def testRatios():
@@ -101,18 +101,18 @@ def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
         interactionMatrix[i][i] = 0
     return interactionMatrix
 
-chromosomes = buildFakeChromosomes(10)
-exportFakeToGFA(chromosomes, 'tests/fake.gfa')
-# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9*'.split('-'), 'A0-B7-A1-A2-A3*-A4-A5-A6-A7-A8-A9*'.split('-'),\
-#                'B0-B1-B2-B3-B4-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
-# print(chromosomes)
+# chromosomes = buildFakeChromosomes(10)
+# exportFakeToGFA(chromosomes, 'tests/fake.gfa')
+chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3-A4-A5-A6*-A7-A8-A9*'.split('-'),\
+                'B0-B1-B2-B3-B4-B5-B6-B7*-B8*-B9'.split('-'), 'B0-B1-B2-A0-B3-B4-B5-B6*-B7-B8-B9'.split('-')]
+print(chromosomes)
 links, names = load_gfa('tests/fake.gfa')
 
 interactionMatrix = constructFakeInteractionMatrix(chromosomes, names)
 print_chromosomes(chromosomes)
 print(names)
 
-links, listOfSuperContigs, cn = solve_ambiguities(links, [x for x in range(len(names))], interactionMatrix, 3, 2.1 ,10, names) #rejectedThreshold>AcceptedThreshold
+links, listOfSuperContigs, cn = solve_ambiguities(links, names, interactionMatrix, 0.2, 0.45 ,4) #rejectedThreshold<AcceptedThreshold
 #2 is the minimum for a decent threshold, elsewise links that are on only one chromosome are suppressed compared to those on both chromosomes
 
 #export_to_GFA(links, listOfSuperContigs, cn, names, exportFile = 'tests/fake2.gfa')

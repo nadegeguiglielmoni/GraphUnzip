@@ -140,6 +140,7 @@ def solve_ambiguity_around_this_end_of_contig(endOfSuperContig, links, listOfSup
 # similar to the function above, but simpler : put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
 def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs):
 
+    #print('We are simply putting together ', listOfSuperContigs[int(endOfSuperContig/2)], ' and ', listOfSuperContigs[int(links[endOfSuperContig][0]/2)])
     otherEnd = endOfSuperContig+1-2*(endOfSuperContig%2)
     if links[endOfSuperContig][0] == otherEnd : #then we do not merge a contig with itself
         return -1, -1
@@ -186,8 +187,13 @@ def merge_simply_two_adjacent_contig(endOfSuperContig, links, listOfSuperContigs
 
     # now we delete the merged supercontig
     deletedContigs = [int(endOfSuperContig / 2), int(deleted / 2)]
+
     for i in links[otherEnd]:
-        links[i].remove(otherEnd)
+        try :
+            links[i].remove(otherEnd)
+        except ValueError : #that means we're in a small loop with newly created contigs
+            print('We have a difficulty here : '+str(endOfSuperContig)+ ' ' + str(i) +' . Please check that there is indeed a loop there.')
+            return -1, -1
 
     for i in links[otherEndNeighbor]:
         links[i].remove(otherEndNeighbor)
@@ -220,7 +226,7 @@ def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnum
                         freezed += [endOfContig]
                         freezed += [eoc for eoc in links[endOfContig]]
                     else :
-                        print('I am ', listOfSuperContigs[int(endOfContig/2)],' and here is the choice I have to make : ', [listOfSuperContigs[int(neighbor1 / 2)], listOfSuperContigs[int(neighbor2 / 2)]], linksStrength)
+                        print('I am ', listOfSuperContigs[int(endOfContig/2)],' and here is the choice I have to make : ', [listOfSuperContigs[int(links[endOfContig][neighbor1] / 2)], listOfSuperContigs[int(links[endOfContig][neighbor2] / 2)]], linksStrength)
 
                         if linksStrength[0]>linksStrength[1] :
                             #     file = open('ratio.txt','a')
@@ -243,6 +249,8 @@ def get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnum
             #second, the links that should be deleted are deleted                
             for i in range(len(links[endOfContig]) - 1, -1, -1):
                 if i in mustBeDeleted:
+                    print('------Deleting link going from ', listOfSuperContigs[int(endOfContig/2)], ' to ', \
+                          listOfSuperContigs[int(links[endOfContig][i]/2)])
                     links[links[endOfContig][i]].remove(endOfContig)
                     del links[endOfContig][i]
             
@@ -304,9 +312,14 @@ def merge_contigs(links, listOfSuperContigs, copiesnumber, freezed):
 
     #now we are just going to merge two contigs that are next to each other
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
-    locked = [False for i in listOfSuperContigs]
+    
+    links, listOfSuperContigs = merge_adjacent_contigs(links, listOfSuperContigs)
+    
+    return links, listOfSuperContigs, copiesnumber
 
-    for endOfSuperContig in range(len(locked)*2): 
+def merge_adjacent_contigs(links, listOfSuperContigs):
+    numberOfInitialLinks = len(links)
+    for endOfSuperContig in range(numberOfInitialLinks): 
         if len(links[endOfSuperContig]) == 1 and len(links[links[endOfSuperContig][0]])==1 : #then we just merge
             if links[endOfSuperContig] != [-1] :
                 li, lsc = merge_simply_two_adjacent_contig(endOfSuperContig, deepcopy(links), deepcopy(listOfSuperContigs))  
@@ -315,16 +328,18 @@ def merge_contigs(links, listOfSuperContigs, copiesnumber, freezed):
                     links = [[links[i][j] for j in range(len(links[i]))] for i in range(len(links))]
 
     links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
-    return links, listOfSuperContigs, copiesnumber
-
-
-def solve_ambiguities(links, interactionMatrix, stringenceReject, stringenceAccept, steps, names):  # look at ambiguities one after the other
+    return links, listOfSuperContigs
+    
+def solve_ambiguities(links, names, interactionMatrix, stringenceReject, stringenceAccept, steps):  # look at ambiguities one after the other
 
     copiesnumber = [1 for i in names]
     listOfSuperContigs = [[x] for x in range(len(names))] #The contigs are numbered in listOfSuperContigs, correspondance can be made in the list 'names'
+    
+    links, listOfSuperContigs = merge_adjacent_contigs(links, listOfSuperContigs)
+    
     for i in range(steps):
         
-        print(str(i / steps * 100) + "% of solving ambiguities done")
+        print(str(i / steps * 100) + "% of solving ambiguities done\n")
 
         links, freezed = get_rid_of_bad_links(links, listOfSuperContigs, interactionMatrix, copiesnumber, stringenceReject, stringenceAccept)
 
