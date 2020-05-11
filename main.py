@@ -97,7 +97,7 @@ def main():
             interactionMatrix = analyse_HiC.interactionMatrix(matrixFile, fragmentList)
 
             # exporting it as to never have to do it again
-            if os.path.exists(interactionFile):
+            if not os.path.exists(interactionFile):
                 bf.export_to_csv(interactionMatrix, interactionFile)
             else:
                 print(
@@ -129,7 +129,6 @@ def main():
     bf.export_to_GFA(
         links, listOfSuperContigs, copiesnumber, names, fastaFile, exportFile=outFile
     )
-
 
 
 if __name__ == "__main__":
