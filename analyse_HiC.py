@@ -5,6 +5,7 @@ import random
 from transform_gfa import load_gfa
 import basic_functions as bf
 
+
 def short_distance_interactions(fragcontacts, fraglist):
 
     scores = []
@@ -211,7 +212,10 @@ def distance_law(hiccontacts, fragmentList):
     # plt.xlim([0, 150000])
     plt.ylim([0, 20])
     plt.show()
+
+
 # export_to_csv([tableDistance, tableIntensity], 'listsPython/distanceIntensite')
+
 
 def with_how_many_contig_does_one_contig_interact(hiccontactsfile, fragmentList):
 
@@ -250,6 +254,7 @@ def with_how_many_contig_does_one_contig_interact(hiccontactsfile, fragmentList)
         )
         plt.ylabel("Number of contig interacting with x others")
         plt.show()
+
 
 # here comes the neutral test for our HiC_vs_GFA : we're going to break down contigs and see how much HiC contact they have
 def testHiC_vs_GFA(hiccontacts, info_contigs):
@@ -292,28 +297,40 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
     print(score)
     plt.hist(score)
 
-def interactionMatrix(hiccontactsfile, fragmentList, header=True): #the header refers to the hiccontactsfile
+
+def interactionMatrix(
+    hiccontactsfile, fragmentList, header=True
+):  # the header refers to the hiccontactsfile
+
+    # create a full interaction matrix of contig vs contig
+    # 1 -> [1...N] N contigs
+    # ...
+    # N -> [1...N]
+    interactionMatrix = [
+        [0 for i in range(fragmentList[-1][0] + 1)]
+        for j in range(fragmentList[-1][0] + 1)
+    ]
+
     with open(hiccontactsfile) as f:
+        inFile = f.readlines()
 
-        interactionMatrix = [
-            [0 for i in range(fragmentList[-1][0] + 1)]
-            for j in range(fragmentList[-1][0] + 1)
-        ]
-        for line in f:
+    if header:
+        del inFile[0]
 
-            line = line.strip("\n")
-            line = line.split("\t")
+    for line in inFile:
 
-            if not header:  # because the first line is a header
-                contact = [int(line[0]), int(line[1]), int(line[2])]
+        line = line.strip("\n").split("\t")
 
-                contig1 = fragmentList[contact[0]][0]
-                contig2 = fragmentList[contact[1]][0]
+        # frag1, frag2, contacts
+        contact = [int(line[0]), int(line[1]), int(line[2])]
 
-                interactionMatrix[contig1][contig2] += contact[2]
-                interactionMatrix[contig2][contig1] += contact[2]
+        # search for contig name corresponding to fragment id
+        contig1 = fragmentList[contact[0]][0]
+        contig2 = fragmentList[contact[1]][0]
 
-            header = False
+        # add contacts to interaction matrix
+        interactionMatrix[contig1][contig2] += contact[2]
+        interactionMatrix[contig2][contig1] += contact[2]
 
     return interactionMatrix
 
@@ -322,7 +339,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, header=True): #the header r
 # hiccontacts = import_from_csv('listsPython/hiccontacts.csv')
 # print(hiccontacts[:20])
 # print(hiccontacts[:100])
-fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
+# fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
 # print(fragmentList[:100])
 # infcontigs = read_info_contig('data/results/info_contigs.txt')
 # links = gfa_to_python(1312)
@@ -343,8 +360,9 @@ fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
 
 # check_links(links)
 # coverage = determine_HiC_coverage(hiccontacts, infcontigs, fragmentList)
-coverage = bf.import_from_csv("listsPython/HiCcoverage.csv")
-coverage = [x[0] for x in coverage]
+
+# coverage = bf.import_from_csv("listsPython/HiCcoverage.csv")
+# coverage = [x[0] for x in coverage]
 
 # conf, confweight = HiC_vs_GFAtwo('data/results/abs_fragments_contacts_weighted.txt', links, fragmentList, coverage)
 # print(conf[:20],confweight[:20])
@@ -352,11 +370,13 @@ coverage = [x[0] for x in coverage]
 
 # with_how_many_contig_does_one_contig_interact('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
 
-interaction_Matrix = interactionMatrix("data/results/abs_fragments_contacts_weighted.txt", fragmentList, coverage)
-im = sp.lil_matrix(interaction_Matrix)
-pickle.dump(im, 'listsPython/interactionMatrix.pickle')
-#bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv")
-print(interaction_Matrix[217][323], interaction_Matrix[217][359])
+# interaction_Matrix = interactionMatrix(
+#    "data/results/abs_fragments_contacts_weighted.txt", fragmentList, coverage
+# )
+# im = sp.lil_matrix(interaction_Matrix)
+# pickle.dump(im, "listsPython/interactionMatrix.pickle")
+# bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv")
+# print(interaction_Matrix[217][323], interaction_Matrix[217][359])
 
-print("Finished")
+# print("Finished")
 

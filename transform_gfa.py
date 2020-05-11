@@ -5,6 +5,7 @@ This file is for handling the gfa : loading it into python lists, transforming i
 import time
 import sys
 
+
 def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.fasta"):
 
     t1 = time.time()
@@ -30,6 +31,7 @@ def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.f
                 sys.exit(1)
         i = i + 1
 
+    gfa_file.close()
     fasta_file.close()
 
     print("Processed {0} sequences.".format(seq_i))
