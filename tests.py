@@ -11,9 +11,12 @@ In this file, test functions to test our algorithm
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+
 from transform_gfa import load_gfa
 from basic_functions import export_to_GFA
 from solve_ambiguities import solve_ambiguities
+from solve_ambiguities import intensity_of_interactions
+import scipy.integrate as integrate
 
 def testRatios():
     file = open('ratio.txt', 'r')
@@ -82,9 +85,9 @@ def exportFakeToGFA(chromosomes, file) :
     return alreadyExported
       
 def dist_law(distance) :
-    if distance == 0 :
+    if distance < 10000 :
         distance = 5000
-    return int(1/distance * 1000000)
+    return 10000/distance
 
 def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
     
@@ -94,26 +97,32 @@ def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
             for c2 in range(c1, len(c)) :
                 con1 = c[c1]
                 con2 = c[c2]
-                interactionMatrix[names.index(con1)][names.index(con2)] += dist_law((c2-c1)*lengthOfContigs)
-                interactionMatrix[names.index(con2)][names.index(con1)] += dist_law((c2-c1)*lengthOfContigs)
+                interactionMatrix[names.index(con1)][names.index(con2)] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
+                interactionMatrix[names.index(con2)][names.index(con1)] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
     
     for i in range(len(interactionMatrix)):
         interactionMatrix[i][i] = 0
     return interactionMatrix
 
-# chromosomes = buildFakeChromosomes(10)
-# exportFakeToGFA(chromosomes, 'tests/fake.gfa')
-chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3-A4-A5-A6*-A7-A8-A9*'.split('-'),\
-                'B0-B1-B2-B3-B4-B5-B6-B7*-B8*-B9'.split('-'), 'B0-B1-B2-A0-B3-B4-B5-B6*-B7-B8-B9'.split('-')]
+chromosomes = buildFakeChromosomes(10)
+exportFakeToGFA(chromosomes, 'tests/fake.gfa')
+# chromosomes = ['A0-A1-A2*-A3*-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
+#                 'B0-B1-B2-B3*-B4-B5-B6-B7-B8-B9'.split('-'), 'B0-B1-B2-A0-B3*-B4-B5-B6-B7-B8-B9'.split('-')]
 print(chromosomes)
 links, names = load_gfa('tests/fake.gfa')
 
-interactionMatrix = constructFakeInteractionMatrix(chromosomes, names)
+lengthOfContig = 10000
+#print(integrate.quad(dist_law()))
+interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 print_chromosomes(chromosomes)
 print(names)
 
-links, listOfSuperContigs, cn = solve_ambiguities(links, names, interactionMatrix, 0.2, 0.45 ,4) #rejectedThreshold<AcceptedThreshold
+#print(intensity_of_interactions([5], 11, links, [[6,7,8],[10]], interactionMatrix,[lengthOfContig for i in names], dist_law , [1 for i in  names], True))
+
+links, listOfSuperContigs, cn = solve_ambiguities(links, names, interactionMatrix, [lengthOfContig for i in names], dist_law, 0.2, 0.45 ,10) #rejectedThreshold<AcceptedThreshold
 #2 is the minimum for a decent threshold, elsewise links that are on only one chromosome are suppressed compared to those on both chromosomes
+#passing the dist_law is very inefficient, much too much redundant integration of this fucntion
+
 
 #export_to_GFA(links, listOfSuperContigs, cn, names, exportFile = 'tests/fake2.gfa')
 #export_to_GFA(links, [[i] for i in range(len(names))], [1 for i in names], names, exportFile = 'tests/reexport.gfa')

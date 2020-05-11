@@ -40,7 +40,7 @@ stringenceReject = 0.2 #when comparing two links, if the intensity of one is bel
 stringenceAccept = 0.45 #when comparing two links, if the intensity of one is above stringenceAccept*intensity of the other, it is confirmed
 steps = 10 #number of cycles get_rid_of_bad_links - merge_contigs
 
-links, listOfSuperContigs, copiesnumber = solve_ambiguities(links, interactionMatrix, stringenceReject, stringenceAccept, steps, names)
+links, listOfSuperContigs, copiesnumber = solve_ambiguities(links, interactionMatrix, names, stringenceReject, stringenceAccept, steps)
 
 #now exporting the output
 bf.export_to_GFA(links, listOfSuperContigs, copiesnumber, names, 'data/Assempbly.fasta', exportFile = 'results/output.gfa')
