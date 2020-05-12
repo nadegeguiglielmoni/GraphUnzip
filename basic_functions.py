@@ -76,9 +76,8 @@ def import_from_csv(file):
     df = pd.read_csv(file)
     l = df.values.tolist()
 
-    newl = [[x for x in i if not np.isnan(x)] for i in l]
+    newl = [[x for x in i if not pd.isnull(x)] for i in l]
     return [x[1:] for x in newl]  # we discard the header line
-
 
 def import_links(file):
     links = import_from_csv(file)

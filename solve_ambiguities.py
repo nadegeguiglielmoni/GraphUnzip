@@ -22,16 +22,32 @@ from transform_gfa import check_links
 # this function measures the intensity of interactions between one supercontig and several candidate, including without taking account of the common parts of the supercontigs
 # It also weighs the interaction with the length of a supercontig, so that a very long candidate spercontig is not seen as having a lot of connexion just because it is long
 def intensity_of_interactions(supercontig, endOfContig, links, candidatesSuperContigs, listOfSuperContigs, interactionMatrix, lengthOfContigs, dist_law, copiesnumber, supercontigsaretouching = True):
+    
     commonContigs = []
-    for contig in candidatesSuperContigs[0]:
+    potentialCommonContigs = candidatesSuperContigs[0].copy()
+    if supercontigsaretouching :
+        for i in links[links[endOfContig][0] + 1 - 2*(links[endOfContig][0]%2)]:
+            potentialCommonContigs += listOfSuperContigs[int(i/2)]
+        
+    for contig in potentialCommonContigs:
         common = True
-        for sg in candidatesSuperContigs[1:]:
-            common = common and (contig in sg)
+        
+        for n, sg in enumerate(candidatesSuperContigs[1:]):
+            
+            allcontigs = sg.copy()
+            if supercontigsaretouching :
+                for i in links[links[endOfContig][n+1] + 1 - 2*(links[endOfContig][n+1]%2)]:
+                    allcontigs += listOfSuperContigs[int(i/2)]
+                    
+            #checking if the potentialcommon
+            common = common and (contig in allcontigs)
+
         if common:
             commonContigs += [contig]
+                    
     # now we have a list of common contigs
     for sc in candidatesSuperContigs :
-        if len(commonContigs)==len(sc): #that means that the algorithm should wait before taking a decision
+        if all(elem in commonContigs for elem in sc): #if all elements of sg are in commoncontigs, the algorithm cannot make a choice for now
             return [-1],[-1]
             
     bestSignature = np.min([copiesnumber[x] for x in supercontig])
@@ -72,6 +88,7 @@ def intensity_of_interactions(supercontig, endOfContig, links, candidatesSuperCo
             #print('partial area of contig ', candidatesSuperContigs[sg], ' : ', partial_area)
             relativeScore[sg] *= total_area/partial_area
 
+    print('*Common contigs : ', commonContigs)
     return absoluteScore, relativeScore
     
 #here we look specifically at one contig and its immediate surroundings (can return -1 if fails in short loop)
