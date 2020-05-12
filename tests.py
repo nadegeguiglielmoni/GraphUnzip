@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 
+import basic_functions as bf
 from transform_gfa import load_gfa
 from basic_functions import export_to_GFA
 from solve_ambiguities import solve_ambiguities
@@ -104,24 +105,60 @@ def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
         interactionMatrix[i][i] = 0
     return interactionMatrix
 
-chromosomes = buildFakeChromosomes(10)
-exportFakeToGFA(chromosomes, 'tests/fake.gfa')
+#function that checks if ls1 is a sublist of ls2 : useful for checking the quality of the output
+def sublist(ls1, ls2):
+
+    def get_all_in(one, another):
+        for element in one:
+            if element in another:
+                yield element
+
+    for x1, x2 in zip(get_all_in(ls1, ls2), get_all_in(ls2, ls1)):
+        if x1 != x2:
+            return False
+
+    return True
+
+#function taking as arguments the solution of the problem and the output of the algorithm to see if the output is wrong
+#for now, it just checks if all supercontig in the output actually exist, but some links may be missing
+def check_result(chromosomes, listOfSuperContigs, names) :
+    for supercontig in listOfSuperContigs :
+        
+        supercontigname = [names[i] for i in supercontig]
+        found = False
+        for c in chromosomes :
+            if sublist(supercontigname,c) :
+                found = True
+        if not found :
+            for c in chromosomes :
+                print(c)
+            print('Contig found in output but not in chromosomes : ', supercontigname)
+            return False
+    return True
+        
+# chromosomes = buildFakeChromosomes(10)
+# exportFakeToGFA(chromosomes, 'tests/fake.gfa')
+# bf.export_to_csv(chromosomes, 'tests/fake.chro')
+
 # chromosomes = ['A0-A1-A2*-A3*-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
 #                 'B0-B1-B2-B3*-B4-B5-B6-B7-B8-B9'.split('-'), 'B0-B1-B2-A0-B3*-B4-B5-B6-B7-B8-B9'.split('-')]
+
+chromosomes = bf.import_from_csv('tests/historyOfCases/failure1.chro')
+
+links, names = load_gfa('tests/historyOfCases/failure1.gfa')
+
 print(chromosomes)
-links, names = load_gfa('tests/fake.gfa')
+
 
 lengthOfContig = 10000
-#print(integrate.quad(dist_law()))
 interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 print_chromosomes(chromosomes)
 print(names)
 
-#print(intensity_of_interactions([5], 11, links, [[6,7,8],[10]], interactionMatrix,[lengthOfContig for i in names], dist_law , [1 for i in  names], True))
-
 links, listOfSuperContigs, cn = solve_ambiguities(links, names, interactionMatrix, [lengthOfContig for i in names], dist_law, 0.2, 0.45 ,10) #rejectedThreshold<AcceptedThreshold
-#2 is the minimum for a decent threshold, elsewise links that are on only one chromosome are suppressed compared to those on both chromosomes
-#passing the dist_law is very inefficient, much too much redundant integration of this fucntion
+#passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
+
+print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names))
 
 
 #export_to_GFA(links, listOfSuperContigs, cn, names, exportFile = 'tests/fake2.gfa')
