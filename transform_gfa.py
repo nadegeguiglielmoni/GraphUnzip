@@ -56,8 +56,6 @@ def load_gfa(file):
         [] for i in range(len(names) * 2)
     ]  # a list of links at one end of a contig
 
-    gfa_read = open(file, "r")
-
     for line in gfa_read:
         if line[0] == "L":
 
@@ -92,6 +90,8 @@ def load_gfa(file):
                 links[contig2index * 2] += [contig1index * 2]
             else:
                 print("There seems to be a problem in the gfa file.")
+
+    gfa_read.close()
 
     return links, names
 

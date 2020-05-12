@@ -71,6 +71,13 @@ def parse_args():
         default="interactionMatrix.csv",
         help="""File with interactions [default: interactionMatrix.csv]""",
     )
+        parser.add_argument(
+        "-d",
+        "--distance_law",
+        required=False,
+        default = lambda x:1
+        help="""Distance law of interactions""",
+    )
     return parser.parse_args()
 
 
@@ -126,7 +133,7 @@ def main():
     interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
 
     links, listOfSuperContigs, copiesNumber = solve_ambiguities(
-        links, interactionMatrix, stringenceReject, stringenceAccept, steps, names
+        links, names, interactionMatrix, dist_law, stringenceReject, stringenceAccept, steps
     )
 
     # now exporting the output
