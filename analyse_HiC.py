@@ -298,43 +298,6 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
     plt.hist(score)
 
 
-def interactionMatrix(
-    hiccontactsfile, fragmentList, header=True
-):  # the header refers to the hiccontactsfile
-
-    # create a full interaction matrix of contig vs contig
-    # 1 -> [1...N] N contigs
-    # ...
-    # N -> [1...N]
-    interactionMatrix = [
-        [0 for i in range(fragmentList[-1][0] + 1)]
-        for j in range(fragmentList[-1][0] + 1)
-    ]
-
-    with open(hiccontactsfile) as f:
-        inFile = f.readlines()
-
-    if header:
-        del inFile[0]
-
-    for line in inFile:
-
-        line = line.strip("\n").split("\t")
-
-        # frag1, frag2, contacts
-        contact = [int(line[0]), int(line[1]), int(line[2])]
-
-        # search for contig name corresponding to fragment id
-        contig1 = fragmentList[contact[0]][0]
-        contig2 = fragmentList[contact[1]][0]
-
-        # add contacts to interaction matrix
-        interactionMatrix[contig1][contig2] += contact[2]
-        interactionMatrix[contig2][contig1] += contact[2]
-
-    return interactionMatrix
-
-
 # hiccontacts = read_abs_fragments_contact_weighted('data/results/abs_fragments_contacts_weighted.txt')
 # hiccontacts = import_from_csv('listsPython/hiccontacts.csv')
 # print(hiccontacts[:20])

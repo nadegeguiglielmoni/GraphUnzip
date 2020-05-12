@@ -10,6 +10,7 @@ File basically dedicated to small functions involving reading and writing files
 import pandas as pd
 import numpy as np
 
+# NOT USED
 # Read sparse matrix
 # Input :
 #   file : sparse matrix with 3 fields: frag1, frag2, contacts
@@ -76,6 +77,43 @@ def read_info_contig(file):
     return content
 
 
+def interactionMatrix(
+    hiccontactsfile, fragmentList, header=True
+):  # the header refers to the hiccontactsfile
+
+    # create a full interaction matrix of contig vs contig
+    # 1 -> [1...N] N contigs
+    # ...
+    # N -> [1...N]
+    interactionMatrix = [
+        [0 for i in range(fragmentList[-1][0] + 1)]
+        for j in range(fragmentList[-1][0] + 1)
+    ]
+
+    with open(hiccontactsfile) as f:
+        inFile = f.readlines()
+
+    if header:
+        del inFile[0]
+
+    for line in inFile:
+
+        line = line.strip("\n").split("\t")
+
+        # frag1, frag2, contacts
+        contact = [int(line[0]), int(line[1]), int(line[2])]
+
+        # search for contig name corresponding to fragment id
+        contig1 = fragmentList[contact[0]][0]
+        contig2 = fragmentList[contact[1]][0]
+
+        # add contacts to interaction matrix
+        interactionMatrix[contig1][contig2] += contact[2]
+        interactionMatrix[contig2][contig1] += contact[2]
+
+    return interactionMatrix
+
+
 def export_to_csv(l, file):
     df = pd.DataFrame(l)
     df.to_csv(file)
@@ -88,6 +126,7 @@ def import_from_csv(file):
 
     newl = [[x for x in i if not pd.isnull(x)] for i in l]
     return [x[1:] for x in newl]  # we discard the header line
+
 
 def import_links(file):
     links = import_from_csv(file)

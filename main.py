@@ -24,28 +24,32 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-g", "--gfa", required=True, help="""GFA file""")
     parser.add_argument(
-        "-o", "--output", required=False, default="output.gfa", help="""Output GFA"""
+        "-o",
+        "--output",
+        required=False,
+        default="output.gfa",
+        help="""Output GFA [default: output.gfa]""",
     )
     parser.add_argument(
         "-A",
         "--accepted",
         required=False,
         default=0.45,
-        help="""Threshold to accept links.""",
+        help="""Threshold to accept links. [default: 0.40]""",
     )
     parser.add_argument(
         "-R",
         "--rejected",
         required=False,
         default=0.20,
-        help="""Threshold to reject links.""",
+        help="""Threshold to reject links. [default: 0.20]""",
     )
     parser.add_argument(
         "-s",
         "--steps",
         required=False,
         default=10,
-        help="""Number of steps to get rid of bad links.""",
+        help="""Number of steps to get rid of bad links. [default: 10]""",
     )
     parser.add_argument(
         "-f",
@@ -65,14 +69,7 @@ def parse_args():
         "--interactions",
         required=False,
         default="interactionMatrix.csv",
-        help="""File with interactions""",
-    )
-    parser.add_argument(
-        "-d",
-        "--distance_law",
-        required=False,
-        default = lambda x:1
-        help="""Distance law of interactions""",
+        help="""File with interactions [default: interactionMatrix.csv]""",
     )
     return parser.parse_args()
 
@@ -101,7 +98,7 @@ def main():
             fragmentList = bf.read_fragment_list(fragmentsFile)
 
             # Now computing the interaction matrix
-            interactionMatrix = analyse_HiC.interactionMatrix(matrixFile, fragmentList)
+            interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList)
 
             # exporting it as to never have to do it again
             if not os.path.exists(interactionFile):
@@ -128,13 +125,13 @@ def main():
 
     interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
 
-    links, listOfSuperContigs, copiesnumber = solve_ambiguities(
-        links, names, interactionMatrix, dist_law, stringenceReject, stringenceAccept, steps
+    links, listOfSuperContigs, copiesNumber = solve_ambiguities(
+        links, interactionMatrix, stringenceReject, stringenceAccept, steps, names
     )
 
     # now exporting the output
     bf.export_to_GFA(
-        links, listOfSuperContigs, copiesnumber, names, fastaFile, exportFile=outFile
+        links, listOfSuperContigs, copiesNumber, names, fastaFile, exportFile=outFile
     )
 
 
