@@ -11,6 +11,16 @@ def score_output(listOfSuperContigs, links, lengthOfContigs, interactionMatrix):
     
     #fist, determine the shortest distance in the graph between two contigs
     matrixOfShortestPaths = find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs)
+    
+    #Now computing the score : the higher the score, the less correlation there is between HiC contacts and distance in GFA : the goal is to build a GFA with a low score
+    score = 0
+    
+    #the first element of score is a sum of distance*HiC contacts, encouraging contigs with big HiC contacts to be close
+    for i in range(len(lengthOfContigs)-1):
+            for j in range(i+1, len(lengthOfContigs)) :
+                score += interactionMatrix[i][j] * matrixOfShortestPaths[i][j]
+                
+    #the second element of score is a parcimonious element : duplication of contigs is penalized, as to not duplicate needlessly the contigs
     return 0
     
 def find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infinite_distance = 500000): #infinite_distance is a int parameter : if two contigs don't touch, they will be infinite_distance apart
