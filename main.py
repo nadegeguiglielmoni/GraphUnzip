@@ -3,7 +3,6 @@
 """
 Created on Wed May  6 07:42:14 2020
 
-@author: zaltabar
 """
 
 import basic_functions as bf

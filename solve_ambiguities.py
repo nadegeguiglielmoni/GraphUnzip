@@ -3,18 +3,13 @@
 """
 Created on Thu Apr 23 15:30:45 2020
 
-@author: zaltabar
-
 File dedicated to the algorithm af making bigger contigs, including solving bubbles
 """
 
-import matplotlib.pyplot as plt
 import numpy as np
 import basic_functions as bf
-import random
 import scipy.integrate as integrate
 
-from shutil import copyfile
 from copy import deepcopy 
 from transform_gfa import check_links
 

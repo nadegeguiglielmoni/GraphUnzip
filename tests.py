@@ -3,8 +3,6 @@
 """
 Created on Thu Apr 30 13:05:13 2020
 
-@author: zaltabar
-
 In this file, test functions to test our algorithm
 """
 
@@ -129,18 +127,18 @@ def check_result(chromosomes, listOfSuperContigs, names) :
             print('Contig found in output but not in chromosomes : ', supercontigname)
             return False
     return True
-        
-# chromosomes = buildFakeChromosomes(10)
 
-chromosomes = ['A0*-A1-A2-A3-A4-A5-A6*-A7-A8-A9'.split('-'), 'A0-A1-A2-A3-A4-A5*-A6-A7-A8-A9*'.split('-'),\
-                'B0-B1-B2-B3-B4-B5-B6-B7-B8-B9'.split('-'), 'B0-B1-B2-B0-B3-B4-B5-B6-B7-B8-B9*'.split('-')]
+#chromosomes = buildFakeChromosomes(10)
 
-exportFakeToGFA(chromosomes, 'tests/fake.gfa')
-bf.export_to_csv(chromosomes, 'tests/fake.chro')
+# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
+#                 'B0*-B1-B4-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-#chromosomes = bf.import_from_csv('tests/historyOfCases/failure6.chro')
+# exportFakeToGFA(chromosomes, 'tests/fake.gfa')
+# bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
-links, names = load_gfa('tests/fake.gfa')
+chromosomes = bf.import_from_csv('tests/historyOfCases/failure1.chro')
+
+links, names = load_gfa('tests/historyOfCases/failure1.gfa')
 
 print(chromosomes)
 
@@ -150,7 +148,7 @@ interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfC
 print_chromosomes(chromosomes)
 print(names)
 
-links, listOfSuperContigs, cn = solve_ambiguities(links, names, interactionMatrix, [lengthOfContig for i in names], dist_law, 0.2, 0.45 ,10) #rejectedThreshold<AcceptedThreshold
+links, listOfSuperContigs, cn = solve_ambiguities(links, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,10) #rejectedThreshold<AcceptedThreshold
 #passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
 
 print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names))
