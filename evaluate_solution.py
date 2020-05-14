@@ -6,22 +6,31 @@ Created on Wed May 13 10:37:22 2020
 File dedicated to functions evaluating the quality of the final GFA
 """
 
+import numpy as np
+
 #function scoring the output of solve_ambiguities (evaluating how well HiC contacts correlate with GFA distance)
-def score_output(listOfSuperContigs, links, lengthOfContigs, interactionMatrix):
+def score_output(listOfSuperContigs, links, lengthOfContigs, interactionMatrix, copiesnumber, infinite_distance = 500000):
     
     #fist, determine the shortest distance in the graph between two contigs
-    matrixOfShortestPaths = find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs)
+    matrixOfShortestPaths = find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infinite_distance)
     
     #Now computing the score : the higher the score, the less correlation there is between HiC contacts and distance in GFA : the goal is to build a GFA with a low score
     score = 0
     
+    n = len(lengthOfContigs)
+    interactionMatrixMean = np.sum([np.sum([interactionMatrix[i][j] for j in range(i+1, n)]) for i in range(n-1)])*2/n/(n-1)
+    
     #the first element of score is a sum of distance*HiC contacts, encouraging contigs with big HiC contacts to be close
     for i in range(len(lengthOfContigs)-1):
             for j in range(i+1, len(lengthOfContigs)) :
-                score += interactionMatrix[i][j] * matrixOfShortestPaths[i][j]
-                
-    #the second element of score is a parcimonious element : duplication of contigs is penalized, as to not duplicate needlessly the contigs
-    return 0
+                score += (interactionMatrix[i][j]-interactionMatrixMean) * matrixOfShortestPaths[i][j]/infinite_distance/interactionMatrixMean #-interactionMatrixMean so that two contigs that do not have HiC contacts are encouraged to be far away
+    
+    score /= n*(n-1)/2 # that ensures that score cannot be smaller than -1
+    #the second element of score is a parcimonious element : duplication of contigs is penalized, as to not duplicate freely the contigs to minimize the first term
+    # for c in range(len(copiesnumber)) :
+    #     score += (copiesnumber[c]-1)*infinite_distance*np.max(interactionMatrix[i])*0.1
+
+    return score
     
 def find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infinite_distance = 500000): #infinite_distance is a int parameter : if two contigs don't touch, they will be infinite_distance apart
     
@@ -127,4 +136,4 @@ def find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infin
     return matrixOfShortestPath
 
 
-print(find_matrixOfShortestPaths([[0,1,2],[0]], [[],[2],[1],[]], [10000 for i in range(3)]))
+#print(find_matrixOfShortestPaths([[0,1,2],[0]], [[],[2],[1],[]], [10000 for i in range(3)]))
