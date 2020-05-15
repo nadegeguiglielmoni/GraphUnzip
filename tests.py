@@ -15,6 +15,9 @@ from transform_gfa import load_gfa
 from basic_functions import export_to_GFA
 from solve_ambiguities import solve_ambiguities
 from solve_ambiguities import intensity_of_interactions
+from evaluate_solution import score_output
+
+from copy import deepcopy
 import scipy.integrate as integrate
 
 def testRatios():
@@ -112,8 +115,9 @@ def sublist(ls1, ls2):
     return s1 in s2
 
 #function taking as arguments the solution of the problem and the output of the algorithm to see if the output is wrong
-#for now, it just checks if all supercontig in the output actually exist, but some links may be missing
-def check_result(chromosomes, listOfSuperContigs, names) :
+def check_result(chromosomes, listOfSuperContigs, names, links) :
+
+    #First check if all supercontig actually exist (i.e. contigs were not accidentally duplicated)
     for supercontig in listOfSuperContigs :
         
         supercontigname = [names[i] for i in supercontig]
@@ -126,32 +130,60 @@ def check_result(chromosomes, listOfSuperContigs, names) :
                 print(c)
             print('Contig found in output but not in chromosomes : ', supercontigname)
             return False
+        
+    #Then check if all true links still exist (i.e. links were not accidentally deleted)
+    expectedContacts = [[False for i in names] for j in names]
+    for c in chromosomes :
+        for contig in range(len(c)-1) :
+            expectedContacts[names.index(c[contig])][names.index(c[contig+1])] = True
+            expectedContacts[names.index(c[contig+1])][names.index(c[contig])] = True
+ 
+        #First, look what links are found between supercontigs
+    for i in range(len(links)) :
+        for j in links[i]:
+            expectedContacts[listOfSuperContigs[int(i/2)][-(i%2)]][listOfSuperContigs[int(j/2)][-(j%2)]] = False
+            expectedContacts[listOfSuperContigs[int(j/2)][-(j%2)]][listOfSuperContigs[int(i/2)][-(i%2)]] = False
+
+        #Then within supercontigs
+    for i in listOfSuperContigs :
+        for j in range(len(i)-1) :
+            expectedContacts[i[j]][i[j+1]] = False
+            expectedContacts[i[j+1]][i[j]] = False
+            
+    #print(expectedContacts)
+    if any([any(expectedContacts[i]) for i in range(len(expectedContacts))]) :
+        return False
+    
     return True
 
 #chromosomes = buildFakeChromosomes(10)
 
 # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
-#                 'B0*-B1-B4-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
+#                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-# exportFakeToGFA(chromosomes, 'tests/fake.gfa')
-# bf.export_to_csv(chromosomes, 'tests/fake.chro')
+# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9-A10-A11-A12-A13-A14-A15-A16-A17-A18-A19*-A20-A21-A22-A23-A24-A25*-A26-A27-A28-A29'.split('-'),
+# 'A0-A1-A2-A3-A4-A5-A6-A7*-A8-A9-A10-A11-A12-A13-A14-A15-A16-A17-A18-A19-A20-A21-A22-A23-A24-A25-A26-A27-A28-A29'.split('-'),
+# 'B0-B1-A16-B2-B3-B4-B5-B6-B7-B8-B9-B10-B11-B12-B13-B14-B15-B16-B17-B18-B19-B20-B21-B22-B23-B24-B25-B26-B27-B28-B29'.split('-'),
+# 'B0-B1-B2-B3-B4-B5-B6-B7-B8-B9-B10-B11-B12-B13*-B14-B15-B16-B17-B18-B19-B20-B21-B22*-B23-B24-B25-B26-B27-B28-B29'.split('-')]
 
 chromosomes = bf.import_from_csv('tests/historyOfCases/failure1.chro')
 
-links, names = load_gfa('tests/historyOfCases/failure1.gfa')
+exportFakeToGFA(chromosomes, 'tests/fake.gfa')
+bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
-print(chromosomes)
-
+originalLinks, names, le = load_gfa('tests/fake.gfa')
 
 lengthOfContig = 10000
 interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 print_chromosomes(chromosomes)
-print(names)
+ 
+print('Before the beginning of the process, the gfa energy is : ', \
+      score_output([[i] for i in range(len(names))], originalLinks, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
-links, listOfSuperContigs, cn = solve_ambiguities(links, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,10) #rejectedThreshold<AcceptedThreshold
+links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, [lengthOfContig for i in names], dist_law, 0.2, 0.45 ,10) #rejectedThreshold<AcceptedThreshold
 #passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
 
-print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names))
+print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names, links), ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
 
 #export_to_GFA(links, listOfSuperContigs, cn, names, exportFile = 'tests/fake2.gfa')
