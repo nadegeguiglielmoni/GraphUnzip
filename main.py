@@ -10,10 +10,12 @@ import analyse_HiC
 from transform_gfa import load_gfa
 from transform_gfa import gfa_to_fasta
 from solve_ambiguities import solve_ambiguities
+
+from copy import deepcopy
+
 import argparse
 import os.path
 import sys
-
 
 def parse_args():
     """ 
@@ -124,15 +126,20 @@ def main():
 
     interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
 
-    links, listOfSuperContigs, copiesNumber = solve_ambiguities(
-        links, names, interactionMatrix, dist_law, stringenceReject, stringenceAccept, steps
-    )
+    links, listOfSuperContigs, copiesNumber = solve_ambiguities(links, names, interactionMatrix, lambda x:1, stringenceReject, stringenceAccept, steps)
 
     # now exporting the output
-    bf.export_to_GFA(
-        links, listOfSuperContigs, copiesNumber, names, fastaFile, exportFile=outFile
-    )
+    bf.export_to_GFA(links, listOfSuperContigs, copiesNumber, names, fastaFile, exportFile=outFile)
 
 
 if __name__ == "__main__":
     main()
+
+
+# originalLinks, names, lengths = load_gfa('data/Assembly.gfa')
+# interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+
+# print('Loaded')
+ 
+# links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, lengths, lambda x:1, 0.2, 0.45 ,15) #rejectedThreshold<AcceptedThreshold
+# bf.export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names, fastaFile = 'data/Assembly.fasta', exportFile = 'results/A_Vaga_finished.gfa')

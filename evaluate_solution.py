@@ -7,9 +7,18 @@ File dedicated to functions evaluating the quality of the final GFA
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+import random
+from copy import deepcopy
+
+import basic_functions as bf
+
+from transform_gfa import load_gfa
+from solve_ambiguities import solve_ambiguities
+from solve_ambiguities import clean_listOfSuperContigs
 
 #function scoring the output of solve_ambiguities (evaluating how well HiC contacts correlate with GFA distance)
-def score_output(listOfSuperContigs, links, lengthOfContigs, interactionMatrix, copiesnumber, infinite_distance = 500000):
+def score_output(listOfSuperContigs, links, lengthOfContigs, interactionMatrix, infinite_distance = 500000):
     
     #fist, determine the shortest distance in the graph between two contigs
     matrixOfShortestPaths = find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infinite_distance)
@@ -42,7 +51,6 @@ def find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infin
             matrixOfShortestPathWithContigsReplication[-1].append([[infinite_distance for k in l] for l in listOfSuperContigs])
             matrixOfShortestPathWithContigsReplication[-1][-1][i][j] = -lengthOfContigs[listOfSuperContigs[i][j]]
             
-    #print(matrixOfShortestPathWithContigsReplication)
      
     #Now running Dijkstra algorithm : its original aim is to find the shortest path between two points. Here, by memorizing distances, it is generalized at finding the shortest distance between any two given contigs
     Continue = True
@@ -72,7 +80,7 @@ def find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infin
                                         Continue = True
                                         matrixOfShortestPathWithContigsReplication[i][j][k][l] = matrixOfShortestPathWithContigsReplication[int(touchingSuperContig/2)][-(touchingSuperContig%2)][k][l] + lengthOfContigs[listOfSuperContigs[int(touchingSuperContig/2)][-(touchingSuperContig%2)]]
 
-                    
+                
                 elif j == 0 : #looking at the beginning of a supercontig
           
                     for touchingSuperContig in links[i*2]:
@@ -133,7 +141,182 @@ def find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infin
                     
                     if matrixOfShortestPath[listOfSuperContigs[i][j]][listOfSuperContigs[k][l]] > matrixOfShortestPathWithContigsReplication[i][j][k][l] :
                         matrixOfShortestPath[listOfSuperContigs[i][j]][listOfSuperContigs[k][l]] = matrixOfShortestPathWithContigsReplication[i][j][k][l]
+
+    #taking out the negative values of the matrix
+    for i in matrixOfShortestPath :
+        for j in i :
+            if j < 0 :
+                j = 0
+                
     return matrixOfShortestPath
 
+def draw_distance_HiCcontacts_correlation(listOfSuperContigs, links, lengthOfContigs, interactionMatrix, infinite_distance = 500000):
+    
+    #fist, determine the shortest distance in the graph between two contigs
+    matrixOfShortestPaths = find_matrixOfShortestPaths(listOfSuperContigs, links, lengthOfContigs, infinite_distance)
+    print('shortest paths found')
+    
+    shortestPaths = []
+    HiCcontacts = []
+    
+    
+    for i in range(len(lengthOfContigs)-1):
+            for j in range(i+1, len(lengthOfContigs)) :
+                if interactionMatrix[i][j] > 10 :
+                    HiCcontacts.append (interactionMatrix[i][j]/lengthOfContigs[i]/lengthOfContigs[j])
+                    shortestPaths.append(matrixOfShortestPaths[i][j])
+      
+    print('coucou')
+    plt.scatter(HiCcontacts, shortestPaths, alpha = 0.1)
+    plt.xlabel('Intensity of contacts')
+    plt.ylabel('Smallest distance between the two contigs')
+    plt.show()
 
-#print(find_matrixOfShortestPaths([[0,1,2],[0]], [[],[2],[1],[]], [10000 for i in range(3)]))
+def heat_solution(links, listOfSuperContigs, copiesNumber, originalLinks, heat) :
+    
+    #merge, with a probability depending on the heat, contigs that have been previously duplicated
+    for contigToMerge in range(len(copiesNumber)) :
+        
+        if copiesNumber[contigToMerge] > 1 :
+            if random.random() < heat : #then start merging
+                
+                copiesNumber[contigToMerge] = 1
+                
+                originalLength = len(listOfSuperContigs)
+
+                listOfSuperContigs.append([contigToMerge])
+                links.append([])
+                links.append([])
+                for supercontig, sc in enumerate(listOfSuperContigs[:originalLength]) :
+                    
+                    if contigToMerge in sc :
+                
+                        if len(sc) == 1 :
+                            
+                            links[originalLength*2] += links[supercontig*2]
+                            for i in links[supercontig*2]:
+                                links[i].append(originalLength*2)
+                                links[i].remove(supercontig*2)
+                                
+                            links[originalLength*2+1] += links[supercontig*2+1]
+                            for i in links[supercontig*2+1]:
+                                links[i].remove(supercontig*2+1)
+                                links[i].append(originalLength*2+1)
+                            
+                            listOfSuperContigs[supercontig] = [-1]
+                            links[supercontig*2] = [-1]
+                            links[supercontig*2+1] = [-1]
+                            
+                        elif contigToMerge == sc[0] :
+                            links[originalLength*2] += links[supercontig*2]
+                            for i in links[supercontig*2]:
+                                links[i].remove(supercontig*2)
+                                links[i].append(originalLength*2)
+                                
+                            listOfSuperContigs.append(sc[1:])
+
+                            links.append([originalLength*2+1])
+                            links[originalLength*2+1] += [len(links)-1]
+
+                            links.append(links[supercontig*2+1])
+                            for i in links[supercontig*2+1]:
+                                links[i].remove(supercontig*2+1)
+                                links[i].append(len(links)-1)
+                            
+                            listOfSuperContigs[supercontig] = [-1]
+                            links[supercontig*2] = [-1]
+                            links[supercontig*2+1] = [-1]
+                            
+                        elif contigToMerge == sc[-1] :
+                            links[originalLength*2+1] += links[supercontig*2+1]
+                            for i in links[supercontig*2+1]:
+                                links[i].remove(supercontig*2+1)
+                                links[i].append(originalLength*2+1)
+
+                            listOfSuperContigs.append(sc[:len(sc)-1])
+                            links.append(links[supercontig*2])
+                            for i in links[supercontig*2]:
+                                links[i].remove(supercontig*2)
+                                links[i].append(len(links)-1)
+                            links.append([originalLength*2])
+                            links[originalLength*2] += [len(links)-1]
+                            
+                            listOfSuperContigs[supercontig] = [-1]
+                            links[supercontig*2] = [-1]
+                            links[supercontig*2+1] = [-1]
+
+                        else :
+                            indexOfContig = sc.index(contigToMerge)
+                            
+                            listOfSuperContigs.append(sc[:indexOfContig])
+                            links.append(links[supercontig*2])
+                            for i in links[supercontig*2]:
+                                links[i].remove(supercontig*2)
+                                links[i].append(len(links)-1)
+                            links.append([originalLength*2])
+                            
+                            links[originalLength*2] += [len(links)-1]
+                        
+                            listOfSuperContigs.append(sc[indexOfContig+1:len(sc)])
+                            links.append([originalLength*2+1])
+                            links[originalLength*2+1] += [len(links)-1]
+                            
+                            links.append(links[supercontig*2+1])
+                            for i in links[supercontig*2+1]:
+                                links[i].remove(supercontig*2+1)
+                                links[i].append(originalLength*2+1)
+                                                              
+                            listOfSuperContigs[supercontig] = [-1]
+                            links[supercontig*2] = [-1]
+                            links[supercontig*2+1] = [-1]
+
+                #print(listOfSuperContigs)
+                
+                links, listOfSuperContigs = clean_listOfSuperContigs(links, listOfSuperContigs)
+                
+    return links, listOfSuperContigs, copiesNumber
+    
+def simulated_annealing(links, names, interactionMatrix, lengthOfContigs, dist_law, stringenceReject, stringenceAccept, steps) :
+    
+    originalLinks = deepcopy(links)
+    
+    #run solve_ambiguities the first time :
+    links, listOfSuperContigs, copiesNumber = solve_ambiguities(links, names, interactionMatrix, lengthOfContigs, dist_law, stringenceReject, stringenceAccept, steps)
+    best_score = score_output(listOfSuperContigs, links, lengthOfContigs, interactionMatrix)    
+    
+    for i in range(10) :
+        #first, modifiy a bit the solution previously found
+        newLinks, newListOfSuperContigs, newCopiesNumber = heat_solution(deepcopy(links), deepcopy(listOfSuperContigs), deepcopy(copiesNumber), originalLinks, heat = (10-i)/20)
+        
+        #secondly, proceed to solve the new problem
+        newLinks, newListOfSuperContigs, newCopiesNumber = solve_ambiguities(newLinks, names, interactionMatrix, lengthOfContigs,dist_law, stringenceReject, stringenceAccept, steps, newListOfSuperContigs, newCopiesNumber)
+        
+        #thirdly, score the new output to see if it is more satisfying than the last one
+        newScore = score_output(newListOfSuperContigs, newLinks, lengthOfContigs, interactionMatrix)  
+        
+        if newScore < best_score :
+            best_score = newScore
+            links = newLinks
+            listOfSuperContigs = newListOfSuperContigs
+            copiesNumber = newCopiesNumber
+        
+
+    print(listOfSuperContigs)           
+    return links, listOfSuperContigs, copiesNumber
+        
+# originalLinks, names, lengthOfContigs = load_gfa('results/A_Vaga_finished.gfa')
+# #info_contigs = bf.read_info_contig('data/results/info_contigs.txt')
+# interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
+
+# #let's build the new interaction matrix
+# newInteractionMatrix = []
+# for i in range(len(names)) :
+#     newInteractionMatrix.append([])
+#     for j in range(len(names)):
+#         newInteractionMatrix[-1].append(interactionMatrix[int(int(names[i].split('-')[0])/2)][int(int(names[j].split('-')[0])/2)])
+     
+# print('Loaded')
+# #print(score_output([[i] for i in range(len(names))], originalLinks, lengthOfContigs, newInteractionMatrix, infinite_distance = 1000000))
+# draw_distance_HiCcontacts_correlation([[i] for i in range(len(names))], originalLinks, lengthOfContigs, newInteractionMatrix, infinite_distance = 1000000)
+
+# print('Finished')

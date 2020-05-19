@@ -14,7 +14,6 @@ from copy import deepcopy
 
 from transform_gfa import check_links
 
-
 # this function measures the intensity of interactions between one supercontig and several candidate, including without taking account of the common parts of the supercontigs
 # It also weighs the interaction with the length of a supercontig, so that a very long candidate spercontig is not seen as having a lot of connexion just because it is long
 def intensity_of_interactions(
@@ -29,7 +28,7 @@ def intensity_of_interactions(
     copiesnumber,
     supercontigsaretouching=True,
 ):
-
+    
     commonContigs = []
     potentialCommonContigs = candidatesSuperContigs[0].copy()
     if supercontigsaretouching:
@@ -89,9 +88,7 @@ def intensity_of_interactions(
             )
             if c not in commonContigs:
                 # computing the partial area : that way, small supercontigs are not penalized when compared to much longer ones
-                partial_area += np.abs(
-                    integrate.quad(dist_law, newLengthForNow, lengthForNow)[0]
-                )
+                partial_area += np.abs(integrate.quad(dist_law, newLengthForNow, lengthForNow)[0])
                 # print('Computing partial area for sg ', int(endOfContig/2), ' between ',  newLengthForNow, ' and ', lengthForNow)
 
             for contig in supercontig:
@@ -107,7 +104,7 @@ def intensity_of_interactions(
             # print('partial area of contig ', candidatesSuperContigs[sg], ' : ', partial_area)
             relativeScore[sg] *= total_area / partial_area
 
-    print("*Common contigs : ", commonContigs)
+    #print("*Common contigs : ", commonContigs)
     return absoluteScore, relativeScore
 
 
@@ -368,7 +365,7 @@ def get_rid_of_bad_links(
     thresholdAccepted,
 ):
 
-    freezed = []  # that's the places where we won't make choices
+    freezed = []  # that's the places where choices won't be made
 
     # loop through all end of contigs, to inspect the robustness of all the links.
     for endOfContig in range(len(links)):
@@ -401,20 +398,9 @@ def get_rid_of_bad_links(
                         freezed += [endOfContig]
                         freezed += [eoc for eoc in links[endOfContig]]
                     else:
-                        print(
-                            "I am ",
-                            listOfSuperContigs[int(endOfContig / 2)],
-                            " and here is the choice I have to make : ",
-                            [
-                                listOfSuperContigs[
-                                    int(links[endOfContig][neighbor1] / 2)
-                                ],
-                                listOfSuperContigs[
-                                    int(links[endOfContig][neighbor2] / 2)
-                                ],
-                            ],
-                            linksStrength,
-                        )
+                        # print("I am ",listOfSuperContigs[int(endOfContig / 2)]," and here is the choice I have to make : ",
+                        #     [listOfSuperContigs[int(links[endOfContig][neighbor1] / 2)],
+                        #         listOfSuperContigs[int(links[endOfContig][neighbor2] / 2)]],linksStrength)
 
                         if linksStrength[0] > linksStrength[1]:
                             #     file = open('ratio.txt','a')
@@ -443,12 +429,12 @@ def get_rid_of_bad_links(
             # second, the links that should be deleted are deleted
             for i in range(len(links[endOfContig]) - 1, -1, -1):
                 if i in mustBeDeleted:
-                    print(
-                        "------Deleting link going from ",
-                        listOfSuperContigs[int(endOfContig / 2)],
-                        " to ",
-                        listOfSuperContigs[int(links[endOfContig][i] / 2)],
-                    )
+                    # print(
+                    #     "------Deleting link going from ",
+                    #     listOfSuperContigs[int(endOfContig / 2)],
+                    #     " to ",
+                    #     listOfSuperContigs[int(links[endOfContig][i] / 2)],
+                    # )
                     links[links[endOfContig][i]].remove(endOfContig)
                     del links[endOfContig][i]
 
@@ -552,23 +538,17 @@ def merge_adjacent_contigs(links, listOfSuperContigs):
     return links, listOfSuperContigs
 
 
-def solve_ambiguities(
-    links,
-    names,
-    interactionMatrix,
-    lengthOfContigs,
-    dist_law,
-    stringenceReject,
-    stringenceAccept,
-    steps,
-):
+def solve_ambiguities(links,names,interactionMatrix,lengthOfContigs,dist_law,stringenceReject,stringenceAccept,steps, listOfSuperContigs = [], copiesNumber = []):
+    
+    originalLinks = deepcopy(links)
+    
+    if copiesNumber == [] :
+        copiesNumber = [1 for i in names]
+    
+    if listOfSuperContigs == []:  # The contigs are numbered in listOfSuperContigs, correspondance can be made in the list 'names'
+        listOfSuperContigs = [[x] for x in range(len(names))] 
 
-    copiesNumber = [1 for i in names]
-    listOfSuperContigs = [
-        [x] for x in range(len(names))
-    ]  # The contigs are numbered in listOfSuperContigs, correspondance can be made in the list 'names'
-
-    links, listOfSuperContigs = merge_adjacent_contigs(links, listOfSuperContigs)
+    links, listOfSuperContigs = merge_adjacent_contigs(deepcopy(originalLinks), listOfSuperContigs)
 
     for i in range(steps):
 
@@ -585,17 +565,16 @@ def solve_ambiguities(
             stringenceAccept,
         )
 
-        links, listOfSuperContigs, copiesnumber = merge_contigs(
-            links, listOfSuperContigs, copiesnumber, freezed
-        )
-
-        bf.export_to_GFA(
-            links,
-            listOfSuperContigs,
-            copiesNumber,
-            names,
-            exportFile="tests/fake" + str(i) + ".gfa",
-        )
+        links, listOfSuperContigs, copiesNumber = merge_contigs(links, listOfSuperContigs, copiesNumber, freezed)
+        
+        # bf.export_to_GFA(
+        #     links,
+        #     listOfSuperContigs,
+        #     copiesNumber,
+        #     originalLinks,
+        #     names,
+        #     exportFile="tests/fake" + str(i) + ".gfa")
+       # print('At step ', i, ' the energy is : ', score_output(listOfSuperContigs, links, [10000 for i in names], interactionMatrix))
 
     return links, listOfSuperContigs, copiesNumber
 

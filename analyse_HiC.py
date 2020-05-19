@@ -191,30 +191,35 @@ def HiC_vs_GFAtwo(
     return confirmationOfLinks, weightedconfirmationOfLinks
 
 
-def distance_law(hiccontacts, fragmentList):
+def distance_law(hiccontactsfile, fragmentList, header = True):
     tableDistance = (
         []
     )  # we're going to visualize distance law by looking at the inside of contigs
     tableIntensity = []
-
-    for i in hiccontacts:
-        if (
-            fragmentList[i[0]][0] == fragmentList[i[1]][0] and i[2] > 0
-        ):  # i.e. we are in the same contig
-
-            distance = fragmentList[i[1]][1] - fragmentList[i[0]][1]
-            tableDistance += [distance]
-            tableIntensity += [i[2]]
-
-    plt.scatter(np.log10(tableDistance), tableIntensity, alpha=0.02)
-    plt.xlabel("log10(Distance (bp))")
-    plt.ylabel("(Intensity)")
-    # plt.xlim([0, 150000])
-    plt.ylim([0, 20])
+    
+    f = open(hiccontactsfile,'r')
+    
+    for line in f:
+        if not header :
+            l = line.strip('\n').split('\t')
+            i = [int(l[0]), int(l[1]), int(l[2])]
+            if (fragmentList[i[0]][0] == fragmentList[i[1]][0] and i[2] > 0 ):  # i.e. we are in the same contig
+    
+                distance = fragmentList[i[1]][1] - fragmentList[i[0]][1]
+                tableDistance += [distance]
+                tableIntensity += [i[2]] #division to normalize to the probability of interaction per bp
+                #/ fragmentList[i[0]][3] / fragmentList[i[1]][3]
+        else :
+            header = False
+            
+    plt.scatter(tableDistance, tableIntensity, alpha=0.2)
+    plt.xlabel("Distance (bp)")
+    plt.ylabel("Intensity of contact")
+    plt.xlim([0, 200000])
+    plt.ylim([0, 25])
     plt.show()
 
-
-# export_to_csv([tableDistance, tableIntensity], 'listsPython/distanceIntensite')
+#    bf.export_to_csv([tableDistance, tableIntensity], 'listsPython/distanceIntensite.csv')
 
 
 def with_how_many_contig_does_one_contig_interact(hiccontactsfile, fragmentList):
@@ -298,11 +303,11 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
     plt.hist(score)
 
 
-# hiccontacts = read_abs_fragments_contact_weighted('data/results/abs_fragments_contacts_weighted.txt')
+#hiccontacts = bf.read_abs_fragments_contact_weighted('data/results/abs_fragments_contacts_weighted.txt')
 # hiccontacts = import_from_csv('listsPython/hiccontacts.csv')
 # print(hiccontacts[:20])
 # print(hiccontacts[:100])
-# fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
+fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
 # print(fragmentList[:100])
 # infcontigs = read_info_contig('data/results/info_contigs.txt')
 # links = gfa_to_python(1312)
@@ -338,8 +343,10 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
 # )
 # im = sp.lil_matrix(interaction_Matrix)
 # pickle.dump(im, "listsPython/interactionMatrix.pickle")
-# bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv")
+# bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv") 
 # print(interaction_Matrix[217][323], interaction_Matrix[217][359])
 
-# print("Finished")
+distance_law('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
+
+print("Finished")
 

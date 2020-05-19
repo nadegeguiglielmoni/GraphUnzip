@@ -153,82 +153,82 @@ def export_to_GFA(
     links,
     listOfSuperContigs,
     copiesnumber,
+    originalLinks,
     names=None,
     fastaFile="",
     exportFile="results/newAssembly.gfa",
 ):
 
     if names == None:
-        names = [2 * i for i in range(len(links) / 2)]
+        names = [str(2 * i) for i in range(int(len(links) / 2))]
     #  copyfile("results/sequencesWithoutLinks.gfa", "results/newAssembly.gfa")
     f = open(exportFile, "w")
     addresses = ["" for i in range(len(listOfSuperContigs) * 2)]
     copiesUsed = [0 for i in copiesnumber]
 
+    #fist write the sequences and the links within the supercontigs
     for sc, supercontig in enumerate(listOfSuperContigs):
         if sc % 30 == 0:
             print(int(sc / len(listOfSuperContigs) * 1000) / 10, "% of exporting done")
+
         for c, contig in enumerate(supercontig):
             f.write("S\t" + names[contig] + "-" + str(copiesUsed[contig]) + "\t")
             if fastaFile != "":
-                f.write(get_contig(fastaFile, contig, contig * 2 - 1) + "\n")
+                f.write(get_contig(fastaFile, names[contig], contig * 2 - 4) + "\n")
             else:
                 f.write("*\n")
-            # print(supercontig)
+            #print(supercontig)
             if c == 0:
                 addresses[sc * 2] = names[contig] + "-" + str(copiesUsed[contig])
             if c == len(supercontig) - 1:
                 addresses[sc * 2 + 1] = names[contig] + "-" + str(copiesUsed[contig])
 
             if c > 0:
-                # /!\ the + orientation of both contigs next line is arbitrary, do NOT trust it to build an actual genome
-                f.write(
-                    "L\t"
-                    + names[supercontig[c - 1]]
-                    + "-"
-                    + str(copiesUsed[supercontig[c - 1]] - 1)
-                    + "\t+\t"
-                    + names[contig]
-                    + "-"
-                    + str(copiesUsed[contig])
-                    + "\t+\t*\n"
-                )
+                f.write("L\t"+ names[supercontig[c - 1]]+ "-"+ str(copiesUsed[supercontig[c - 1]] - 1))
+                
+                if contig in [int(i/2) for i in originalLinks[supercontig[c-1]*2]] :                    
+                    f.write("\t-\t")
+                elif contig in [int(i/2) for i in originalLinks[supercontig[c-1]*2+1]]:
+                    f.write("\t+\t")
+                else :
+                    print('Problem while exporting, previously non-existing links seem to have been made up')
+                    
+                f.write(names[contig] + "-"+ str(copiesUsed[contig]))
+                
+                if supercontig[c-1] in [int(i/2) for i in originalLinks[contig*2]] :                    
+                    f.write("\t+\t")
+                elif supercontig[c-1] in [int(i/2) for i in originalLinks[contig*2+1]]:
+                    f.write("\t-\t")
+                else :
+                    print('Problem while exporting, previously non-existing links seem to have been made up')
+                
+                f.write("*\n")
 
             copiesUsed[contig] += 1
 
+    #then write in file the links between the ends of supercontigs
     for endOfSuperContig in range(len(links)):
         for l in links[endOfSuperContig]:
             if endOfSuperContig < l:  # to write each link only once
-                if endOfSuperContig % 2 == 1 and l % 2 == 0:
-                    f.write(
-                        "L\t"
-                        + addresses[endOfSuperContig]
-                        + "\t+\t"
-                        + addresses[l]
-                        + "\t+\t*\n"
-                    )
-                elif endOfSuperContig % 2 == 0 and l % 2 == 0:
-                    f.write(
-                        "L\t"
-                        + addresses[endOfSuperContig]
-                        + "\t-\t"
-                        + addresses[l]
-                        + "\t+\t*\n"
-                    )
-                elif endOfSuperContig % 2 == 0 and l % 2 == 1:
-                    f.write(
-                        "L\t"
-                        + addresses[endOfSuperContig]
-                        + "\t-\t"
-                        + addresses[l]
-                        + "\t-\t*\n"
-                    )
-                elif endOfSuperContig % 2 == 1 and l % 2 == 1:
-                    f.write(
-                        "L\t"
-                        + addresses[endOfSuperContig]
-                        + "\t+\t"
-                        + addresses[l]
-                        + "\t-\t*\n"
-                    )
-
+                if l == endOfSuperContig + 1 and l%2 == 1: #if a contig loops on itself
+                    f.write("L\t"+ addresses[endOfSuperContig]+'\t+\t'+ addresses[endOfSuperContig] + '\t+\t*\n')
+                else :
+                    f.write("L\t"+ addresses[endOfSuperContig])
+                    
+                    if listOfSuperContigs[int(l/2)][-(l%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]*2]] :
+                        f.write("\t-\t")
+                    elif listOfSuperContigs[int(l/2)][-(l%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]*2+1]] :
+                        f.write("\t+\t")
+                    else :
+                        print('Problem while exporting, previously non-existing links seem to have been made up')
+                    
+                        
+                    f.write(addresses[l])
+    
+                    if listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(l/2)][-(l%2)]*2]] :
+                        f.write("\t+\t*\n")
+                    
+                    elif listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(l/2)][-(l%2)]*2+1]] :
+                        f.write("\t-\t*\n")
+                    else :
+                        print('Problem while exporting, previously non-existing links seem to have been made up')

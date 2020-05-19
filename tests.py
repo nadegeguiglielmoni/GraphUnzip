@@ -15,7 +15,11 @@ from transform_gfa import load_gfa
 from basic_functions import export_to_GFA
 from solve_ambiguities import solve_ambiguities
 from solve_ambiguities import intensity_of_interactions
+
 from evaluate_solution import score_output
+from evaluate_solution import draw_distance_HiCcontacts_correlation
+from evaluate_solution import heat_solution
+from evaluate_solution import simulated_annealing
 
 from copy import deepcopy
 import scipy.integrate as integrate
@@ -156,17 +160,33 @@ def check_result(chromosomes, listOfSuperContigs, names, links) :
     
     return True
 
-#chromosomes = buildFakeChromosomes(10)
+def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
+    
+    record = []
+    for i in range(n):
+        chromosomes = buildFakeChromosomes(lengthOfChromosomes)
+        exportFakeToGFA(chromosomes, 'tests/stats/test' + str(i)+'.gfa')
+        bf.export_to_csv(chromosomes, 'tests/stats/test' + str(i)+'.chro')
+        
+        originalLinks, names, le = load_gfa('tests/stats/test' + str(i)+'.gfa')
 
-# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
-#                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
+        lengthOfContig = 10000
 
-# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9-A10-A11-A12-A13-A14-A15-A16-A17-A18-A19*-A20-A21-A22-A23-A24-A25*-A26-A27-A28-A29'.split('-'),
-# 'A0-A1-A2-A3-A4-A5-A6-A7*-A8-A9-A10-A11-A12-A13-A14-A15-A16-A17-A18-A19-A20-A21-A22-A23-A24-A25-A26-A27-A28-A29'.split('-'),
-# 'B0-B1-A16-B2-B3-B4-B5-B6-B7-B8-B9-B10-B11-B12-B13-B14-B15-B16-B17-B18-B19-B20-B21-B22-B23-B24-B25-B26-B27-B28-B29'.split('-'),
-# 'B0-B1-B2-B3-B4-B5-B6-B7-B8-B9-B10-B11-B12-B13*-B14-B15-B16-B17-B18-B19-B20-B21-B22*-B23-B24-B25-B26-B27-B28-B29'.split('-')]
+        interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 
-chromosomes = bf.import_from_csv('tests/historyOfCases/failure1.chro')
+        links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, [lengthOfContig for i in names], dist_law, 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+
+        record.append(check_result(chromosomes, listOfSuperContigs, names, links))
+        
+        draw_distance_HiCcontacts_correlation(listOfSuperContigs, links, [10000 for i in names], interactionMatrix)
+       
+    fileRecord = open('tests/stats/record.txt', 'w')
+    for i in record :
+        fileRecord.write(str(i)+'\n')
+    print(int(record.count(False)*100/n), '% of incorrectly changed GFA')
+
+chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
+                'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
 exportFakeToGFA(chromosomes, 'tests/fake.gfa')
 bf.export_to_csv(chromosomes, 'tests/fake.chro')
@@ -174,19 +194,31 @@ bf.export_to_csv(chromosomes, 'tests/fake.chro')
 originalLinks, names, le = load_gfa('tests/fake.gfa')
 
 lengthOfContig = 10000
-interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
-print_chromosomes(chromosomes)
- 
-print('Before the beginning of the process, the gfa energy is : ', \
-      score_output([[i] for i in range(len(names))], originalLinks, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
-links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, [lengthOfContig for i in names], dist_law, 0.2, 0.45 ,10) #rejectedThreshold<AcceptedThreshold
+interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
+
+links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, [lengthOfContig for i in names], lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+
+export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeF.gfa')
+
+links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
+print(listOfSuperContigs)
+export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')
+
+#chromosomes = bf.import_from_csv('tests/historyOfCases/failure1.chro')
+
+# print('Before the beginning of the process, the gfa energy is : ', \
+#       score_output([[i] for i in range(len(names))], originalLinks, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
+
 #passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
 
-print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names, links), ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
+#print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names, links), ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
 
 #export_to_GFA(links, listOfSuperContigs, cn, names, exportFile = 'tests/fake2.gfa')
 #export_to_GFA(links, [[i] for i in range(len(names))], [1 for i in names], names, exportFile = 'tests/reexport.gfa')
+
+#stats_on_solve_ambiguities(n=1)
+
 print('Finished')
     
