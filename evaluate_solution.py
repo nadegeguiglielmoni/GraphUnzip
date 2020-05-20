@@ -191,6 +191,10 @@ def heat_solution(links, listOfSuperContigs, copiesNumber, originalLinks, heat) 
                     
                     if contigToMerge in sc :
                 
+                        print(listOfSuperContigs)
+                        print(sc, contigToMerge)
+                        print(links[supercontig*2+1])
+                        print(links)
                         if len(sc) == 1 :
                             
                             links[originalLength*2] += links[supercontig*2]
@@ -269,6 +273,9 @@ def heat_solution(links, listOfSuperContigs, copiesNumber, originalLinks, heat) 
                             listOfSuperContigs[supercontig] = [-1]
                             links[supercontig*2] = [-1]
                             links[supercontig*2+1] = [-1]
+                            
+                        for l in range(len(links)) : #to delete all redundant links we may have created
+                            links[l] = list(set(links[l]))
 
                 #print(listOfSuperContigs)
                 
@@ -300,8 +307,6 @@ def simulated_annealing(links, names, interactionMatrix, lengthOfContigs, dist_l
             listOfSuperContigs = newListOfSuperContigs
             copiesNumber = newCopiesNumber
         
-
-    print(listOfSuperContigs)           
     return links, listOfSuperContigs, copiesNumber
         
 # originalLinks, names, lengthOfContigs = load_gfa('results/A_Vaga_finished.gfa')

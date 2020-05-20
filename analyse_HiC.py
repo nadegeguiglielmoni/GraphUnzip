@@ -307,7 +307,7 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
 # hiccontacts = import_from_csv('listsPython/hiccontacts.csv')
 # print(hiccontacts[:20])
 # print(hiccontacts[:100])
-fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
+#fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
 # print(fragmentList[:100])
 # infcontigs = read_info_contig('data/results/info_contigs.txt')
 # links = gfa_to_python(1312)
@@ -346,7 +346,7 @@ fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
 # bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv") 
 # print(interaction_Matrix[217][323], interaction_Matrix[217][359])
 
-distance_law('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
+#distance_law('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
 
 print("Finished")
 

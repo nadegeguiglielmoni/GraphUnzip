@@ -148,14 +148,27 @@ def get_contig(fastaFile, contig, firstline=0):
             linenumber += 1
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
+def get_contig_GFA(gfaFile, contig):
+    
+    with open(gfaFile) as f:
+
+        for line in f:
+            
+            sline = line.split('\t')
+            if len(sline) >= 3 :
+                if sline[0] == 'S' and (contig in sline[1]) :
+                    return sline[2]
+
+    return "In get_contig : the contig you are seeking is not in the fasta file"
 
 def export_to_GFA(
     links,
     listOfSuperContigs,
     copiesnumber,
     originalLinks,
+    originalLinksCIGAR = None,
     names=None,
-    fastaFile="",
+    gfaFile="",
     exportFile="results/newAssembly.gfa",
 ):
 
@@ -173,8 +186,8 @@ def export_to_GFA(
 
         for c, contig in enumerate(supercontig):
             f.write("S\t" + names[contig] + "-" + str(copiesUsed[contig]) + "\t")
-            if fastaFile != "":
-                f.write(get_contig(fastaFile, names[contig], contig * 2 - 4) + "\n")
+            if gfaFile != "":
+                f.write(get_contig_GFA(gfaFile, names[contig]) + "\n")
             else:
                 f.write("*\n")
             #print(supercontig)
@@ -184,12 +197,16 @@ def export_to_GFA(
                 addresses[sc * 2 + 1] = names[contig] + "-" + str(copiesUsed[contig])
 
             if c > 0:
+                o1,o2 = -1,-1
+                
                 f.write("L\t"+ names[supercontig[c - 1]]+ "-"+ str(copiesUsed[supercontig[c - 1]] - 1))
                 
                 if contig in [int(i/2) for i in originalLinks[supercontig[c-1]*2]] :                    
                     f.write("\t-\t")
+                    o1 = 0
                 elif contig in [int(i/2) for i in originalLinks[supercontig[c-1]*2+1]]:
                     f.write("\t+\t")
+                    o1 = 1
                 else :
                     print('Problem while exporting, previously non-existing links seem to have been made up')
                     
@@ -197,28 +214,56 @@ def export_to_GFA(
                 
                 if supercontig[c-1] in [int(i/2) for i in originalLinks[contig*2]] :                    
                     f.write("\t+\t")
+                    o2 = 0
                 elif supercontig[c-1] in [int(i/2) for i in originalLinks[contig*2+1]]:
                     f.write("\t-\t")
+                    o2 = 1
                 else :
                     print('Problem while exporting, previously non-existing links seem to have been made up')
                 
-                f.write("*\n")
+                if originalLinksCIGAR == None :
+                    f.write("*\n")
+                else :
+                    f.write(originalLinksCIGAR[2*supercontig[c - 1]+o1][originalLinks[2*supercontig[c-1]+o1].index(2*contig+o2)]+'\n')
 
             copiesUsed[contig] += 1
 
     #then write in file the links between the ends of supercontigs
+    #this part actually makes mistakes when two supercontigs are linked more than one time
     for endOfSuperContig in range(len(links)):
         for l in links[endOfSuperContig]:
             if endOfSuperContig < l:  # to write each link only once
-                if l == endOfSuperContig + 1 and l%2 == 1: #if a contig loops on itself
-                    f.write("L\t"+ addresses[endOfSuperContig]+'\t+\t'+ addresses[endOfSuperContig] + '\t+\t*\n')
+                if l == endOfSuperContig + 1 and l%2 == 1: #if a supercontig loops on itself
+                    f.write("L\t"+ addresses[endOfSuperContig]+'\t+\t'+ addresses[l] + '\t+\t')
+                    if originalLinksCIGAR == None :
+                        f.write('*\n')
+                    else :       
+                        if 2*listOfSuperContigs[int(l/2)][-(l%2)] in originalLinks[2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]]\
+                            or 2*listOfSuperContigs[int(l/2)][-(l%2)] in originalLinks[2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]+1]:
+                                o1 = 0
+                        else :
+                            o1 = 1
+                            
+                        if 2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in originalLinks[2*listOfSuperContigs[int(l/2)][-(l%2)]+o1] :
+                            o2 = 0
+                        else :
+                            o2 = 1
+                        endOfContig1 = 2*listOfSuperContigs[int(l/2)][-(l%2)]+o1
+                        endOfContig2 = 2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]+o2
+                        
+                        f.write(originalLinksCIGAR[endOfContig1][originalLinks[endOfContig1].index(endOfContig2)] +'\n')
+    
                 else :
+                    o1, o2 = -1, -1
+                    
                     f.write("L\t"+ addresses[endOfSuperContig])
                     
                     if listOfSuperContigs[int(l/2)][-(l%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]*2]] :
                         f.write("\t-\t")
+                        o1 = 0
                     elif listOfSuperContigs[int(l/2)][-(l%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]*2+1]] :
                         f.write("\t+\t")
+                        o1 = 1
                     else :
                         print('Problem while exporting, previously non-existing links seem to have been made up')
                     
@@ -226,9 +271,27 @@ def export_to_GFA(
                     f.write(addresses[l])
     
                     if listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(l/2)][-(l%2)]*2]] :
-                        f.write("\t+\t*\n")
+                        f.write("\t+\t")
+                        o2 = 0
                     
                     elif listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(l/2)][-(l%2)]*2+1]] :
-                        f.write("\t-\t*\n")
+                        f.write("\t-\t")
+                        o2 = 1
                     else :
                         print('Problem while exporting, previously non-existing links seem to have been made up')
+                       
+                    
+                    if originalLinksCIGAR == None :
+                        f.write('*\n')
+                    else :
+                        endOfContig1 = 2*listOfSuperContigs[int(l/2)][-(l%2)]+o2
+                        endOfContig2 = 2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]+o1
+                        try :
+                            f.write(originalLinksCIGAR[endOfContig1][originalLinks[endOfContig1].index(endOfContig2)] +'\n')
+                        except :
+                            f.write('*\n')
+    
+
+
+
+

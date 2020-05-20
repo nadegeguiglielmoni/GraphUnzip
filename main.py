@@ -23,7 +23,7 @@ def parse_args():
 	"""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-g", "--gfa", required=True, help="""GFA file""")
+    parser.add_argument("-g", "--gfa", required=True, help="""GFA file to phase""")
     parser.add_argument(
         "-o",
         "--output",
@@ -50,15 +50,15 @@ def parse_args():
         "--steps",
         required=False,
         default=10,
-        help="""Number of steps to get rid of bad links. [default: 10]""",
+        help="""Number of cycles get rid of bad links - duplicate contigs. [default: 10]""",
     )
-    parser.add_argument(
-        "-f",
-        "--fasta",
-        required=False,
-        default="Empty",
-        help="""Segments from the GFA in fasta format""",
-    )
+    # parser.add_argument(
+    #     "-f",
+    #     "--fasta",
+    #     required=False,
+    #     default="Empty",
+    #     help="""Segments from the GFA in fasta format""",
+    # )
     parser.add_argument(
         "-m", "--matrix", required=False, default="Empty", help="""Sparse contact map"""
     )
@@ -79,7 +79,7 @@ def main():
 
     args = parse_args()
     gfaFile = args.gfa
-    fastaFile = args.fasta
+    outFile = args.output
     matrixFile = args.matrix
     fragmentsFile = args.fragments
     interactionFile = args.interaction
@@ -92,7 +92,7 @@ def main():
         sys.exit(1)
 
     # Loading the data
-    links, names = load_gfa(gfaFile)
+    originalLinks, CIGARlinks, names, lengths = load_gfa(gfaFile)
 
     if fragmentsFile is not "Empty" and matrixFile is not "Empty":
         if os.path.exists(fragmentsFile):
@@ -121,25 +121,22 @@ def main():
             )
             sys.exit(1)
 
-    if fastaFile is "Empty":
-        gfa_to_fasta(gfaFile, "gfa_to_fasta.fasta")
-
     interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
 
-    links, listOfSuperContigs, copiesNumber = solve_ambiguities(links, names, interactionMatrix, lambda x:1, stringenceReject, stringenceAccept, steps)
+    links, listOfSuperContigs, copiesNumber = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, lambda x:1, stringenceReject, stringenceAccept, steps)
 
     # now exporting the output
-    bf.export_to_GFA(links, listOfSuperContigs, copiesNumber, names, fastaFile, exportFile=outFile)
+    bf.export_to_GFA(links, listOfSuperContigs, copiesNumber, originalLinks, CIGARlinks, names, gfaFile, exportFile=outFile)
 
 
 if __name__ == "__main__":
     main()
 
 
-# originalLinks, names, lengths = load_gfa('data/Assembly.gfa')
+# originalLinks, CIGARlinks, names, lengths = load_gfa('data_A_Vaga_PacBio/Assembly.gfa')
 # interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
 
 # print('Loaded')
  
 # links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, lengths, lambda x:1, 0.2, 0.45 ,15) #rejectedThreshold<AcceptedThreshold
-# bf.export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names, fastaFile = 'data/Assembly.fasta', exportFile = 'results/A_Vaga_finished.gfa')
+# bf.export_to_GFA(links, listOfSuperContigs, cn, originalLinks, originalLinksCIGAR = CIGARlinks, names = names, gfaFile = 'data_A_Vaga_PacBio/Assembly.gfa', exportFile = 'results/A_Vaga_PacBio/A_Vaga_finished2.gfa')
