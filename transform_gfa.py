@@ -5,6 +5,8 @@ This file is for handling the gfa : loading it into python lists, transforming i
 import time
 import sys
 
+from segment import Segment
+
 
 def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.fasta"):
 
@@ -46,78 +48,30 @@ def load_gfa(file):
 
     gfa_read = open(file, "r")
 
-    names = []
-    lengthOfContigs = []
+    segments = []
+    
     for line in gfa_read:
         if line[0] == "S":
-            l = line.split("\t")
-            names.append(l[1])
-            lengthOfContigs.append(len(l[2]))
+            l = line.strip('\n').split("\t")
+            s = Segment(len(segments),[len(segments)], [l[1]], [1], [len(l[2])])
+            segments.append(s)
 
-    links = [[] for i in range(len(names) * 2)]  # a list of links at one end of a contig
     
-    linksCIGAR = [[] for i in range(len(names) * 2)]
-
     gfa_read = open(file, "r")
         
+    names = [i.names[0] for i in segments]
+    print(names)
     for line in gfa_read:
         if line[0] == "L":
-            
-            if len(line) < 5:
-                print("Wrong format: expected at least 5 fields in line:\n{0}\n".format(line))
 
             l = line.strip('\n').split("\t")
-            contig1 = l[1]
-            contig2 = l[3]
             
-            contig1index = names.index(contig1)
-            contig2index = names.index(contig2)
-
-            if l[2] == "+" and l[4] == "+":
-                links[contig1index * 2 + 1] += [contig2index * 2]
-                links[contig2index * 2] += [contig1index * 2 + 1]
-                if len(line) >= 6 :
-                    linksCIGAR[contig1index * 2 + 1].append(l[5])
-                    linksCIGAR[contig2index * 2].append(l[5])
-                else :
-                    linksCIGAR[contig1index * 2 + 1].append('*')
-                    linksCIGAR[contig2index * 2].append('*')
-
-            elif l[2] == "+" and l[4] == "-":
-                links[contig1index * 2 + 1] += [contig2index * 2 + 1]
-                links[contig2index * 2 + 1] += [contig1index * 2 + 1]
-                if len(line) >= 6 :
-                    linksCIGAR[contig1index * 2 + 1].append(l[5])
-                    linksCIGAR[contig2index * 2 + 1].append(l[5])
-                else :
-                    linksCIGAR[contig1index * 2 + 1].append('*')
-                    linksCIGAR[contig2index * 2 + 1].append('*')
-
-            elif l[2] == "-" and l[4] == "-":
-                links[contig1index * 2] += [contig2index * 2 + 1]
-                links[contig2index * 2 + 1] += [contig1index * 2]
-                if len(line) >= 6 :
-                    linksCIGAR[contig1index * 2].append(l[5])
-                    linksCIGAR[contig2index * 2 + 1].append(l[5])
-                else :
-                    linksCIGAR[contig1index * 2].append('*')
-                    linksCIGAR[contig2index * 2 + 1].append('*')
-
-            elif l[2] == "-" and l[4] == "+":
-                links[contig1index * 2] += [contig2index * 2]
-                links[contig2index * 2] += [contig1index * 2]
-                if len(line) >= 6 :
-                    linksCIGAR[contig1index * 2].append(l[5])
-                    linksCIGAR[contig2index * 2].append(l[5])
-                else :
-                    linksCIGAR[contig1index * 2].append('*')
-                    linksCIGAR[contig2index * 2].append('*')
-            else:
-                print("There seems to be a problem in the gfa file.")
+            segments[names.index(l[1])].add_link_from_GFA(line, names, segments)
+            segments[names.index(l[3])].add_link_from_GFA(line, names, segments)
 
     gfa_read.close()
 
-    return links, linksCIGAR, names, lengthOfContigs
+    return segments
 
 
 def print_short():
@@ -158,4 +112,4 @@ def check_links(links):
                 return False
     return True
 
-gfa_to_fasta('data_A_Vaga_Illumina/assemblyGraph_k63.gfa', 'data_A_Vaga_Illumina/assemblyGraph_k63.fasta')
+#gfa_to_fasta('data_A_Vaga_Illumina/assemblyGraph_k201.gfa', 'data_A_Vaga_Illumina/assemblyGraph_k201.fasta')

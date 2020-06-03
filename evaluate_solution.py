@@ -15,7 +15,6 @@ import basic_functions as bf
 
 from transform_gfa import load_gfa
 from solve_ambiguities import solve_ambiguities
-from solve_ambiguities import clean_listOfSuperContigs
 
 #function scoring the output of solve_ambiguities (evaluating how well HiC contacts correlate with GFA distance)
 def score_output(listOfSuperContigs, links, lengthOfContigs, interactionMatrix, infinite_distance = 500000):

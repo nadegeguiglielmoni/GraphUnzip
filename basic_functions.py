@@ -8,6 +8,8 @@ File basically dedicated to small functions involving reading and writing files
 import pandas as pd
 import numpy as np
 
+from segment import Segment
+
 # NOT USED
 # Read sparse matrix
 # Input :
@@ -53,7 +55,7 @@ def read_fragment_list(file, header=True):
     # 1: contig_id, 2: fragment_start, 3: fragment_end, 4: fragment_length
     content = [x.strip("\n").split("\t") for x in content]
     content = [
-        [x[1].strip("sequence"), int(x[2]), int(x[3]), int(x[4])] for x in content
+        [x[1], int(x[2]), int(x[3]), int(x[4])] for x in content
     ]
     # the removal of "sequence" is too specific to a certain contig name format
     # should be removed/improved
@@ -75,18 +77,13 @@ def read_info_contig(file):
     return content
 
 
-def interactionMatrix(
-    hiccontactsfile, fragmentList, header=True
-):  # the header refers to the hiccontactsfile
+def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the header refers to the hiccontactsfile
 
     # create a full interaction matrix of contig vs contig
     # 1 -> [1...N] N contigs
     # ...
     # N -> [1...N]
-    interactionMatrix = [
-        [0 for i in range(fragmentList[-1][0] + 1)]
-        for j in range(fragmentList[-1][0] + 1)
-    ]
+    interactionMatrix = [[0 for i in range(len(names))] for j in range(len(names))]
 
     with open(hiccontactsfile) as f:
         inFile = f.readlines()
@@ -105,9 +102,13 @@ def interactionMatrix(
         contig1 = fragmentList[contact[0]][0]
         contig2 = fragmentList[contact[1]][0]
 
+        # search for the index of the contigs in names 
+        index1 = names.index(contig1)
+        index2 = names.index(contig2)
+        
         # add contacts to interaction matrix
-        interactionMatrix[contig1][contig2] += contact[2]
-        interactionMatrix[contig2][contig1] += contact[2]
+        interactionMatrix[index1][index2] += contact[2]
+        interactionMatrix[index1][index2] += contact[2]
 
     return interactionMatrix
 
@@ -161,135 +162,65 @@ def get_contig_GFA(gfaFile, contig):
 
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
-def export_to_GFA(
-    links,
-    listOfSuperContigs,
-    copiesnumber,
-    originalLinks,
-    originalLinksCIGAR = None,
-    names=None,
-    gfaFile="",
-    exportFile="results/newAssembly.gfa",
-):
+def export_to_GFA(listOfSegments, copiesnumber, gfaFile="", exportFile="results/newAssembly.gfa"):
 
-    if names == None:
-        names = [str(2 * i) for i in range(int(len(links) / 2))]
-    #  copyfile("results/sequencesWithoutLinks.gfa", "results/newAssembly.gfa")
     f = open(exportFile, "w")
-    addresses = ["" for i in range(len(listOfSuperContigs) * 2)]
     copiesUsed = [0 for i in copiesnumber]
 
     #fist write the sequences and the links within the supercontigs
-    for sc, supercontig in enumerate(listOfSuperContigs):
-        if sc % 30 == 0:
-            print(int(sc / len(listOfSuperContigs) * 1000) / 10, "% of exporting done")
+    for s, segment in enumerate(listOfSegments):
+        if s % 30 == 0:
+            print(int(s / len(listOfSegments) * 1000) / 10, "% of exporting done")
 
-        for c, contig in enumerate(supercontig):
-            f.write("S\t" + names[contig] + "-" + str(copiesUsed[contig]) + "\t")
+        for c, contig in enumerate(segment.names):
+            
+            f.write("S\t" + contig + "-" + str(copiesUsed[segment.listOfContigs[c]]) + "\t")
             if gfaFile != "":
-                f.write(get_contig_GFA(gfaFile, names[contig]) + "\n")
+                f.write(get_contig_GFA(gfaFile, contig) + "\n")
             else:
                 f.write("*\n")
-            #print(supercontig)
-            if c == 0:
-                addresses[sc * 2] = names[contig] + "-" + str(copiesUsed[contig])
-            if c == len(supercontig) - 1:
-                addresses[sc * 2 + 1] = names[contig] + "-" + str(copiesUsed[contig])
 
             if c > 0:
-                o1,o2 = -1,-1
                 
-                f.write("L\t"+ names[supercontig[c - 1]]+ "-"+ str(copiesUsed[supercontig[c - 1]] - 1))
+                f.write("L\t"+ segment.names[c-1]+ "-"+ str(copiesUsed[segment.listOfContigs[c-1]]))
                 
-                if contig in [int(i/2) for i in originalLinks[supercontig[c-1]*2]] :                    
-                    f.write("\t-\t")
-                    o1 = 0
-                elif contig in [int(i/2) for i in originalLinks[supercontig[c-1]*2+1]]:
+                if segment.orientations[c-1] == 1 :                    
                     f.write("\t+\t")
-                    o1 = 1
-                else :
-                    print('Problem while exporting, previously non-existing links seem to have been made up')
-                    
-                f.write(names[contig] + "-"+ str(copiesUsed[contig]))
-                
-                if supercontig[c-1] in [int(i/2) for i in originalLinks[contig*2]] :                    
-                    f.write("\t+\t")
-                    o2 = 0
-                elif supercontig[c-1] in [int(i/2) for i in originalLinks[contig*2+1]]:
+
+                elif segment.orientations[c-1] == 0:
                     f.write("\t-\t")
-                    o2 = 1
-                else :
-                    print('Problem while exporting, previously non-existing links seem to have been made up')
+             
+                f.write(contig + "-"+ str(copiesUsed[segment.listOfContigs[c]]))
                 
-                if originalLinksCIGAR == None :
-                    f.write("*\n")
-                else :
-                    f.write(originalLinksCIGAR[2*supercontig[c - 1]+o1][originalLinks[2*supercontig[c-1]+o1].index(2*contig+o2)]+'\n')
+                if segment.orientations[c] == 1 :                    
+                    f.write("\t+\t")
 
-            copiesUsed[contig] += 1
+                elif segment.orientations[c] == 0:
+                    f.write("\t-\t")
+                    
+                f.write(segment.insideCIGARs[c-1]+'\n')
 
-    #then write in file the links between the ends of supercontigs
-    #this part actually makes mistakes when two supercontigs are linked more than one time
-    for endOfSuperContig in range(len(links)):
-        for l in links[endOfSuperContig]:
-            if endOfSuperContig < l:  # to write each link only once
-                if l == endOfSuperContig + 1 and l%2 == 1: #if a supercontig loops on itself
-                    f.write("L\t"+ addresses[endOfSuperContig]+'\t+\t'+ addresses[l] + '\t+\t')
-                    if originalLinksCIGAR == None :
-                        f.write('*\n')
-                    else :       
-                        if 2*listOfSuperContigs[int(l/2)][-(l%2)] in originalLinks[2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]]\
-                            or 2*listOfSuperContigs[int(l/2)][-(l%2)] in originalLinks[2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]+1]:
-                                o1 = 0
-                        else :
-                            o1 = 1
-                            
-                        if 2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in originalLinks[2*listOfSuperContigs[int(l/2)][-(l%2)]+o1] :
-                            o2 = 0
-                        else :
-                            o2 = 1
-                        endOfContig1 = 2*listOfSuperContigs[int(l/2)][-(l%2)]+o1
-                        endOfContig2 = 2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]+o2
+            copiesUsed[segment.listOfContigs[c]] += 1
+
+    #then write in the gfa file the links between the ends of supercontigs
+
+    for s, segment in enumerate(listOfSegments):
+        for endOfSegment in range(2):
+            for l, neighbor in enumerate(segment.links[endOfSegment]):
+                
+                if segment.hash <= neighbor.hash : #that is to ensure each link is written only once
+                
+                    endOfNeighbor = segment.otherEndOfLinks[l]
+                    orientation1, orientation2 = '-', '-'
+                    
+                    if segment.orientations[-endOfSegment] == endOfSegment :
+                        orientation1 = '+'
                         
-                        f.write(originalLinksCIGAR[endOfContig1][originalLinks[endOfContig1].index(endOfContig2)] +'\n')
-    
-                else :
-                    o1, o2 = -1, -1
-                    
-                    f.write("L\t"+ addresses[endOfSuperContig])
-                    
-                    if listOfSuperContigs[int(l/2)][-(l%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]*2]] :
-                        f.write("\t-\t")
-                        o1 = 0
-                    elif listOfSuperContigs[int(l/2)][-(l%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]*2+1]] :
-                        f.write("\t+\t")
-                        o1 = 1
-                    else :
-                        print('Problem while exporting, previously non-existing links seem to have been made up')
-                    
+                    if neighbor.orientations[-endOfNeighbor] != endOfNeighbor :
+                        orientation2 = '+'
                         
-                    f.write(addresses[l])
-    
-                    if listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(l/2)][-(l%2)]*2]] :
-                        f.write("\t+\t")
-                        o2 = 0
-                    
-                    elif listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)] in [int(i/2) for i in originalLinks[listOfSuperContigs[int(l/2)][-(l%2)]*2+1]] :
-                        f.write("\t-\t")
-                        o2 = 1
-                    else :
-                        print('Problem while exporting, previously non-existing links seem to have been made up')
-                       
-                    
-                    if originalLinksCIGAR == None :
-                        f.write('*\n')
-                    else :
-                        endOfContig1 = 2*listOfSuperContigs[int(l/2)][-(l%2)]+o2
-                        endOfContig2 = 2*listOfSuperContigs[int(endOfSuperContig/2)][-(endOfSuperContig%2)]+o1
-                        try :
-                            f.write(originalLinksCIGAR[endOfContig1][originalLinks[endOfContig1].index(endOfContig2)] +'\n')
-                        except :
-                            f.write('*\n')
+                    f.write("L\t"+segment.names[-endOfSegment] + '\t' + orientation1 + '\t' + neighbor.names[-endOfNeighbor]+'\t'\
+                            +orientation2+'\t'+segment.CIGARs[endOfSegment][l]+'\n')
     
 
 

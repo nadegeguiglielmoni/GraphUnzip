@@ -92,33 +92,28 @@ def main():
         sys.exit(1)
 
     # Loading the data
-    originalLinks, CIGARlinks, names, lengths = load_gfa(gfaFile)
+    segments = load_gfa(gfaFile)
+    names = [i.listOfContigs[0] for i in segments]
 
     if fragmentsFile is not "Empty" and matrixFile is not "Empty":
         if os.path.exists(fragmentsFile):
             fragmentList = bf.read_fragment_list(fragmentsFile)
 
             # Now computing the interaction matrix
-            interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList)
+            interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names)
 
             # exporting it as to never have to do it again
             if not os.path.exists(interactionFile):
                 bf.export_to_csv(interactionMatrix, interactionFile)
             else:
-                print(
-                    "Error: {0} already exists, please remove it.".format(
-                        interactionFile
-                    )
-                )
+                print("Error: {0} already exists, please remove it.".format(interactionFile))
                 sys.exit(1)
         else:
             print("Error: could not find fragments file {0}.".format(fragmentsFile))
             sys.exit(1)
     else:
         if not os.path.exists(interactionFile):
-            print(
-                "Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map."
-            )
+            print("Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map.")
             sys.exit(1)
 
     interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
