@@ -158,4 +158,4 @@ def check_links(links):
                 return False
     return True
 
-gfa_to_fasta('data_A_Vaga_Illumina/assemblyGraph_k63.gfa', 'data_A_Vaga_Illumina/assemblyGraph_k63.fasta')
+#gfa_to_fasta('data_A_Vaga_Illumina/assemblyGraph_k63.gfa', 'data_A_Vaga_Illumina/assemblyGraph_k63.fasta')

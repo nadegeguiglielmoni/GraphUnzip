@@ -45,7 +45,7 @@ def buildFakeChromosomes(chromosomesLength = 10):
     letters = ['A','A','B','B','C','C','D','D']
     chromosomes = [[letters[j]+str(i) for i in range(chromosomesLength)] for j in range(4)]
     
-    duplicates = 2 #number of conitgs that are going to be repeated within each chromosomes :
+    duplicates = 0 #number of conitgs that are going to be repeated within each chromosomes :
     for chromosome in chromosomes :
         for i in range(duplicates):
             contigCopied = random.randint(0, len(chromosome)-1)
@@ -164,11 +164,12 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
     
     record = []
     for i in range(n):
+        
         chromosomes = buildFakeChromosomes(lengthOfChromosomes)
-        exportFakeToGFA(chromosomes, 'tests/stats/test' + str(i)+'.gfa')
+        exportFakeToGFA(chromosomes, 'tests/stats/test' + str(i)+'.gfa', 10000)
         bf.export_to_csv(chromosomes, 'tests/stats/test' + str(i)+'.chro')
         
-        originalLinks, names, le = load_gfa('tests/stats/test' + str(i)+'.gfa')
+        originalLinks, cigars, names, le = load_gfa('tests/stats/test' + str(i)+'.gfa')
 
         lengthOfContig = 10000
 
@@ -189,21 +190,20 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
 #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-chromosomes = bf.import_from_csv('tests/fake.chro')
+# chromosomes = bf.import_from_csv('tests/stats/test1.chro')
 
-#chromosomes = buildFakeChromosomes(100)
-#bf.export_to_csv(chromosomes, 'tests/fake.chro')
+#chromosomes = buildFakeChromosomes(10)
 
-lengthOfContig = 10000
-exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
-bf.export_to_csv(chromosomes, 'tests/fake.chro')
-originalLinks, linksCIGAR, names, le = load_gfa('tests/fake.gfa')
-interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
+# lengthOfContig = 10000
+# exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
+# bf.export_to_csv(chromosomes, 'tests/fake.chro')
+# originalLinks, linksCIGAR, names, le = load_gfa('tests/fake.gfa')
+# interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 
-#print(linksCIGAR)
+# print(names)
 
-links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, [lengthOfContig for i in names], lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
-export_to_GFA(links, listOfSuperContigs, cn, originalLinks, originalLinksCIGAR = linksCIGAR, names = names, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa')
+# links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, [lengthOfContig for i in names], lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+# export_to_GFA(links, listOfSuperContigs, cn, originalLinks, originalLinksCIGAR = linksCIGAR, names = names, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa')
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
 # export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')
@@ -215,7 +215,7 @@ export_to_GFA(links, listOfSuperContigs, cn, originalLinks, originalLinksCIGAR =
 
 #print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names, links), ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
-#stats_on_solve_ambiguities(n=1)
+stats_on_solve_ambiguities(n=10)
 
 print('Finished')
     

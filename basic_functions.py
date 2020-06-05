@@ -7,6 +7,8 @@ File basically dedicated to small functions involving reading and writing files
 """
 import pandas as pd
 import numpy as np
+# import sparse module from SciPy package 
+from scipy import sparse #dok_matrix will be used for interactionMatrix since they allow for fast access of elements
 
 # NOT USED
 # Read sparse matrix
@@ -75,39 +77,42 @@ def read_info_contig(file):
     return content
 
 
-def interactionMatrix(
-    hiccontactsfile, fragmentList, header=True
-):  # the header refers to the hiccontactsfile
+def interactionMatrix(hiccontactsfile, fragmentList, header=True):  # the header refers to the hiccontactsfile
 
     # create a full interaction matrix of contig vs contig
     # 1 -> [1...N] N contigs
     # ...
     # N -> [1...N]
-    interactionMatrix = [
-        [0 for i in range(fragmentList[-1][0] + 1)]
-        for j in range(fragmentList[-1][0] + 1)
-    ]
-
+    print('Starting to build an interaction matrix')
+    interactionMatrix = sparse.dok_matrix((int(fragmentList[-1][0]) + 1, int(fragmentList[-1][0]) + 1))
+    # interactionMatrix = [
+    #     [0 for i in range(int(fragmentList[-1][0]) + 1)]
+    #     for j in range(int(fragmentList[-1][0]) + 1)]
+    
+    n = 0
     with open(hiccontactsfile) as f:
-        inFile = f.readlines()
-
-    if header:
-        del inFile[0]
-
-    for line in inFile:
-
-        line = line.strip("\n").split("\t")
-
-        # frag1, frag2, contacts
-        contact = [int(line[0]), int(line[1]), int(line[2])]
-
-        # search for contig name corresponding to fragment id
-        contig1 = fragmentList[contact[0]][0]
-        contig2 = fragmentList[contact[1]][0]
-
-        # add contacts to interaction matrix
-        interactionMatrix[contig1][contig2] += contact[2]
-        interactionMatrix[contig2][contig1] += contact[2]
+        
+        for line in f:
+    
+            if not header :
+                line = line.strip("\n").split("\t")
+        
+                # frag1, frag2, contacts
+                contact = [int(line[0]), int(line[1]), int(line[2])]
+        
+                # search for contig name corresponding to fragment id
+                contig1 = int(fragmentList[contact[0]][0])
+                contig2 = int(fragmentList[contact[1]][0])
+        
+                # add contacts to interaction matrix
+                interactionMatrix[contig1, contig2] += contact[2]
+                interactionMatrix[contig2, contig1] += contact[2]
+                
+                n += 1
+                if n%10000 == 0 :
+                    print(n/10000, '*10000 hic contacts inputed in the matrix')
+            else :
+                header = False
 
     return interactionMatrix
 

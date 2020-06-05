@@ -82,48 +82,49 @@ def main():
     outFile = args.output
     matrixFile = args.matrix
     fragmentsFile = args.fragments
-    interactionFile = args.interaction
+    interactionFile = args.interactions
     stringenceReject = float(args.rejected)
     stringenceAccept = float(args.accepted)
-    steps = int(args.step)
+    steps = int(args.steps)
 
     if not os.path.exists(gfaFile):
         print("Error: could not find GFA file {0}.".format(gfaFile))
         sys.exit(1)
 
-    # Loading the data
-    originalLinks, CIGARlinks, names, lengths = load_gfa(gfaFile)
-
+    #Creating/loading the interaction matrix
     if fragmentsFile is not "Empty" and matrixFile is not "Empty":
         if os.path.exists(fragmentsFile):
             fragmentList = bf.read_fragment_list(fragmentsFile)
 
             # Now computing the interaction matrix
             interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList)
+            print('Interaction matrix built')
 
             # exporting it as to never have to do it again
-            if not os.path.exists(interactionFile):
-                bf.export_to_csv(interactionMatrix, interactionFile)
-            else:
-                print(
-                    "Error: {0} already exists, please remove it.".format(
-                        interactionFile
-                    )
-                )
-                sys.exit(1)
+            # if not os.path.exists(interactionFile):
+            #     bf.export_to_csv(interactionMatrix, interactionFile)
+            # else:
+            #     print(
+            #         "Error: {0} already exists, please remove it.".format(
+            #             interactionFile
+            #         )
+            #     )
+            #     sys.exit(1)
         else:
             print("Error: could not find fragments file {0}.".format(fragmentsFile))
             sys.exit(1)
     else:
         if not os.path.exists(interactionFile):
-            print(
-                "Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map."
-            )
+            print("Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map.")
             sys.exit(1)
+            
+    # Loading the data
+    originalLinks, CIGARlinks, names, lengths = load_gfa(gfaFile)
 
-    interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
-
-    links, listOfSuperContigs, copiesNumber = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, lambda x:1, stringenceReject, stringenceAccept, steps)
+    #interactionMatrix = bf.import_from_csv(interactionFile)
+    
+    print('Everything loaded, beginning to solve_ambiguities')
+    links, listOfSuperContigs, copiesNumber = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, lengths, lambda x:1, stringenceReject, stringenceAccept, steps)
 
     # now exporting the output
     bf.export_to_GFA(links, listOfSuperContigs, copiesNumber, originalLinks, CIGARlinks, names, gfaFile, exportFile=outFile)
