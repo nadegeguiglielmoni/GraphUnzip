@@ -161,6 +161,8 @@ def check_result(chromosomes, listOfSuperContigs, names, links) :
     
     return True
 
+
+
 def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
     
     record = []
@@ -203,7 +205,7 @@ names = [segment.names[0] for segment in listOfSegments]
 interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 
 # for i in listOfSegments :
-#     i.hello()
+#     i.print_complete()
 
 listOfSegments, cn = solve_ambiguities(listOfSegments, interactionMatrix, lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 

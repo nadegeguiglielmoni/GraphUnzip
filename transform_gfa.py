@@ -60,14 +60,13 @@ def load_gfa(file):
     gfa_read = open(file, "r")
         
     names = [i.names[0] for i in segments]
-    print(names)
     for line in gfa_read:
         if line[0] == "L":
 
             l = line.strip('\n').split("\t")
             
-            segments[names.index(l[1])].add_link_from_GFA(line, names, segments)
-            segments[names.index(l[3])].add_link_from_GFA(line, names, segments)
+            segments[names.index(l[1])].add_link_from_GFA(line, names, segments, 0)
+            segments[names.index(l[3])].add_link_from_GFA(line, names, segments, 1)
 
     gfa_read.close()
 

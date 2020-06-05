@@ -45,7 +45,7 @@ def intensity_of_interactions(
 
         for n, candidate in enumerate(candidatesSegments[1:]):
 
-            allcontigs = candidate.listOfContigs.coopy()
+            allcontigs = candidate.listOfContigs.copy()
             if supercontigsaretouching:
                 
                 if segment in candidate.links[0] :
@@ -75,7 +75,7 @@ def intensity_of_interactions(
 
     for c in candidatesSegments:
         
-        absoluteScore, relativeScore, partial_area = c.interaction_with_contig(segment, interactionMatrix, dist_law, copiesnumber, commonContigs, bestSignature)
+        absoluteScore, relativeScore, partial_area = c.interaction_with_contigs(segment, interactionMatrix, dist_law, copiesnumber, commonContigs, bestSignature)
 
         absoluteScores.append(absoluteScore)
         relativeScores.append(relativeScore)
@@ -151,13 +151,14 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     neighbor = segment.links[endOfSegment][0]
     endOfSegmentNeighbor = segment.otherEndOfLinks[endOfSegment][0]
     
+    print('Merging simply ', segment.names, ' and ', neighbor.names)
+    
     if len(neighbor.links[endOfSegmentNeighbor]) != 1 :
         print('ERROR : trying to merge simply two contigs that cannot be merged simply')
         return -1,-1
         
     if neighbor == segment :  # then we do not merge a contig with itself
         return -1, -1
-
 
     # add the new segment
     
@@ -168,9 +169,11 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     otherEndNeighbor = 1 - endOfSegmentNeighbor
     
     for i, n in enumerate(segment.links[otherEnd]) :
+        print(n.names)
         n.remove_end_of_link(segment.otherEndOfLinks[otherEnd][i], segment)
         
     for i, n in enumerate(neighbor.links[otherEndNeighbor]) :
+        n.print_complete()
         n.remove_end_of_link(neighbor.otherEndOfLinks[otherEndNeighbor][i], neighbor)
 
     # delete the ex-segments
@@ -181,11 +184,8 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
 
 #a loop to merge all adjacent contigs
 def merge_adjacent_contigs(listOfSegments):
-    
-    n = len(listOfSegments)
-    
-    for se in range(n):
-        segment = listOfSegments[se]
+        
+    for segment in listOfSegments:
         for endOfSegment in range(2):
             if len(segment.links[endOfSegment]) == 1\
                 and len(segment.links[endOfSegment][0].links[segment.otherEndOfLinks[endOfSegment][0]]) == 1:  # then merge

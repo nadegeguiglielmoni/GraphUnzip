@@ -25,11 +25,11 @@ class Segment:
         self._index = segIndex
         
         #this group of attributes are linked array : element n in one corresponds with element n in the other. Therefore they shouldn't be modified independantly
-        self._namesOfContigs = segNamesOfContig #names are strings with which sequences are described in the GFA
-        self._listOfContigs = segListOfContig #listOfContigs are numbers with which contigs are referenced in interactioMatrix
-        self._orientationOfContigs = segOrientationOfContigs #1 being '+' orientation, 0 the '-' orientation
-        self._lengths = segLengths
-        self._insideCIGARs = segInsideCIGARs
+        self._namesOfContigs = segNamesOfContig.copy() #names are strings with which sequences are described in the GFA
+        self._listOfContigs = segListOfContig.copy() #listOfContigs are numbers with which contigs are referenced in interactioMatrix
+        self._orientationOfContigs = segOrientationOfContigs.copy() #1 being '+' orientation, 0 the '-' orientation
+        self._lengths = segLengths.copy()
+        self._insideCIGARs = segInsideCIGARs.copy()
         
         #this group of attribute are linked arrays : one should never be modified without the others 
         self._links = [[],[]] #two lists of segments with which the segment is linked, at the left end and at the right end
@@ -73,6 +73,9 @@ class Segment:
     
     def get_locked(self):
         return self._locked
+    
+    def print_complete(self):
+        print(self._namesOfContigs, [s.names for s in self._links[0]], [s.names for s in self._links[1]])
     
     # setters 
     
@@ -158,7 +161,7 @@ class Segment:
             
             return absoluteScore, relativeScore, partial_area
     
-    def add_link_from_GFA(self, GFAline, names, segments) :
+    def add_link_from_GFA(self, GFAline, names, segments, leftOrRight) : #leftOrRight = 0 when the segment is at the beginning of a link (left of a GFA line), 1 otherwise
         
         l = GFAline.strip('\n').split('\t')
  
@@ -166,7 +169,7 @@ class Segment:
             print('ERROR : expected at least 5 fields in line ', GFAline)
         
         if l[0] != 'L':
-            print('ERROR : trying to add a link from a line that does not start with "L"')
+            print('ERROR : trying to add a link from a GFA line that does not start with "L"')
         
         else :
             o1,o2 = -1, -1
@@ -184,8 +187,8 @@ class Segment:
             if o1 == -1 or o2 == -1 :
                 print('ERROR while creating a link : orientations not properly given.')
                 print('Problematic line : ', GFAline)
-            
-            if l[1] == self._namesOfContigs[0] and o1 != self._orientationOfContigs[0] :
+                
+            if leftOrRight == 0 and o1 != self._orientationOfContigs[0] :
                 self._links[0].append(segments[names.index(l[3])])
                 self._otherEndOfLinks[0].append(1-o2)
                 if len(l) > 5 :
@@ -193,7 +196,7 @@ class Segment:
                 else :
                     self._CIGARs[0].append('*')
                     
-            elif l[1] == self._namesOfContigs[-1] and o1 == self._orientationOfContigs[-1] :
+            elif leftOrRight == 0 and o1 == self._orientationOfContigs[-1] :
                 self._links[1].append(segments[names.index(l[3])])
                 self._otherEndOfLinks[1].append(1-o2)
                 if len(l) > 5 :
@@ -201,16 +204,16 @@ class Segment:
                 else :
                     self._CIGARs[1].append('*')
                 
-            elif l[3] == self._namesOfContigs[0] and o2 == self._orientationOfContigs[0] :
-                self._links[0].append(segments[names.index(l[3])])
+            elif leftOrRight == 1 and o2 == self._orientationOfContigs[0] :
+                self._links[0].append(segments[names.index(l[1])])
                 self._otherEndOfLinks[0].append(o1)
                 if len(l) > 5 :
                     self._CIGARs[0].append(l[5])
                 else :
                     self._CIGARs[0].append('*')
                     
-            elif l[3] == self._namesOfContigs[-1] and o2 != self._orientationOfContigs[-1] :
-                self._links[1].append(segments[names.index(l[3])])
+            elif leftOrRight == 1 and o2 != self._orientationOfContigs[-1] :
+                self._links[1].append(segments[names.index(l[1])])
                 self._otherEndOfLinks[1].append(o1)
                 if len(l) > 5 :
                     self._CIGARs[1].append(l[5])
@@ -222,8 +225,8 @@ class Segment:
                          
     #this adds the end of a links, but only on this segment, not on the other end
     def add_end_of_link(self, endOfSegment, segment2, endOfSegment2, CIGAR = '*'):
-        self._links[endOfSegment].append(segment2.copy())
-        self._otherEndOfLinks[endOfSegment].append(endOfSegment2.copy())
+        self._links[endOfSegment].append(segment2)
+        self._otherEndOfLinks[endOfSegment].append(endOfSegment2)
         self._CIGARs[endOfSegment].append(CIGAR.copy())
 
     def remove_end_of_link(self, endOfSegment, segmentToRemove, endOfSegmentToRemove = None): #endOfSegmentToRemove is there in case there exists two links between self[endOfSegment] and segment to remove. Needed for extra security
@@ -241,10 +244,6 @@ class Segment:
         del self._links[endOfSegment][index]
         del self._otherEndOfLinks[endOfSegment][index]
         del self._CIGARs[endOfSegment][index]
-      
-    def hello(self) :
-        print(self._namesOfContigs)
-        print(len(self._links[0]), len(self._links[1]))
             
 #This function is OUTSIDE the class. It takes two segments and the end of the first segment which is linked to the second. It appends a merged contig to the listOfSegments, without modifying the two inputed segments
 def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
@@ -257,8 +256,8 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
     endOfSegment2 = segment1.otherEndOfLinks[endOfSegment1][segment1.links[endOfSegment1].index(segment2)]
     orientation2 = -2*endOfSegment2+1
     
-    orientationOfContigs1 = segment1.orientations.copy()
-    orientationOfContigs2 = segment2.orientations.copy()
+    orientationOfContigs1 = segment1.orientations
+    orientationOfContigs2 = segment2.orientations
     
     if orientation1 == -1 : #then change the orientation of all the contigs within the segment, since the segment will be mirrored in the new supersegment
         orientationOfContigs1 = [1-i for i in orientationOfContigs1]
@@ -273,10 +272,10 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
                                 orientationOfContigs1+orientationOfContigs2,\
                                 segment1.lengths[::orientation1]+segment2.lengths[::orientation2], \
                                 segment1.insideCIGARs + [CIGAR] + segment2.insideCIGARs,\
-                                [segment1.links[1-endOfSegment1].copy(), \
-                                segment2.links[1-endOfSegment2]].copy(), \
-                                [segment1.otherEndOfLinks[1-endOfSegment1].copy(), \
-                                segment2.otherEndOfLinks[1-endOfSegment2].copy()],\
+                                [segment1.links[1-endOfSegment1], \
+                                segment2.links[1-endOfSegment2]], \
+                                [segment1.otherEndOfLinks[1-endOfSegment1], \
+                                segment2.otherEndOfLinks[1-endOfSegment2]],\
                                 lock = True)
     
     listOfSegments.append(newSegment)
