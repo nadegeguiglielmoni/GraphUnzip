@@ -91,8 +91,7 @@ def main():
 
     # Loading the data
     print('Loading the GFA file')
-    segments = load_gfa(gfaFile)
-    names = [i.listOfContigs[0] for i in segments]
+    segments, names = load_gfa(gfaFile) #outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
 
     if fragmentsFile is not "Empty" and matrixFile is not "Empty":
         if os.path.exists(fragmentsFile):

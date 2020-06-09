@@ -178,10 +178,10 @@ class Segment:
                 
             for contigInSegment in segment.listOfContigs:
                 if self.listOfContigs[contig] not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
-                    absoluteScore += interactionMatrix[contigInSegment][self.listOfContigs[contig]]
-                    relativeScore += interactionMatrix[contigInSegment][self.listOfContigs[contig]]
+                    absoluteScore += interactionMatrix[contigInSegment,self.listOfContigs[contig]]
+                    relativeScore += interactionMatrix[contigInSegment,self.listOfContigs[contig]]
                 else:
-                    absoluteScore += interactionMatrix[contigInSegment][self.listOfContigs[contig]]
+                    absoluteScore += interactionMatrix[contigInSegment,self.listOfContigs[contig]]
 
             lengthForNow = newLengthForNow
             

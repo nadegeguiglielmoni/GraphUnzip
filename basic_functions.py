@@ -7,6 +7,8 @@ File basically dedicated to small functions involving reading and writing files
 """
 import pandas as pd
 import numpy as np
+from scipy import sparse #to handle interactionMatrix, which should be sparse
+import time #to inform the user on what the programm is doing on a regular basis
 
 from segment import Segment
 from segment import compute_copiesNumber
@@ -80,11 +82,14 @@ def read_info_contig(file):
 
 def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the header refers to the hiccontactsfile
 
-    # create a full interaction matrix of contig vs contig
+    print('Building the interaction matrix')
+    t = 
+    # create interaction matrix of contig vs contig
     # 1 -> [1...N] N contigs
     # ...
     # N -> [1...N]
-    interactionMatrix = [[0 for i in range(len(names))] for j in range(len(names))]
+    interactionMatrix = sparse.dok_matrix((len(names), len(names)))
+
 
     with open(hiccontactsfile) as f:
         inFile = f.readlines()
@@ -104,12 +109,12 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the
         contig2 = fragmentList[contact[1]][0]
 
         # search for the index of the contigs in names 
-        index1 = names.index(contig1)
-        index2 = names.index(contig2)
+        index1 = names[contig1]
+        index2 = names[contig2]
         
         # add contacts to interaction matrix
-        interactionMatrix[index1][index2] += contact[2]
-        interactionMatrix[index1][index2] += contact[2]
+        interactionMatrix[index1,index2] += contact[2]
+        interactionMatrix[index1,index2] += contact[2]
 
     return interactionMatrix
 

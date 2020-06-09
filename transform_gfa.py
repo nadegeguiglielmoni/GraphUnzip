@@ -75,7 +75,7 @@ def load_gfa(file):
 
     gfa_read.close()
 
-    return segments
+    return segments, names
 
 
 def print_short():
