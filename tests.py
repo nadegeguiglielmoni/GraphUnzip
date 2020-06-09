@@ -162,26 +162,25 @@ def check_result(chromosomes, listOfSuperContigs, names, links) :
     return True
 
 
-
 def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
     
     record = []
     for i in range(n):
         chromosomes = buildFakeChromosomes(lengthOfChromosomes)
-        exportFakeToGFA(chromosomes, 'tests/stats/test' + str(i)+'.gfa')
+        lengthOfContig = 10000
+        exportFakeToGFA(chromosomes, 'tests/stats/test' + str(i)+'.gfa', lengthOfContig)
         bf.export_to_csv(chromosomes, 'tests/stats/test' + str(i)+'.chro')
         
-        originalLinks, names, le = load_gfa('tests/stats/test' + str(i)+'.gfa')
+        listOfSegments = load_gfa('tests/stats/test' + str(i)+'.gfa')
 
-        lengthOfContig = 10000
-
+        names = [i.names[0] for i in listOfSegments]
         interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 
-        links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, [lengthOfContig for i in names], dist_law, 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+        listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, dist_law, 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
-        record.append(check_result(chromosomes, listOfSuperContigs, names, links))
+        #record.append(check_result(chromosomes, listOfSuperContigs, names, links))
         
-        bf.export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/stats/test' + str(i)+'F.gfa')
+        bf.export_to_GFA(listOfSegments, exportFile = 'tests/stats/test' + str(i)+'F.gfa')
         #draw_distance_HiCcontacts_correlation(listOfSuperContigs, links, [10000 for i in names], interactionMatrix)
         
     fileRecord = open('tests/stats/record.txt', 'w')
@@ -189,10 +188,10 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
         fileRecord.write(str(i)+'\n')
     print(int(record.count(False)*100/n), '% of incorrectly changed GFA')
 
-chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
-                'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
+# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
+#                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-#chromosomes = bf.import_from_csv('tests/fake.chro')
+chromosomes = bf.import_from_csv('tests/stats/test57.chro')
 
 #chromosomes = buildFakeChromosomes(100)
 #bf.export_to_csv(chromosomes, 'tests/fake.chro')
@@ -204,13 +203,10 @@ listOfSegments = load_gfa('tests/fake.gfa')
 names = [segment.names[0] for segment in listOfSegments]
 interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 
-# for i in listOfSegments :
-#     i.print_complete()
-
-listOfSegments, cn = solve_ambiguities(listOfSegments, interactionMatrix, lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
 #flatten_loop(links, listOfSuperContigs, 1, 2)
-export_to_GFA(listOfSegments, cn,gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa')
+export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa')
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
 # export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')
@@ -222,7 +218,7 @@ export_to_GFA(listOfSegments, cn,gfaFile = 'tests/fake.gfa', exportFile = 'tests
 
 #print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names, links), ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
-#stats_on_solve_ambiguities(n=1)
+# stats_on_solve_ambiguities(n=100)
 
 print('Finished')
     

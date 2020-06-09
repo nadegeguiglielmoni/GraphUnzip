@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 
 from segment import Segment
+from segment import compute_copiesNumber
 
 # NOT USED
 # Read sparse matrix
@@ -162,10 +163,12 @@ def get_contig_GFA(gfaFile, contig):
 
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
-def export_to_GFA(listOfSegments, copiesnumber, gfaFile="", exportFile="results/newAssembly.gfa"):
+def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa"):
 
     f = open(exportFile, "w")
-    copiesUsed = [0 for i in copiesnumber]
+    
+    #first compute the copiesnumber
+    cn = compute_copiesNumber(listOfSegments)
 
     #fist write the sequences and the links within the supercontigs
     for s, segment in enumerate(listOfSegments):
@@ -174,7 +177,7 @@ def export_to_GFA(listOfSegments, copiesnumber, gfaFile="", exportFile="results/
 
         for c, contig in enumerate(segment.names):
             
-            f.write("S\t" + contig + "-" + str(copiesUsed[segment.listOfContigs[c]]) + "\t")
+            f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
             if gfaFile != "":
                 f.write(get_contig_GFA(gfaFile, contig) + "\n")
             else:
@@ -182,7 +185,7 @@ def export_to_GFA(listOfSegments, copiesnumber, gfaFile="", exportFile="results/
 
             if c > 0:
                 
-                f.write("L\t"+ segment.names[c-1]+ "-"+ str(copiesUsed[segment.listOfContigs[c-1]]))
+                f.write("L\t"+ segment.names[c-1]+ "-"+ str(segment.copiesnumber[c-1]))
                 
                 if segment.orientations[c-1] == 1 :                    
                     f.write("\t+\t")
@@ -190,7 +193,7 @@ def export_to_GFA(listOfSegments, copiesnumber, gfaFile="", exportFile="results/
                 elif segment.orientations[c-1] == 0:
                     f.write("\t-\t")
              
-                f.write(contig + "-"+ str(copiesUsed[segment.listOfContigs[c]]))
+                f.write(contig + "-"+ str(segment.copiesnumber[c]))
                 
                 if segment.orientations[c] == 1 :                    
                     f.write("\t+\t")
@@ -200,17 +203,15 @@ def export_to_GFA(listOfSegments, copiesnumber, gfaFile="", exportFile="results/
                     
                 f.write(segment.insideCIGARs[c-1]+'\n')
 
-            copiesUsed[segment.listOfContigs[c]] += 1
-
     #then write in the gfa file the links between the ends of supercontigs
 
     for s, segment in enumerate(listOfSegments):
         for endOfSegment in range(2):
             for l, neighbor in enumerate(segment.links[endOfSegment]):
                 
-                if segment.hash <= neighbor.hash : #that is to ensure each link is written only once
+                if segment.hash() <= neighbor.hash() : #that is to ensure each link is written only once
                 
-                    endOfNeighbor = segment.otherEndOfLinks[l]
+                    endOfNeighbor = segment.otherEndOfLinks[endOfSegment][l]
                     orientation1, orientation2 = '-', '-'
                     
                     if segment.orientations[-endOfSegment] == endOfSegment :
@@ -219,7 +220,9 @@ def export_to_GFA(listOfSegments, copiesnumber, gfaFile="", exportFile="results/
                     if neighbor.orientations[-endOfNeighbor] != endOfNeighbor :
                         orientation2 = '+'
                         
-                    f.write("L\t"+segment.names[-endOfSegment] + '\t' + orientation1 + '\t' + neighbor.names[-endOfNeighbor]+'\t'\
+                    f.write("L\t"+segment.names[-endOfSegment] +"-"+ str(segment.copiesnumber[-endOfSegment]) + '\t' \
+                            + orientation1 + '\t' +\
+                                neighbor.names[-endOfNeighbor] +"-"+ str(neighbor.copiesnumber[-endOfNeighbor])+'\t'\
                             +orientation2+'\t'+segment.CIGARs[endOfSegment][l]+'\n')
     
 

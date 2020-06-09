@@ -3,9 +3,11 @@
 
 import numpy as np
 import scipy.integrate as integrate
+from copy import deepcopy #equivalent of copy() but works for lists of lists
 
 class Segment:
-    def __init__(self, segIndex, segListOfContig, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], lock = False):
+
+    def __init__(self, segIndex, segListOfContig, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], segCIGARs = [[],[]], lock = False):
         
         if len(segLinks[0]) != len(segOtherEndOfLinks[0]) or len(segLinks[1]) != len(segOtherEndOfLinks[1]) :
             print('ERROR in the links while initializing a segment')
@@ -19,25 +21,30 @@ class Segment:
             print('ERROR in initializing the orientations of contigs within a segment')
             return 0
         
+        if any(not isinstance(i, int) for i in segListOfContig):
+            print('ERROR in initializing segment, listOfSegment must be integers')
+        
         if segInsideCIGARs == None :
             segInsideCIGARs = ['*' for i in range(len(segListOfContig)-1)]
             
         self._index = segIndex
         
-        #this group of attributes are linked array : element n in one corresponds with element n in the other. Therefore they shouldn't be modified independantly
+        #this group of attributes are linked arrays : element n in one corresponds with element n in the other. Therefore they shouldn't be modified independantly
         self._namesOfContigs = segNamesOfContig.copy() #names are strings with which sequences are described in the GFA
         self._listOfContigs = segListOfContig.copy() #listOfContigs are numbers with which contigs are referenced in interactioMatrix
         self._orientationOfContigs = segOrientationOfContigs.copy() #1 being '+' orientation, 0 the '-' orientation
         self._lengths = segLengths.copy()
         self._insideCIGARs = segInsideCIGARs.copy()
         
+        self._copiesOfContigs = [-1]*len(segNamesOfContig) #this is used exclusively while exporting, to indicate which copy of which contig is in the segment (copy 0/ copy 1 / copy 2 ...)
+        
         #this group of attribute are linked arrays : one should never be modified without the others 
-        self._links = [[],[]] #two lists of segments with which the segment is linked, at the left end and at the right end
-        self._otherEndOfLinks = [[],[]] #for each link, indicates the side of the other segment on which the link arrives
-        self._CIGARs = [[],[]]
+        self._links = [segLinks[0].copy(), segLinks[1].copy()] #two lists of segments with which the segment is linked, at the left end and at the right end
+        self._otherEndOfLinks = [segOtherEndOfLinks[0].copy(), segOtherEndOfLinks[1].copy()] #for each link, indicates the side of the other segment on which the link arrives
+        self._CIGARs = [segCIGARs[0].copy(), segCIGARs[1].copy()] #for each link, indicates the CIGAR string found in the GFA
         
         self._freezed = [False, False]
-        self._locked = lock #That is to duplicate a contig only once in each meerge_contigs
+        self._locked = lock #That is to duplicate a contig only once in each merge_contigs
         
     # getters
     
@@ -68,6 +75,9 @@ class Segment:
     def get_namesOfContigs(self):
         return self._namesOfContigs
     
+    def get_copiesOfContigs(self):
+        return self._copiesOfContigs
+    
     def get_freezed(self):
         return self._freezed
     
@@ -75,23 +85,30 @@ class Segment:
         return self._locked
     
     def print_complete(self):
-        print(self._namesOfContigs, [s.names for s in self._links[0]], [s.names for s in self._links[1]])
+        print(self._namesOfContigs, [s.names for s in self._links[0]], \
+              [s.names for s in self._links[1]])
     
     # setters 
     
     def set_index(self, newIndex):
         self._index = newIndex
-    
-    def set_listOfContigs(self, newListOfContigs):
-        self._listOfContigs = newListOfContigs  
         
+    def set_copiesNumber(self, copiesNumberForNow):
+        for c, contig in enumerate(self._namesOfContigs) :
+            if contig in copiesNumberForNow :
+                self._copiesOfContigs[c] = copiesNumberForNow[contig]
+                copiesNumberForNow[contig] += 1
+            else :
+                self._copiesOfContigs[c] = 0
+                copiesNumberForNow[contig] = 1
+    
     def freeze(self, endOfSegment): 
         self._freezed[endOfSegment] = True
   
     def freezeNode(self, endOfSegment):
         self._freezed[endOfSegment] = True
         for n, neighbor in enumerate(self._links[endOfSegment]) :
-            neighbor.freeze(self._otherEndOfLinks[n])
+            neighbor.freeze(self._otherEndOfLinks[endOfSegment][n])
         
     def unfreeze(self):
         self._freezed = [False, False]
@@ -99,25 +116,35 @@ class Segment:
     def set_locked(self, b):
         self._locked = b
         
-    def hash(self) : #a fucntion assigning an int to a segment, for example useful in export_to_GFA
-            h = int(''.join([str(i) for i in self._listOfContigs]))
+    def lockNode(self, endOfSegment):
+        self._locked = True
+        for i in self._links[endOfSegment]:
+            i.locked = True
+        
+    def hash(self) : #a function assigning an int to a segment, for example useful in export_to_GFA or in duplicate_contigs
+            h = int(''.join([str(i) for i in self._listOfContigs]))+\
+                int(''.join([str(i) for i in self._orientationOfContigs]))+\
+                np.sum([int(''.join([str(i) for i in j.listOfContigs])) for j in self._links[0]])+\
+                np.sum([int(''.join([str(i) for i in j.listOfContigs])) for j in self._links[1]])
             return h
     # properties
     
     index = property(get_index, set_index)
     
     names = property(get_namesOfContigs)
-    listOfContigs = property(get_listOfContigs, set_listOfContigs)
+    listOfContigs = property(get_listOfContigs)
     orientations = property(get_orientations)
     lengths = property(get_lengths)
     insideCIGARs = property(get_insideCIGARs)
+    
+    copiesnumber = property(get_copiesOfContigs)
     
     links = property(get_links)
     otherEndOfLinks = property(get_otherEndOfLinks)
     CIGARs = property(get_CIGARs)
     
-    freezed = property(get_freezed)
-    locked = property(get_locked, set_locked)
+    freezed = property(get_freezed) #segment is freezed if comparison of links was inconclusive
+    locked = property(get_locked, set_locked) #segment is locked if it was already duplicated in merge_contigs and that it should not be for a second time
 
     #other functions that handle segments
     
@@ -149,7 +176,7 @@ class Segment:
             if self.listOfContigs[contig] not in commonContigs:
                 # computing the partial area : that way, small supercontigs are not penalized when compared to much longer ones
                 partial_area += np.abs(integrate.quad(dist_law, newLengthForNow, lengthForNow)[0])
-
+                
             for contigInSegment in segment.listOfContigs:
                 if self.listOfContigs[contig] not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
                     absoluteScore += interactionMatrix[contigInSegment][self.listOfContigs[contig]]
@@ -159,7 +186,7 @@ class Segment:
 
             lengthForNow = newLengthForNow
             
-            return absoluteScore, relativeScore, partial_area
+        return absoluteScore, relativeScore, partial_area
     
     def add_link_from_GFA(self, GFAline, names, segments, leftOrRight) : #leftOrRight = 0 when the segment is at the beginning of a link (left of a GFA line), 1 otherwise
         
@@ -225,9 +252,15 @@ class Segment:
                          
     #this adds the end of a links, but only on this segment, not on the other end
     def add_end_of_link(self, endOfSegment, segment2, endOfSegment2, CIGAR = '*'):
+        
+        #print('A', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
+        #print(self._namesOfContigs, segment2.names)
         self._links[endOfSegment].append(segment2)
+        #print('B', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
+
         self._otherEndOfLinks[endOfSegment].append(endOfSegment2)
-        self._CIGARs[endOfSegment].append(CIGAR.copy())
+        self._CIGARs[endOfSegment].append(CIGAR)        
+        #print('C',len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
 
     def remove_end_of_link(self, endOfSegment, segmentToRemove, endOfSegmentToRemove = None): #endOfSegmentToRemove is there in case there exists two links between self[endOfSegment] and segment to remove. Needed for extra security
         
@@ -272,26 +305,36 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
                                 orientationOfContigs1+orientationOfContigs2,\
                                 segment1.lengths[::orientation1]+segment2.lengths[::orientation2], \
                                 segment1.insideCIGARs + [CIGAR] + segment2.insideCIGARs,\
-                                [segment1.links[1-endOfSegment1], \
+                                segLinks = [segment1.links[1-endOfSegment1], \
                                 segment2.links[1-endOfSegment2]], \
-                                [segment1.otherEndOfLinks[1-endOfSegment1], \
+                                segOtherEndOfLinks = [segment1.otherEndOfLinks[1-endOfSegment1], \
                                 segment2.otherEndOfLinks[1-endOfSegment2]],\
+                                segCIGARs = [segment1.CIGARs[1-endOfSegment1], \
+                                segment2.CIGARs[1-endOfSegment2]],
                                 lock = True)
-    
+            
     listOfSegments.append(newSegment)
     
     #building the other end of links with the new segment
     for n, neighbor in enumerate(newSegment.links[0]) :
-        neighbor.add_end_of_link(neighbor.otherEndOfLinks[0][n], newSegment, 0, CIGAR = newSegment.CIGARs[0][n])
+        #print(len(neighbor.otherEndOfLinks[0]), len(neighbor.links[0]), len(neighbor.CIGARs[0]))
+        neighbor.add_end_of_link(newSegment.otherEndOfLinks[0][n], newSegment, 0, CIGAR = newSegment.CIGARs[0][n])
+
     for n, neighbor in enumerate(newSegment.links[1]) :
-        neighbor.add_end_of_link(neighbor.otherEndOfLinks[1][n], newSegment, 1, CIGAR = newSegment.CIGARs[1][n])
+        #print(len(newSegment.otherEndOfLinks[1]), len(newSegment.links[1]), len(newSegment.CIGARs[1]))
+        neighbor.add_end_of_link(newSegment.otherEndOfLinks[1][n], newSegment, 1, CIGAR = newSegment.CIGARs[1][n])
 
 #function creating a link between two ends of contigs, OUTSIDE of the class
 def add_link(segment1, end1, segment2, end2, CIGAR = '*'):
     segment1.add_end_of_link(end1, segment2, end2, CIGAR)
     segment2.add_end_of_link(end2, segment1, end1, CIGAR)
            
-
+def compute_copiesNumber(listOfSegments):
+    cn = {}
+    for s in listOfSegments :
+        s.set_copiesNumber(cn)
+        
+    return cn
 
 ## A few lines to test the functions of the file
 
