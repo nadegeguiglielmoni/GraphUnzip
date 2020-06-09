@@ -11,8 +11,6 @@ import basic_functions as bf
 import scipy.integrate as integrate
 from bisect import bisect_left #to look through sorted lists
 
-from copy import deepcopy 
-
 from transform_gfa import check_links
 import segment as s
 from segment import Segment

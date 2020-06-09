@@ -3,7 +3,6 @@
 
 import numpy as np
 import scipy.integrate as integrate
-from copy import deepcopy #equivalent of copy() but works for lists of lists
 
 class Segment:
 
@@ -216,7 +215,7 @@ class Segment:
                 print('Problematic line : ', GFAline)
                 
             if leftOrRight == 0 and o1 != self._orientationOfContigs[0] :
-                self._links[0].append(segments[names.index(l[3])])
+                self._links[0].append(segments[names[l[3]]])
                 self._otherEndOfLinks[0].append(1-o2)
                 if len(l) > 5 :
                     self._CIGARs[0].append(l[5])
@@ -224,7 +223,7 @@ class Segment:
                     self._CIGARs[0].append('*')
                     
             elif leftOrRight == 0 and o1 == self._orientationOfContigs[-1] :
-                self._links[1].append(segments[names.index(l[3])])
+                self._links[1].append(segments[names[l[3]]])
                 self._otherEndOfLinks[1].append(1-o2)
                 if len(l) > 5 :
                     self._CIGARs[1].append(l[5])
@@ -232,7 +231,7 @@ class Segment:
                     self._CIGARs[1].append('*')
                 
             elif leftOrRight == 1 and o2 == self._orientationOfContigs[0] :
-                self._links[0].append(segments[names.index(l[1])])
+                self._links[0].append(segments[names[l[1]]])
                 self._otherEndOfLinks[0].append(o1)
                 if len(l) > 5 :
                     self._CIGARs[0].append(l[5])
@@ -240,7 +239,7 @@ class Segment:
                     self._CIGARs[0].append('*')
                     
             elif leftOrRight == 1 and o2 != self._orientationOfContigs[-1] :
-                self._links[1].append(segments[names.index(l[1])])
+                self._links[1].append(segments[names[l[1]]])
                 self._otherEndOfLinks[1].append(o1)
                 if len(l) > 5 :
                     self._CIGARs[1].append(l[5])

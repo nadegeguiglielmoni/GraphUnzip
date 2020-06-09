@@ -161,7 +161,7 @@ def get_contig_GFA(gfaFile, contig):
                 if sline[0] == 'S' and (contig in sline[1]) :
                     return sline[2]
 
-    return "In get_contig : the contig you are seeking is not in the fasta file"
+    return "In get_contig : the contig you are seeking is not in the gfa file"
 
 def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa"):
 

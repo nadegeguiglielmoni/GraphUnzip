@@ -46,27 +46,32 @@ def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.f
 # Also returns the list of the contig's names
 def load_gfa(file):
 
+    print('Loading contigs')
     gfa_read = open(file, "r")
 
     segments = []
     
+    index = 0
+    names = {}
     for line in gfa_read:
         if line[0] == "S":
             l = line.strip('\n').split("\t")
             s = Segment(len(segments),[len(segments)], [l[1]], [1], [len(l[2])])
             segments.append(s)
+            names[s.names[0]] = index #that is the (strange) way of adding a key to a dict in python
+            index += 1
+            
 
-    
+    print('Loading links')
     gfa_read = open(file, "r")
         
-    names = [i.names[0] for i in segments]
     for line in gfa_read:
         if line[0] == "L":
 
             l = line.strip('\n').split("\t")
             
-            segments[names.index(l[1])].add_link_from_GFA(line, names, segments, 0)
-            segments[names.index(l[3])].add_link_from_GFA(line, names, segments, 1)
+            segments[names[l[1]]].add_link_from_GFA(line, names, segments, 0)
+            segments[names[l[3]]].add_link_from_GFA(line, names, segments, 1)
 
     gfa_read.close()
 

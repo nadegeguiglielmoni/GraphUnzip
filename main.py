@@ -11,8 +11,6 @@ from transform_gfa import load_gfa
 from transform_gfa import gfa_to_fasta
 from solve_ambiguities import solve_ambiguities
 
-from copy import deepcopy
-
 import argparse
 import os.path
 import sys
@@ -82,16 +80,17 @@ def main():
     outFile = args.output
     matrixFile = args.matrix
     fragmentsFile = args.fragments
-    interactionFile = args.interaction
+    interactionFile = args.interactions
     stringenceReject = float(args.rejected)
     stringenceAccept = float(args.accepted)
-    steps = int(args.step)
+    steps = int(args.steps)
 
     if not os.path.exists(gfaFile):
         print("Error: could not find GFA file {0}.".format(gfaFile))
         sys.exit(1)
 
     # Loading the data
+    print('Loading the GFA file')
     segments = load_gfa(gfaFile)
     names = [i.listOfContigs[0] for i in segments]
 
@@ -100,10 +99,12 @@ def main():
             fragmentList = bf.read_fragment_list(fragmentsFile)
 
             # Now computing the interaction matrix
+            print('Building the interaction matrix')
             interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names)
 
             # exporting it as to never have to do it again
             if not os.path.exists(interactionFile):
+                print('Exporting interaction matrix')
                 bf.export_to_csv(interactionMatrix, interactionFile)
             else:
                 print("Error: {0} already exists, please remove it.".format(interactionFile))
@@ -111,17 +112,22 @@ def main():
         else:
             print("Error: could not find fragments file {0}.".format(fragmentsFile))
             sys.exit(1)
+    elif interactionFile is not "Empty" :
+        print('Loading the interaction matrix')
+        interactionMatrix = bf.import_from_csv(interactionFile)
     else:
         if not os.path.exists(interactionFile):
             print("Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map.")
             sys.exit(1)
 
-    interactionMatrix = bf.import_from_csv("interactionMatrix.csv")
+    
+    print('Everything loaded, moving on to solve_ambiguities')
 
-    links, listOfSuperContigs, copiesNumber = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, lambda x:1, stringenceReject, stringenceAccept, steps)
+    segments = solve_ambiguities(segments, interactionMatrix, lambda x:1, stringenceReject, stringenceAccept, steps)
 
     # now exporting the output
-    bf.export_to_GFA(links, listOfSuperContigs, copiesNumber, originalLinks, CIGARlinks, names, gfaFile, exportFile=outFile)
+    print('Now exporting')
+    bf.export_to_GFA(segments, gfaFile, exportFile=outFile)
 
 
 if __name__ == "__main__":

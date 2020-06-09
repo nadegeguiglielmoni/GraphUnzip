@@ -191,9 +191,8 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
 #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-chromosomes = bf.import_from_csv('tests/stats/test57.chro')
-
-#chromosomes = buildFakeChromosomes(100)
+#chromosomes = bf.import_from_csv('tests/stats/test57.chro')
+chromosomes = buildFakeChromosomes(100)
 #bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
 lengthOfContig = 10000

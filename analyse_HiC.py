@@ -348,5 +348,5 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
 
 #distance_law('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
 
-print("Finished")
+#print("Finished")
 
