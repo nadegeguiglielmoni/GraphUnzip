@@ -92,6 +92,7 @@ def intensity_of_interactions(
     #print("*Common contigs : ", commonContigs)
     return absoluteScores, relativeScores
 
+#small function to look in a sorted list l if x is present in logarithmic time 
 def isPresent(l, x):
     i = bisect_left(l, x)
     if i != len(l) and l[i] == x:
@@ -149,7 +150,6 @@ def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContig
                 return 0
 
     #delete all segments that should be
-    
     deletedContigs.sort()
     for i in range(len(listOfSuperContigs)-1,-1,-1) :
         h = listOfSuperContigs[i].hash()
@@ -236,16 +236,14 @@ def get_rid_of_bad_links(listOfSegments,interactionMatrix,dist_law,copiesnumber,
                             segment.freezeNode(endOfSegment)
                             
                         else:  
-                            print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
+                            #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
                             if linksStrength[0] > linksStrength[1]:
                                 #     file = open('ratio.txt','a')
                                 #     file.write(str(linksStrength[i]/maxStrength)+'\n')
                                 if (linksStrength[1] < linksStrength[0] * thresholdRejected):  # then it means that the link does not exist
                                     se = segment._links[endOfSegment][n2]
-                                    se.print_complete()
                                     segment._links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
                                     segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
-                                    se.print_complete()
                                     
                                 elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
                                     segment.freeze(endOfSegment)
@@ -283,11 +281,9 @@ def merge_contigs(listOfSegments, copiesnumber):
                     duplicate_around_this_end_of_contig(segment,endOfSegment,listOfSegments,copiesnumber)
                     
     #now that the duplicating is done, unlock all the segments
-    print([i.locked for i in listOfSegments])
-    print([i.names for i in listOfSegments])
     for segment in listOfSegments :
         segment.locked = False
-    
+        
     # now just merge all two contigs that are next to each other
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     
@@ -303,17 +299,18 @@ def solve_ambiguities(listOfSegments, interactionMatrix, dist_law, stringenceRej
 
     for i in range(steps):
 
-        print(str(i / steps * 100) + "% of solving ambiguities done\n")
-
         get_rid_of_bad_links(listOfSegments, interactionMatrix, dist_law, copiesNumber, stringenceReject, stringenceAccept)
-            
+
+        # print('Before getting rid of bad links : ')
+        # for j in listOfSegments :
+        #     j.print_complete()
         listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber)
-        
+
         #once all the contigs have been duplicated and merged, unfreeze everything so the cycle can start again
         for j in listOfSegments :
             j.unfreeze()
-            j.print_complete()
         
+        print(str(i / steps * 100) + "% of solving ambiguities done, fake"+ str(i) + ".gfa built")
         bf.export_to_GFA(listOfSegments, exportFile="tests/fake" + str(i) + ".gfa")
        # print('At step ', i, ' the energy is : ', score_output(listOfSuperContigs, links, [10000 for i in names], interactionMatrix))
 

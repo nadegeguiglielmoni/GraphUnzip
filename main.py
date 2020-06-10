@@ -98,7 +98,6 @@ def main():
             fragmentList = bf.read_fragment_list(fragmentsFile)
 
             # Now computing the interaction matrix
-            print('Building the interaction matrix')
             interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names)
 
             # exporting it as to never have to do it again
@@ -131,12 +130,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# originalLinks, CIGARlinks, names, lengths = load_gfa('data_A_Vaga_PacBio/Assembly.gfa')
-# interactionMatrix = bf.import_from_csv('listsPython/interactionMatrix.csv')
-
-# print('Loaded')
- 
-# links, listOfSuperContigs, cn = solve_ambiguities(deepcopy(originalLinks), names, interactionMatrix, lengths, lambda x:1, 0.2, 0.45 ,15) #rejectedThreshold<AcceptedThreshold
-# bf.export_to_GFA(links, listOfSuperContigs, cn, originalLinks, originalLinksCIGAR = CIGARlinks, names = names, gfaFile = 'data_A_Vaga_PacBio/Assembly.gfa', exportFile = 'results/A_Vaga_PacBio/A_Vaga_finished2.gfa')

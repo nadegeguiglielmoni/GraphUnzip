@@ -24,6 +24,7 @@ from loops import flatten_loop
 
 from copy import deepcopy
 import scipy.integrate as integrate
+from scipy import sparse
 
 def testRatios():
     file = open('ratio.txt', 'r')
@@ -46,7 +47,7 @@ def buildFakeChromosomes(chromosomesLength = 10):
     letters = ['A','A','B','B','C','C','D','D']
     chromosomes = [[letters[j]+str(i) for i in range(chromosomesLength)] for j in range(4)]
     
-    duplicates = 2 #number of conitgs that are going to be repeated within each chromosomes :
+    duplicates = 0 #number of conitgs that are going to be repeated within each chromosomes :
     for chromosome in chromosomes :
         for i in range(duplicates):
             contigCopied = random.randint(0, len(chromosome)-1)
@@ -93,71 +94,85 @@ def exportFakeToGFA(chromosomes, file, lengthOfContig) :
       
 def dist_law(distance) :
     if distance < 10000 :
-        distance = 5000
+        distance = 10000
     return 10000/distance
 
 def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
     
-    interactionMatrix = [[0 for i in names] for j in names]
+    interactionMatrix = sparse.dok_matrix((len(names), len(names)))
     for c in chromosomes :
         for c1 in range(len(c)):
             for c2 in range(c1, len(c)) :
                 con1 = c[c1]
                 con2 = c[c2]
-                interactionMatrix[names.index(con1)][names.index(con2)] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
-                interactionMatrix[names.index(con2)][names.index(con1)] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
+                interactionMatrix[names[con1],names[con2]] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
+                interactionMatrix[names[con2],names[con1]] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
     
-    for i in range(len(interactionMatrix)):
-        interactionMatrix[i][i] = 0
     return interactionMatrix
 
 #function that checks if ls1 is a sublist of ls2 : useful for checking the quality of the output
 def sublist(ls1, ls2):
-
+    
+    sub = False
+    
     s1 = ','.join(ls1)
     s2 = ','.join(ls2)
+    sub = sub or (s1 in s2)
+    
+    s1 = ','.join(ls1[::-1]) #if it goes the other way, it is still imbricated
+    s2 = ','.join(ls2)
+    sub = sub or (s1 in s2)
 
-    return s1 in s2
+    return sub
 
-#function taking as arguments the solution of the problem and the output of the algorithm to see if the output is wrong
-def check_result(chromosomes, listOfSuperContigs, names, links) :
+#function taking as arguments the solution of the problem and the output of the algorithm to see if the output is mistaken
+def check_result(chromosomes, listOfSuperContigs, names) :
 
-    #First check if all supercontig actually exist (i.e. contigs were not accidentally duplicated)
+    #First check if all supercontigs of the output actually exist in the solution (i.e. contigs were not accidentally duplicated)
     for supercontig in listOfSuperContigs :
         
-        supercontigname = [names[i] for i in supercontig]
         found = False
         for c in chromosomes :
-            if sublist(supercontigname,c) :
+            if sublist(supercontig.names,c) :
                 found = True
         if not found :
+            print('Output : ')
+            for i in listOfSuperContigs :
+                i.print_complete()
+            print('Actual chromosomes : ')
             for c in chromosomes :
                 print(c)
-            print('Contig found in output but not in chromosomes : ', supercontigname)
+            print('Contig found in output but not in chromosomes : ', supercontig.names)
             return False
         
     #Then check if all true links still exist (i.e. links were not accidentally deleted)
-    expectedContacts = [[False for i in names] for j in names]
+
+    expectedContacts = sparse.dok_matrix((len(names), len(names))) #this is the matrix of all the links that are in the solution and therefore are expected in the output
     for c in chromosomes :
         for contig in range(len(c)-1) :
-            expectedContacts[names.index(c[contig])][names.index(c[contig+1])] = True
-            expectedContacts[names.index(c[contig+1])][names.index(c[contig])] = True
+            expectedContacts[names[c[contig]],names[c[contig+1]]] = 1
+            expectedContacts[names[c[contig+1]],names[c[contig]]] = 1
  
-        #First, look what links are found between supercontigs
-    for i in range(len(links)) :
-        for j in links[i]:
-            expectedContacts[listOfSuperContigs[int(i/2)][-(i%2)]][listOfSuperContigs[int(j/2)][-(j%2)]] = False
-            expectedContacts[listOfSuperContigs[int(j/2)][-(j%2)]][listOfSuperContigs[int(i/2)][-(i%2)]] = False
+        #First, look if the expected links are found between supercontigs
+    for segment in listOfSuperContigs :
+        for endOfSegment in range(2):
+            for l, neighbor in enumerate(segment.links[endOfSegment]) :
+                expectedContacts[ names[segment.names[-endOfSegment]] , names[neighbor.names[-segment.otherEndOfLinks[endOfSegment][l]]]] = 0
 
         #Then within supercontigs
-    for i in listOfSuperContigs :
-        for j in range(len(i)-1) :
-            expectedContacts[i[j]][i[j+1]] = False
-            expectedContacts[i[j+1]][i[j]] = False
+    for segment in listOfSuperContigs :
+        for j in range(len(segment.listOfContigs)-1) :
+            expectedContacts[names[segment.names[j]] , names[segment.names[j+1]]] = 0
+            expectedContacts[names[segment.names[j+1]] , names[segment.names[j]]] = 0
             
-    #print(expectedContacts)
-    if any([any(expectedContacts[i]) for i in range(len(expectedContacts))]) :
-        return False
+    for i in range(len(names)):
+        for j in range(len(names)):
+            if expectedContacts[i,j] == 1 :
+                print('In the actual chromosomes, there exist a link between ', i, ' and ', j, ' that is not found in the output')
+                print(names)
+                for k in listOfSegments :
+                    k.print_complete()
+                return False
     
     return True
 
@@ -191,17 +206,16 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
 #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-#chromosomes = bf.import_from_csv('tests/stats/test57.chro')
-chromosomes = buildFakeChromosomes(100)
+#chromosomes = bf.import_from_csv('tests/fake.chro')
+chromosomes = buildFakeChromosomes(10)
 #bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
 lengthOfContig = 10000
 exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
 bf.export_to_csv(chromosomes, 'tests/fake.chro')
-listOfSegments = load_gfa('tests/fake.gfa')
-names = [segment.names[0] for segment in listOfSegments]
-interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
+listOfSegments, names = load_gfa('tests/fake.gfa')
 
+interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
 #flatten_loop(links, listOfSuperContigs, 1, 2)
@@ -215,7 +229,7 @@ export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fa
 
 #passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
 
-#print('And the output is : ', check_result(chromosomes, listOfSuperContigs, names, links), ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
+print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
 # stats_on_solve_ambiguities(n=100)
 

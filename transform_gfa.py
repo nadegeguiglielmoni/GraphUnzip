@@ -56,7 +56,7 @@ def load_gfa(file):
     for line in gfa_read:
         if line[0] == "S":
             l = line.strip('\n').split("\t")
-            s = Segment(len(segments),[len(segments)], [l[1]], [1], [len(l[2])])
+            s = Segment([len(segments)], [l[1]], [1], [len(l[2])])
             segments.append(s)
             names[s.names[0]] = index #that is the (strange) way of adding a key to a dict in python
             index += 1

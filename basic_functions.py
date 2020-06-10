@@ -83,7 +83,7 @@ def read_info_contig(file):
 def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the header refers to the hiccontactsfile
 
     print('Building the interaction matrix')
-    t = 
+    t = time.time()
     # create interaction matrix of contig vs contig
     # 1 -> [1...N] N contigs
     # ...
@@ -96,8 +96,13 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the
 
     if header:
         del inFile[0]
-
+    
+    n = 0
     for line in inFile:
+        
+        if time.time()-t > 2 :
+            t = time.time()
+            print('Built '+str(int(n/len(inFile)*100))+'%', end='\r')
 
         line = line.strip("\n").split("\t")
 
@@ -116,6 +121,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the
         interactionMatrix[index1,index2] += contact[2]
         interactionMatrix[index1,index2] += contact[2]
 
+        n += 1
     return interactionMatrix
 
 

@@ -4,9 +4,10 @@
 import numpy as np
 import scipy.integrate as integrate
 
+#a segment is a supercontig
 class Segment:
 
-    def __init__(self, segIndex, segListOfContig, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], segCIGARs = [[],[]], lock = False):
+    def __init__(self, segListOfContig, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], segCIGARs = [[],[]], lock = False):
         
         if len(segLinks[0]) != len(segOtherEndOfLinks[0]) or len(segLinks[1]) != len(segOtherEndOfLinks[1]) :
             print('ERROR in the links while initializing a segment')
@@ -25,8 +26,6 @@ class Segment:
         
         if segInsideCIGARs == None :
             segInsideCIGARs = ['*' for i in range(len(segListOfContig)-1)]
-            
-        self._index = segIndex
         
         #this group of attributes are linked arrays : element n in one corresponds with element n in the other. Therefore they shouldn't be modified independantly
         self._namesOfContigs = segNamesOfContig.copy() #names are strings with which sequences are described in the GFA
@@ -46,9 +45,6 @@ class Segment:
         self._locked = lock #That is to duplicate a contig only once in each merge_contigs
         
     # getters
-    
-    def get_index(self):
-        return self._index
 
     def get_listOfContigs(self):
         return self._listOfContigs
@@ -88,10 +84,6 @@ class Segment:
               [s.names for s in self._links[1]])
     
     # setters 
-    
-    def set_index(self, newIndex):
-        self._index = newIndex
-        
     def set_copiesNumber(self, copiesNumberForNow):
         for c, contig in enumerate(self._namesOfContigs) :
             if contig in copiesNumberForNow :
@@ -121,14 +113,13 @@ class Segment:
             i.locked = True
         
     def hash(self) : #a function assigning an int to a segment, for example useful in export_to_GFA or in duplicate_contigs
-            h = int(''.join([str(i) for i in self._listOfContigs]))+\
-                int(''.join([str(i) for i in self._orientationOfContigs]))+\
+            h = int(''.join([str(i) for i in self._listOfContigs]))*10000+\
+                int(''.join([str(i) for i in self._orientationOfContigs]))*10+\
                 np.sum([int(''.join([str(i) for i in j.listOfContigs])) for j in self._links[0]])+\
-                np.sum([int(''.join([str(i) for i in j.listOfContigs])) for j in self._links[1]])
+                np.sum([int(''.join([str(i) for i in j.listOfContigs])) for j in self._links[1]])/10
             return h
+
     # properties
-    
-    index = property(get_index, set_index)
     
     names = property(get_namesOfContigs)
     listOfContigs = property(get_listOfContigs)
@@ -298,8 +289,7 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
         
     CIGAR = segment1.CIGARs[endOfSegment1][segment1.links[endOfSegment1].index(segment2)]
     
-    newSegment = Segment(len(listOfSegments), \
-                         segment1.listOfContigs[::orientation1] + segment2.listOfContigs[::orientation2],\
+    newSegment = Segment(segment1.listOfContigs[::orientation1] + segment2.listOfContigs[::orientation2],\
                              segment1.names[::orientation1] + segment2.names[::orientation2],\
                                 orientationOfContigs1+orientationOfContigs2,\
                                 segment1.lengths[::orientation1]+segment2.lengths[::orientation2], \
@@ -337,8 +327,8 @@ def compute_copiesNumber(listOfSegments):
 
 ## A few lines to test the functions of the file
 
-# s1 = Segment(0, [0,1], [1,1], [1000])
-# s2 = Segment(1, [2], [1], [500])
+# s1 = Segment([0,1], [1,1], [1000])
+# s2 = Segment([2], [1], [500])
 # add_link(s1,1,s2,0,'60M')
 
 # listOfSegments = [s1, s2]
