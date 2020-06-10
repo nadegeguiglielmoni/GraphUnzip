@@ -9,43 +9,17 @@ import pandas as pd
 import numpy as np
 from scipy import sparse #to handle interactionMatrix, which should be sparse
 import time #to inform the user on what the programm is doing on a regular basis
+import os.path #to check the existence of files
+import pickle #for writing files and reading them
 
 from segment import Segment
 from segment import compute_copiesNumber
 
-# NOT USED
-# Read sparse matrix
-# Input :
-#   file : sparse matrix with 3 fields: frag1, frag2, contacts
-# Output :
-#   content : list of parsed contacts
-def read_abs_fragments_contact_weighted(file, header=True):
-
-    content = []
-
-    with open(file) as f:
-        for line in f:
-            content.append([line])
-
-    # parsing lines
-    content = [x.strip("\n") for x in content]
-    content = [x.split("\t") for x in content]
-    content = [[int(x[0]), int(x[1]), int(x[2])] for x in content]
-
-    # remove header
-    if header:
-        content = content[1:]
-
-    return content
-
-
 # Read fragments list file
-# /!\ for many functions to work, fragmentList has to be sorted (first contig1, then contig2...)
 # Input :
 #   file : fragments_list.txt
 # Output :
-#   content : list with contig_id, fragment start, fragment end, fragment length, where the list
-#             index is the fragment id
+#   content : list with contig_id, fragment start, fragment end, fragment length
 def read_fragment_list(file, header=True):
 
     with open(file) as f:
@@ -57,11 +31,7 @@ def read_fragment_list(file, header=True):
     # parsing
     # 1: contig_id, 2: fragment_start, 3: fragment_end, 4: fragment_length
     content = [x.strip("\n").split("\t") for x in content]
-    content = [
-        [x[1], int(x[2]), int(x[3]), int(x[4])] for x in content
-    ]
-    # the removal of "sequence" is too specific to a certain contig name format
-    # should be removed/improved
+    content = [[x[1], int(x[2]), int(x[3]), int(x[4])] for x in content]
 
     return content
 
@@ -138,13 +108,9 @@ def import_from_csv(file):
     newl = [[x for x in i if not pd.isnull(x)] for i in l]
     return [x[1:] for x in newl]  # we discard the header line
 
-
-def import_links(file):
-    links = import_from_csv(file)
-    return [[int(i) for i in j] for j in links]
-
-
-def get_contig(fastaFile, contig, firstline=0):
+#input : contig ID and fasta file
+#output : sequence
+def get_contig_FASTA(fastaFile, contig, firstline=0):
 
     with open(fastaFile) as f:
 
@@ -161,27 +127,55 @@ def get_contig(fastaFile, contig, firstline=0):
             linenumber += 1
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
-def get_contig_GFA(gfaFile, contig):
+#input : contig ID and gfa file
+#output : sequence
+def get_contig_GFA(gfaFile, contig, contigOffset):
     
     with open(gfaFile) as f:
 
-        for line in f:
-            
-            sline = line.split('\t')
-            if len(sline) >= 3 :
-                if sline[0] == 'S' and (contig in sline[1]) :
-                    return sline[2]
+        f.seek(contigOffset)
+        line = f.readline()         
+        sline = line.strip('\n').split('\t')
+        if len(sline) >= 3 and sline[0] == 'S' and (contig in sline[1]) :
+                return sline[2]
+        else :
+            print('ERROR : Problem in the offset file, not pointing to the right lines')
 
     return "In get_contig : the contig you are seeking is not in the gfa file"
 
-def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa"):
+def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = ""): #offset file is for speeding up exportation : 
+
+    #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
+    if offsetsFile == "" :
+        offsetsFile = gfaFile.strip('.gfa') + '_offsets.pickle'
+        
+    if gfaFile != "" and not os.path.exists(offsetsFile) :
+        line_offset = {}
+        offset = 0
+        with open(gfaFile) as gfafile :
+            for line in gfafile:
+                sline = line.strip('\n').split('\t')
+                if sline[0] == 'S' :
+                    line_offset[sline[1]] = offset #adds pair sline[1]:offset to the dict
+                    
+                offset += len(line)
+            
+        with open(offsetsFile, 'wb') as o:
+            pickle.dump(line_offset, o)
+    
+    if gfaFile != '' :
+        with open(offsetsFile, 'rb') as o:
+            line_offset = pickle.load(o)
+        
+        print(line_offset)    
+        
 
     f = open(exportFile, "w")
     
-    #first compute the copiesnumber
+    #compute the copiesnumber
     cn = compute_copiesNumber(listOfSegments)
 
-    #fist write the sequences and the links within the supercontigs
+    #write the sequences and the links within the supercontigs
     for s, segment in enumerate(listOfSegments):
         if s % 30 == 0:
             print(int(s / len(listOfSegments) * 1000) / 10, "% of exporting done")
@@ -190,7 +184,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
             
             f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
             if gfaFile != "":
-                f.write(get_contig_GFA(gfaFile, contig) + "\n")
+                f.write(get_contig_GFA(gfaFile, contig, line_offset[contig]) + "\n")
             else:
                 f.write("*\n")
 
