@@ -8,7 +8,6 @@ File dedicated to the algorithm af making bigger contigs, including solving bubb
 
 import numpy as np
 import basic_functions as bf
-import scipy.integrate as integrate
 from bisect import bisect_left #to look through sorted lists
 
 from transform_gfa import check_segments
@@ -22,7 +21,6 @@ def intensity_of_interactions(
     candidatesSegments,
     listOfSegments,
     interactionMatrix,
-    dist_law,
     copiesnumber,
     supercontigsaretouching=False,
 ):
@@ -81,7 +79,7 @@ def intensity_of_interactions(
 
     for c in candidatesSegments:
 
-        absoluteScore, relativeScore, partial_area = c.interaction_with_contigs(segment, interactionMatrix, dist_law, copiesnumber, commonContigs, bestSignature)
+        absoluteScore, relativeScore, partial_area = c.interaction_with_contigs(segment, interactionMatrix, copiesnumber, commonContigs, bestSignature)
 
         absoluteScores.append(absoluteScore)
         relativeScores.append(relativeScore)
@@ -217,7 +215,7 @@ def merge_adjacent_contigs(listOfSegments):
     return listOfSegments
 
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
-def get_rid_of_bad_links(listOfSegments,interactionMatrix,dist_law,copiesnumber,thresholdRejected,thresholdAccepted):
+def get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesnumber,thresholdRejected,thresholdAccepted):
 
     # loop through all segments inspecting the robustness of all links.
     for segment in listOfSegments:
@@ -231,7 +229,7 @@ def get_rid_of_bad_links(listOfSegments,interactionMatrix,dist_law,copiesnumber,
                     n2 = n1 + 1
                     while n2 < len(segment.links[endOfSegment]):
                         absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]]\
-                                                                                         , listOfSegments, interactionMatrix, dist_law, copiesnumber, True)
+                                                                                         , listOfSegments, interactionMatrix, copiesnumber, True)
                         if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                             segment.freezeNode(endOfSegment)
                             
@@ -241,8 +239,7 @@ def get_rid_of_bad_links(listOfSegments,interactionMatrix,dist_law,copiesnumber,
                                 #     file = open('ratio.txt','a')
                                 #     file.write(str(linksStrength[i]/maxStrength)+'\n')
                                 if (linksStrength[1] < linksStrength[0] * thresholdRejected):  # then it means that the link does not exist
-                                    se = segment._links[endOfSegment][n2]
-                                    segment._links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
+                                    segment.links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
                                     segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
                                     
                                 elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
@@ -290,7 +287,7 @@ def merge_contigs(listOfSegments, copiesnumber):
     return listOfSegments, copiesnumber
 
 
-def solve_ambiguities(listOfSegments, interactionMatrix, dist_law, stringenceReject, stringenceAccept, steps, copiesNumber = []):
+def solve_ambiguities(listOfSegments, interactionMatrix, stringenceReject, stringenceAccept, steps, copiesNumber = []):
         
     if copiesNumber == [] :
         copiesNumber = [1 for i in listOfSegments]
@@ -299,7 +296,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, dist_law, stringenceRej
 
     for i in range(steps):
 
-        get_rid_of_bad_links(listOfSegments, interactionMatrix, dist_law, copiesNumber, stringenceReject, stringenceAccept)
+        get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesNumber, stringenceReject, stringenceAccept)
 
         # print('Before getting rid of bad links : ')
         # for j in listOfSegments :

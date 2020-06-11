@@ -35,7 +35,7 @@ def parse_args():
         "--accepted",
         required=False,
         default=0.45,
-        help="""Threshold to accept links. [default: 0.40]""",
+        help="""Threshold to accept links. [default: 0.45]""",
     )
     parser.add_argument(
         "-R",
@@ -51,13 +51,7 @@ def parse_args():
         default=10,
         help="""Number of cycles get rid of bad links - duplicate contigs. [default: 10]""",
     )
-    # parser.add_argument(
-    #     "-f",
-    #     "--fasta",
-    #     required=False,
-    #     default="Empty",
-    #     help="""Segments from the GFA in fasta format""",
-    # )
+
     parser.add_argument(
         "-m", "--matrix", required=False, default="Empty", help="""Sparse contact map"""
     )
@@ -71,8 +65,10 @@ def parse_args():
         default="interactionMatrix.csv",
         help="""File with interactions [default: interactionMatrix.csv]""",
     )
+    parser.add_argument(
+        "--merge", required=False, default = "Empty",  help="""If you want the output to have all possible contigs merged (y/n) [default: n]"""
+    )
     return parser.parse_args()
-
 
 def main():
 
@@ -85,6 +81,7 @@ def main():
     stringenceReject = float(args.rejected)
     stringenceAccept = float(args.accepted)
     steps = int(args.steps)
+    merge = args.merge
 
     if not os.path.exists(gfaFile):
         print("Error: could not find GFA file {0}.".format(gfaFile))
@@ -122,12 +119,14 @@ def main():
     
     print('Everything loaded, moving on to solve_ambiguities')
 
-    segments = solve_ambiguities(segments, interactionMatrix, lambda x:1, stringenceReject, stringenceAccept, steps)
+    segments = solve_ambiguities(segments, interactionMatrix, stringenceReject, stringenceAccept, steps)
 
     # now exporting the output
     print('Now exporting')
-    bf.export_to_GFA(segments, gfaFile, exportFile=outFile)
-
+    merge_adj = False
+    if merge != "Empty" and merge != "n":
+        merge_adj = True
+    bf.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs = merge_adj)
 
 if __name__ == "__main__":
     main()

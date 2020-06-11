@@ -9,6 +9,7 @@ In this file, test functions to test our algorithm
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import time
 
 import basic_functions as bf
 from transform_gfa import load_gfa
@@ -170,7 +171,7 @@ def check_result(chromosomes, listOfSuperContigs, names) :
             if expectedContacts[i,j] == 1 :
                 print('In the actual chromosomes, there exist a link between ', i, ' and ', j, ' that is not found in the output')
                 print(names)
-                for k in listOfSegments :
+                for k in listOfSuperContigs :
                     k.print_complete()
                 return False
     
@@ -186,12 +187,11 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
         exportFakeToGFA(chromosomes, 'tests/stats/test' + str(i)+'.gfa', lengthOfContig)
         bf.export_to_csv(chromosomes, 'tests/stats/test' + str(i)+'.chro')
         
-        listOfSegments = load_gfa('tests/stats/test' + str(i)+'.gfa')
+        listOfSegments, names = load_gfa('tests/stats/test' + str(i)+'.gfa')
 
-        names = [i.names[0] for i in listOfSegments]
         interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
 
-        listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, dist_law, 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+        listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
         #record.append(check_result(chromosomes, listOfSuperContigs, names, links))
         
@@ -207,19 +207,19 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
 #chromosomes = bf.import_from_csv('tests/fake.chro')
-chromosomes = buildFakeChromosomes(10)
-#bf.export_to_csv(chromosomes, 'tests/fake.chro')
+# chromosomes = buildFakeChromosomes(10)
+# #bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
-lengthOfContig = 10000
-exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
-bf.export_to_csv(chromosomes, 'tests/fake.chro')
-listOfSegments, names = load_gfa('tests/fake.gfa')
+# lengthOfContig = 10000
+# exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
+# bf.export_to_csv(chromosomes, 'tests/fake.chro')
+# listOfSegments, names = load_gfa('tests/fake.gfa')
 
-interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
-listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+# interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
+# listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
-#flatten_loop(links, listOfSuperContigs, 1, 2)
-export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False)
+# #flatten_loop(links, listOfSuperContigs, 1, 2)
+# export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False)
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
 # export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')
@@ -229,9 +229,10 @@ export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fa
 
 #passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
 
-print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
+#print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
-# stats_on_solve_ambiguities(n=100)
+t = time.time()
+stats_on_solve_ambiguities(n=200)
 
-print('Finished')
+print('Finished in ', time.time()-t, ' seconds')
     

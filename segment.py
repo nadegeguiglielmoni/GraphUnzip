@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy.integrate as integrate
 import random
 
 #a segment is a supercontig
@@ -85,6 +84,9 @@ class Segment:
     def get_locked(self):
         return self._locked
     
+    def full_name(self) :
+        return '_'.join([self._namesOfContigs[i]+'-'+self._copiesOfContigs[i] for i in range(len(self._namesOfContigs))])
+    
     def print_complete(self):
         print(self._namesOfContigs, [s.names for s in self._links[0]], \
               [s.names for s in self._links[1]])
@@ -140,7 +142,7 @@ class Segment:
     #other functions that handle segments
     
     #function which goals is to return the intensity of HiC contacts between another segment and this one
-    def interaction_with_contigs(self, segment, interactionMatrix, dist_law = lambda x:1, copiesnumber = None, commonContigs = [], bestSignature = 1000):
+    def interaction_with_contigs(self, segment, interactionMatrix, copiesnumber = None, commonContigs = [], bestSignature = 1000):
         
         if copiesnumber == None :
             copiesnumber = [1 for i in interactionMatrix]
@@ -166,7 +168,7 @@ class Segment:
             newLengthForNow = (lengthForNow + self.lengths[contig] * (0.5 - orientation) * 2)
             if self.listOfContigs[contig] not in commonContigs:
                 # computing the partial area : that way, small supercontigs are not penalized when compared to much longer ones
-                partial_area += np.abs(integrate.quad(dist_law, newLengthForNow, lengthForNow)[0])
+                partial_area += np.abs(newLengthForNow - lengthForNow)
                 
             for contigInSegment in segment.listOfContigs:
                 if self.listOfContigs[contig] not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:

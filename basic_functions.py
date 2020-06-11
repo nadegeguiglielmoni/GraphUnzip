@@ -141,8 +141,10 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
             print('ERROR : Problem in the offset file, not pointing to the right lines')
 
     return "In get_contig : the contig you are seeking is not in the gfa file"
-
-def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", useExistingOffsetsFile = True): #offset file is for speeding up exportation :
+# Input :
+#   offset file is for speeding up exportation
+#   merge_adjacent_contig is to produce a GFA with contigs merged
+def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", useExistingOffsetsFile = True, merge_adjacent_contigs = False): 
     
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
     if offsetsFile == "" :
@@ -178,68 +180,104 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
 
     #write the sequences and the links within the supercontigs
     t = time.time()
-    for s, segment in enumerate(listOfSegments):
-        if  time.time() > t+1 :
-            t = time.time()
-            print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
-
-        for c, contig in enumerate(segment.names):
+    
+    if merge_adjacent_contigs == False :
+        for s, segment in enumerate(listOfSegments):
+            if  time.time() > t+1 :
+                t = time.time()
+                print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
+    
+            for c, contig in enumerate(segment.names):
+                
+                f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
+                if gfaFile != "":
+                    f.write(get_contig_GFA(gfaFile, contig, line_offset[contig]) + "\n")
+                else:
+                    f.write("*\n")
+    
+                if c > 0:
+                    
+                    f.write("L\t"+ segment.names[c-1]+ "-"+ str(segment.copiesnumber[c-1]))
+                    
+                    if segment.orientations[c-1] == 1 :                    
+                        f.write("\t+\t")
+    
+                    elif segment.orientations[c-1] == 0:
+                        f.write("\t-\t")
+                 
+                    f.write(contig + "-"+ str(segment.copiesnumber[c]))
+                    
+                    if segment.orientations[c] == 1 :                    
+                        f.write("\t+\t")
+    
+                    elif segment.orientations[c] == 0:
+                        f.write("\t-\t")
+                        
+                    f.write(segment.insideCIGARs[c-1]+'\n')
+    
+        print('Done exporting sequences, just a little more time...')
+        #then write in the gfa file the links between the ends of supercontigs
+    
+        for s, segment in enumerate(listOfSegments):
             
-            f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
+            if  time.time() > t+1 :
+                t = time.time()
+                print(int(s / len(listOfSegments) * 1000) / 10, "% of links written", end = '\r')
+                
+            for endOfSegment in range(2):
+                for l, neighbor in enumerate(segment.links[endOfSegment]):
+                    
+                    if segment.ID <= neighbor.ID : #that is to ensure each link is written only once
+                    
+                        endOfNeighbor = segment.otherEndOfLinks[endOfSegment][l]
+                        orientation1, orientation2 = '-', '-'
+                        
+                        if segment.orientations[-endOfSegment] == endOfSegment :
+                            orientation1 = '+'
+                            
+                        if neighbor.orientations[-endOfNeighbor] != endOfNeighbor :
+                            orientation2 = '+'
+                            
+                        f.write("L\t"+segment.names[-endOfSegment] +"-"+ str(segment.copiesnumber[-endOfSegment]) + '\t' \
+                                + orientation1 + '\t' +\
+                                    neighbor.names[-endOfNeighbor] +"-"+ str(neighbor.copiesnumber[-endOfNeighbor])+'\t'\
+                                +orientation2+'\t'+segment.CIGARs[endOfSegment][l]+'\n')
+
+    # in the case the user prefers having merged contigs as an output
+    else : #if merge_adjacent_contigs == True
+        
+        for s, segment in enumerate(listOfSegments):
+            if  time.time() > t+1 :
+                t = time.time()
+                print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
+            
+            f.write("S\t" + contig + "-" + segment.full_name() + "\t")
             if gfaFile != "":
-                f.write(get_contig_GFA(gfaFile, contig, line_offset[contig]) + "\n")
+                
+                sequence = ''
+                for c, contig in enumerate(segment.names) :
+                    s = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    if segment.orientations[c] == 0 :
+                        s = s[::-1]
+                    if c > 0 :
+                        s = s[segment.insideCIGARs[c-1]:]
+                    sequence += s
+                f.write(sequence + "\n")
+                
             else:
                 f.write("*\n")
-
-            if c > 0:
                 
-                f.write("L\t"+ segment.names[c-1]+ "-"+ str(segment.copiesnumber[c-1]))
-                
-                if segment.orientations[c-1] == 1 :                    
-                    f.write("\t+\t")
-
-                elif segment.orientations[c-1] == 0:
-                    f.write("\t-\t")
-             
-                f.write(contig + "-"+ str(segment.copiesnumber[c]))
-                
-                if segment.orientations[c] == 1 :                    
-                    f.write("\t+\t")
-
-                elif segment.orientations[c] == 0:
-                    f.write("\t-\t")
-                    
-                f.write(segment.insideCIGARs[c-1]+'\n')
-
-    print('Done exporting sequences, just a little more time...')
-    #then write in the gfa file the links between the ends of supercontigs
-
-    for s, segment in enumerate(listOfSegments):
-        
-        if  time.time() > t+1 :
-            t = time.time()
-            print(int(s / len(listOfSegments) * 1000) / 10, "% of links written", end = '\r')
-            
-        for endOfSegment in range(2):
-            for l, neighbor in enumerate(segment.links[endOfSegment]):
-                
-                if segment.ID <= neighbor.ID : #that is to ensure each link is written only once
-                
-                    endOfNeighbor = segment.otherEndOfLinks[endOfSegment][l]
-                    orientation1, orientation2 = '-', '-'
-                    
-                    if segment.orientations[-endOfSegment] == endOfSegment :
-                        orientation1 = '+'
-                        
-                    if neighbor.orientations[-endOfNeighbor] != endOfNeighbor :
-                        orientation2 = '+'
-                        
-                    f.write("L\t"+segment.names[-endOfSegment] +"-"+ str(segment.copiesnumber[-endOfSegment]) + '\t' \
-                            + orientation1 + '\t' +\
-                                neighbor.names[-endOfNeighbor] +"-"+ str(neighbor.copiesnumber[-endOfNeighbor])+'\t'\
-                            +orientation2+'\t'+segment.CIGARs[endOfSegment][l]+'\n')
-    
-    
+            for endOfSegment in range(2) :
+                for n, neighbor in enumerate(segment.links[endOfSegment]):
+                    if segment.ID < neighbor.ID : #to write each link just one
+                        orientation1, orientation2 = '+', '+'
+                        if endOfSegment == 0 :
+                            orientation1 = '-'
+                        if segment.otherEndOfLinks[n] == 1 :
+                            orientation2 = '-'
+                            
+                        f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
+                                '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
 
 
 
