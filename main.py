@@ -14,6 +14,7 @@ from solve_ambiguities import solve_ambiguities
 import argparse
 import os.path
 import sys
+import pickle #reading and writing files
 
 def parse_args():
     """ 
@@ -101,18 +102,18 @@ def main():
             interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names)
 
             # exporting it as to never have to do it again
-            if not os.path.exists(interactionFile):
-                print('Exporting interaction matrix')
-                bf.export_to_csv(interactionMatrix, interactionFile)
-            else:
-                print("Error: {0} already exists, please remove it.".format(interactionFile))
-                sys.exit(1)
+
+            print('Exporting interaction matrix')
+            with open(interactionFile, 'wb') as o:
+                pickle.dump(interactionMatrix, o)
+
         else:
             print("Error: could not find fragments file {0}.".format(fragmentsFile))
             sys.exit(1)
     elif interactionFile is not "Empty" :
         print('Loading the interaction matrix')
-        interactionMatrix = bf.import_from_csv(interactionFile)
+        with open(interactionFile, 'rb') as o:
+            interactionMatrix = pickle.load(o)
     else:
         if not os.path.exists(interactionFile):
             print("Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map.")

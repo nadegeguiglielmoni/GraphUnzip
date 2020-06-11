@@ -11,7 +11,7 @@ import basic_functions as bf
 import scipy.integrate as integrate
 from bisect import bisect_left #to look through sorted lists
 
-from transform_gfa import check_links
+from transform_gfa import check_segments
 import segment as s
 from segment import Segment
 
@@ -117,7 +117,7 @@ def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContig
     # now delete the merged supercontigs
     # start by deleting the links that linked the merged supercontigs to the outside
 
-    deletedContigs = [segment.hash()]
+    deletedContigs = [segment.ID]
     otherEnd = 1 - endOfSegment
 
     for i, neighbor in enumerate(segment.links[otherEnd]):
@@ -128,7 +128,7 @@ def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContig
     for m, merged in enumerate(segment.links[endOfSegment]):
         
         if len(merged.links[segment.otherEndOfLinks[endOfSegment][m]]) == 1:  # then the original copy is fully integrated in the supercontig
-            deletedContigs.append(merged.hash())
+            deletedContigs.append(merged.ID)
             
             otherEnd = 1-segment.otherEndOfLinks[endOfSegment][m]
             for i, neighbor in enumerate(merged.links[otherEnd]):
@@ -152,7 +152,7 @@ def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContig
     #delete all segments that should be
     deletedContigs.sort()
     for i in range(len(listOfSuperContigs)-1,-1,-1) :
-        h = listOfSuperContigs[i].hash()
+        h = listOfSuperContigs[i].ID
         if isPresent(deletedContigs, h) : #in other words, if h is in deletedContigs (written like that because it has logarithmic efficiency) 
             del listOfSuperContigs[i]
             
@@ -310,8 +310,8 @@ def solve_ambiguities(listOfSegments, interactionMatrix, dist_law, stringenceRej
         for j in listOfSegments :
             j.unfreeze()
         
-        print(str(i / steps * 100) + "% of solving ambiguities done, fake"+ str(i) + ".gfa built")
-        bf.export_to_GFA(listOfSegments, exportFile="tests/fake" + str(i) + ".gfa")
+        print(str(i / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
+        #bf.export_to_GFA(listOfSegments, exportFile="tests/fake" + str(i) + ".gfa")
        # print('At step ', i, ' the energy is : ', score_output(listOfSuperContigs, links, [10000 for i in names], interactionMatrix))
 
     return listOfSegments

@@ -219,7 +219,7 @@ interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfC
 listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, lambda x:1 , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
 #flatten_loop(links, listOfSuperContigs, 1, 2)
-export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa')
+export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False)
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
 # export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')

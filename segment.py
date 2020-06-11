@@ -3,6 +3,7 @@
 
 import numpy as np
 import scipy.integrate as integrate
+import random
 
 #a segment is a supercontig
 class Segment:
@@ -27,6 +28,8 @@ class Segment:
         if segInsideCIGARs == None :
             segInsideCIGARs = ['*' for i in range(len(segListOfContig)-1)]
         
+        self._id = random.random() #a random number identifying the segment
+        
         #this group of attributes are linked arrays : element n in one corresponds with element n in the other. Therefore they shouldn't be modified independantly
         self._namesOfContigs = segNamesOfContig.copy() #names are strings with which sequences are described in the GFA
         self._listOfContigs = segListOfContig.copy() #listOfContigs are numbers with which contigs are referenced in interactioMatrix
@@ -45,6 +48,9 @@ class Segment:
         self._locked = lock #That is to duplicate a contig only once in each merge_contigs
         
     # getters
+    
+    def get_id(self):
+        return self._id
 
     def get_listOfContigs(self):
         return self._listOfContigs
@@ -112,14 +118,9 @@ class Segment:
         for i in self._links[endOfSegment]:
             i.locked = True
         
-    def hash(self) : #a function assigning an int to a segment, for example useful in export_to_GFA or in duplicate_contigs
-            h = int(''.join([str(i) for i in self._listOfContigs]))*10000+\
-                int(''.join([str(i) for i in self._orientationOfContigs]))*10+\
-                np.sum([int(''.join([str(i) for i in j.listOfContigs])) for j in self._links[0]])+\
-                np.sum([int(''.join([str(i) for i in j.listOfContigs])) for j in self._links[1]])/10
-            return h
-
     # properties
+    
+    ID = property(get_id) 
     
     names = property(get_namesOfContigs)
     listOfContigs = property(get_listOfContigs)

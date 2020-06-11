@@ -99,7 +99,6 @@ def export_to_csv(l, file):
     df = pd.DataFrame(l)
     df.to_csv(file)
 
-
 def import_from_csv(file):
 
     df = pd.read_csv(file)
@@ -130,7 +129,7 @@ def get_contig_FASTA(fastaFile, contig, firstline=0):
 #input : contig ID and gfa file
 #output : sequence
 def get_contig_GFA(gfaFile, contig, contigOffset):
-    
+       
     with open(gfaFile) as f:
 
         f.seek(contigOffset)
@@ -143,13 +142,13 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
 
     return "In get_contig : the contig you are seeking is not in the gfa file"
 
-def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = ""): #offset file is for speeding up exportation : 
-
+def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", useExistingOffsetsFile = True): #offset file is for speeding up exportation :
+    
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
     if offsetsFile == "" :
         offsetsFile = gfaFile.strip('.gfa') + '_offsets.pickle'
         
-    if gfaFile != "" and not os.path.exists(offsetsFile) :
+    if gfaFile != "" and (not os.path.exists(offsetsFile) or not useExistingOffsetsFile) :
         line_offset = {}
         offset = 0
         with open(gfaFile) as gfafile :
@@ -167,8 +166,10 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
         with open(offsetsFile, 'rb') as o:
             line_offset = pickle.load(o)
         
-        print(line_offset)    
-        
+        #print(line_offset)
+ 
+    print('Line_offsets loaded, launching proper writing of the new GFA')
+    #Now that the preliminary work is done, start writing the new gfa file    
 
     f = open(exportFile, "w")
     
@@ -176,9 +177,11 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     cn = compute_copiesNumber(listOfSegments)
 
     #write the sequences and the links within the supercontigs
+    t = time.time()
     for s, segment in enumerate(listOfSegments):
-        if s % 30 == 0:
-            print(int(s / len(listOfSegments) * 1000) / 10, "% of exporting done")
+        if  time.time() > t+1 :
+            t = time.time()
+            print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
 
         for c, contig in enumerate(segment.names):
             
@@ -208,13 +211,19 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     
                 f.write(segment.insideCIGARs[c-1]+'\n')
 
+    print('Done exporting sequences, just a little more time...')
     #then write in the gfa file the links between the ends of supercontigs
 
     for s, segment in enumerate(listOfSegments):
+        
+        if  time.time() > t+1 :
+            t = time.time()
+            print(int(s / len(listOfSegments) * 1000) / 10, "% of links written", end = '\r')
+            
         for endOfSegment in range(2):
             for l, neighbor in enumerate(segment.links[endOfSegment]):
                 
-                if segment.hash() <= neighbor.hash() : #that is to ensure each link is written only once
+                if segment.ID <= neighbor.ID : #that is to ensure each link is written only once
                 
                     endOfNeighbor = segment.otherEndOfLinks[endOfSegment][l]
                     orientation1, orientation2 = '-', '-'
@@ -229,6 +238,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                             + orientation1 + '\t' +\
                                 neighbor.names[-endOfNeighbor] +"-"+ str(neighbor.copiesnumber[-endOfNeighbor])+'\t'\
                             +orientation2+'\t'+segment.CIGARs[endOfSegment][l]+'\n')
+    
     
 
 

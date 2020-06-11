@@ -77,7 +77,7 @@ def load_gfa(file):
 
     return segments, names
 
-
+#print_short is useful to read a sequence file, shortening the sequences
 def print_short():
 
     gfa_read = open("results/A_Vaga_PacBio/A_Vaga_finished2.gfa")
@@ -89,7 +89,7 @@ def print_short():
 
     for i in range(1000000):
         if r[i] in bases:
-            if count % 5000000 == 0:
+            if count % 5000 == 0:
                 s += r[i]
         else:
             s += r[i]
@@ -97,23 +97,14 @@ def print_short():
     print(s)
     return 0
 
-def print_short_gfa():
+
+# a function to test that links are, as they should, represented once at each of their extremities
+def check_segments(listOfSegments):
     
-    with open("results/A_Vaga_PacBio/A_Vaga_finished2.gfa", 'r') as f :
-        for line in f :
-            print(line.split('\t')[0], line.split('\t')[1])
-
-# a function to test that load_gfa worked ok
-def check_links(links):
-    for i, noeud in enumerate(links):
-        for j, neighbor in enumerate(noeud):
-            found = False
-            for k in links[neighbor]:
-                if k == i:
-                    found = True
-            if not found and neighbor != -1:
-                print("Problem in links, a one-end link : ", i, neighbor)
-                return False
+    for segment in listOfSegments :
+        for endOfSegment in range(2) :
+            for n, neighbor in enumerate(segment.links[endOfSegment]) :
+                if not segment in neighbor.links[segment.otherEndOfLinks[n]] :
+                    print("Problem in links, a one-end link going from: ", segment.names, ' to ', neighbor.names)
+                    return False
     return True
-
-#gfa_to_fasta('data_A_Vaga_Illumina/assemblyGraph_k201.gfa', 'data_A_Vaga_Illumina/assemblyGraph_k201.fasta')

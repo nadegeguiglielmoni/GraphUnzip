@@ -99,3 +99,165 @@ def detect_fishy_links(links, confirmationOfLinks, coverage):
                             weightedConfirmation,
                         )
     return badlinks
+
+def HiC_vs_GFA(hiccontacts, links, fragment_list):
+
+    confirmationOfLinks = [[0 for i in j] for j in links]  # a list of list of 0 of the same dimensions as links
+
+    for contact in hiccontacts:
+        contig1 = fragment_list[contact[0]][0]
+        contig2 = fragment_list[contact[1]][0]
+
+        for j in range(len(links[contig1 * 2])):
+            if (
+                links[contig1 * 2][j] == contig2 * 2
+                or links[contig1 * 2][j] == contig2 * 2 + 1
+            ):
+                confirmationOfLinks[contig1 * 2][j] += contact[2]
+                for i in range(len(links[links[contig1 * 2][j]])):
+                    if links[links[contig1 * 2][j]][i] == contig1 * 2:
+                        confirmationOfLinks[links[contig1 * 2][j]][i] += contact[2]
+
+        for j in range(len(links[contig1 * 2 + 1])):
+            if (
+                links[contig1 * 2 + 1][j] == contig2 * 2
+                or links[contig1 * 2 + 1][j] == contig2 * 2 + 1
+            ):
+                confirmationOfLinks[contig1 * 2 + 1][j] += contact[2]
+                for i in range(len(links[links[contig1 * 2 + 1][j]])):
+                    if links[links[contig1 * 2 + 1][j]][i] == contig1 * 2 + 1:
+                        confirmationOfLinks[links[contig1 * 2 + 1][j]][i] += contact[2]
+
+    return confirmationOfLinks
+
+# same as above but taking into account contigs that are two connexions away
+def HiC_vs_GFAtwo(hiccontacts, links, fragment_list, coverage):  
+    
+    confirmationOfLinks = [
+        [0 for i in j] for j in links
+    ]  # a list of list of 0 of the same dimensions as links
+    weightedconfirmationOfLinks = [[0 for i in j] for j in links]
+
+    for contact in hiccontacts:
+
+        contig1 = fragment_list[contact[0]][0]
+        contig2 = fragment_list[contact[1]][0]
+
+        for j, neighbor in enumerate(links[contig1 * 2]):
+            # direct neighbor
+            if (
+                links[contig1 * 2][j] == contig2 * 2
+                or links[contig1 * 2][j] == contig2 * 2 + 1
+            ):
+                confirmationOfLinks[contig1 * 2][j] += contact[2]
+                weightedconfirmationOfLinks[contig1 * 2][j] += (
+                    contact[2] / coverage[contig1] / coverage[contig2]
+                )
+
+                for i in range(len(links[links[contig1 * 2][j]])):
+                    if links[links[contig1 * 2][j]][i] == contig1 * 2:
+                        confirmationOfLinks[links[contig1 * 2][j]][i] += contact[2]
+                        weightedconfirmationOfLinks[links[contig1 * 2][j]][i] += (
+                            contact[2] / coverage[contig1] / coverage[contig2]
+                        )
+            # two connexions away
+            for c in range(
+                len(links[neighbor + 1 - 2 * neighbor % 2])
+            ):  # we take the other end of the neighbor contig
+                if (
+                    links[neighbor + 1 - 2 * neighbor % 2][c] == contig2 * 2
+                    or links[neighbor + 1 - 2 * neighbor % 2][c] == contig2 * 2 + 1
+                ):
+                    confirmationOfLinks[contig1 * 2][j] += contact[2]
+                    weightedconfirmationOfLinks[contig1 * 2][j] += (
+                        contact[2] / coverage[contig1] / coverage[contig2]
+                    )
+
+                    confirmationOfLinks[neighbor + 1 - 2 * neighbor % 2][c] += contact[
+                        2
+                    ]
+                    weightedconfirmationOfLinks[neighbor + 1 - 2 * neighbor % 2][c] += (
+                        contact[2] / coverage[contig1] / coverage[contig2]
+                    )
+
+                    for i in range(
+                        len(links[links[neighbor + 1 - 2 * neighbor % 2][c]])
+                    ):
+                        if (
+                            links[links[neighbor + 1 - 2 * neighbor % 2][c]][i]
+                            == neighbor + 1 - 2 * neighbor % 2
+                        ):
+                            confirmationOfLinks[
+                                links[neighbor + 1 - 2 * neighbor % 2][c]
+                            ][i] += contact[2]
+                            weightedconfirmationOfLinks[
+                                links[neighbor + 1 - 2 * neighbor % 2][c]
+                            ][i] += (contact[2] / coverage[contig1] / coverage[contig2])
+                    for i in range(len(links[neighbor])):
+                        if links[neighbor][i] == contig1 * 2:
+                            confirmationOfLinks[neighbor][i] += contact[2]
+                            weightedconfirmationOfLinks[neighbor][i] += (
+                                contact[2] / coverage[contig1] / coverage[contig2]
+                            )
+
+        for j, neighbor in enumerate(links[contig1 * 2 + 1]):
+            for j in range(len(links[contig1 * 2 + 1])):
+                if (
+                    links[contig1 * 2 + 1][j] == contig2 * 2
+                    or links[contig1 * 2 + 1][j] == contig2 * 2 + 1
+                ):
+                    confirmationOfLinks[contig1 * 2 + 1][j] += contact[2]
+                    weightedconfirmationOfLinks[contig1 * 2 + 1][j] += (
+                        contact[2] / coverage[contig1] / coverage[contig2]
+                    )
+
+                    for i in range(len(links[links[contig1 * 2 + 1][j]])):
+                        if links[links[contig1 * 2 + 1][j]][i] == contig1 * 2 + 1:
+                            confirmationOfLinks[links[contig1 * 2 + 1][j]][
+                                i
+                            ] += contact[2]
+                            weightedconfirmationOfLinks[links[contig1 * 2 + 1][j]][
+                                i
+                            ] += (contact[2] / coverage[contig1] / coverage[contig2])
+
+            # two connexions away
+            otherEndOfNeighbor = neighbor + 1 - 2 * (neighbor % 2)
+
+            for c in range(
+                len(links[otherEndOfNeighbor])
+            ):  # we take the other end of the neighbor contig
+                if (
+                    links[otherEndOfNeighbor][c] == contig2 * 2
+                    or links[otherEndOfNeighbor][c] == contig2 * 2 + 1
+                ):
+                    confirmationOfLinks[contig1 * 2 + 1][j] += contact[2]
+                    weightedconfirmationOfLinks[contig1 * 2 + 1][j] += (
+                        contact[2] / coverage[contig1] / coverage[contig2]
+                    )
+
+                    confirmationOfLinks[otherEndOfNeighbor][c] += contact[2]
+                    weightedconfirmationOfLinks[otherEndOfNeighbor][c] += (
+                        contact[2] / coverage[contig1] / coverage[contig2]
+                    )
+
+                    for i in range(len(links[links[otherEndOfNeighbor][c]])):
+
+                        if links[links[otherEndOfNeighbor][c]][i] == otherEndOfNeighbor:
+                            confirmationOfLinks[links[otherEndOfNeighbor][c]][
+                                i
+                            ] += contact[2]
+                            weightedconfirmationOfLinks[links[otherEndOfNeighbor][c]][
+                                i
+                            ] += (contact[2] / coverage[contig1] / coverage[contig2])
+                    for i in range(len(links[neighbor])):
+                        if links[neighbor][i] == contig1 * 2:
+                            confirmationOfLinks[neighbor][i] += contact[2]
+                            weightedconfirmationOfLinks[neighbor][i] += (
+                                contact[2] / coverage[contig1] / coverage[contig2]
+                            )
+                    # if verif != 2 :
+                    #   print ('il y a un probleme')
+
+    return confirmationOfLinks, weightedconfirmationOfLinks
+
+
