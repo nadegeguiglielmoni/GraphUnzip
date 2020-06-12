@@ -85,7 +85,7 @@ class Segment:
         return self._locked
     
     def full_name(self) :
-        return '_'.join([self._namesOfContigs[i]+'-'+self._copiesOfContigs[i] for i in range(len(self._namesOfContigs))])
+        return '_'.join([self._namesOfContigs[i]+'-'+str(self._copiesOfContigs[i]) for i in range(len(self._namesOfContigs))])
     
     def print_complete(self):
         print(self._namesOfContigs, [s.names for s in self._links[0]], \

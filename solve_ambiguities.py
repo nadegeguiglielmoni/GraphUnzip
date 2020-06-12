@@ -232,8 +232,8 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesnumber,thresho
                                                                                          , listOfSegments, interactionMatrix, copiesnumber, True)
                         if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                             segment.freezeNode(endOfSegment)
-                            
-                        else:  
+                                                        
+                        elif absoluteLinksStrength != [0,0]: #the condition is to prevent duplicating if there is no mapping at all  
                             #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
                             if linksStrength[0] > linksStrength[1]:
                                 #     file = open('ratio.txt','a')

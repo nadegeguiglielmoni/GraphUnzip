@@ -251,7 +251,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 t = time.time()
                 print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
             
-            f.write("S\t" + contig + "-" + segment.full_name() + "\t")
+            f.write("S\t" + segment.full_name() + "\t")
             if gfaFile != "":
                 
                 sequence = ''
@@ -260,7 +260,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     if segment.orientations[c] == 0 :
                         s = s[::-1]
                     if c > 0 :
-                        s = s[segment.insideCIGARs[c-1]:]
+                        s = s[int(segment.insideCIGARs[c-1].strip('M')):]
                     sequence += s
                 f.write(sequence + "\n")
                 
@@ -273,7 +273,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                         orientation1, orientation2 = '+', '+'
                         if endOfSegment == 0 :
                             orientation1 = '-'
-                        if segment.otherEndOfLinks[n] == 1 :
+                        if segment.otherEndOfLinks[endOfSegment][n] == 1 :
                             orientation2 = '-'
                             
                         f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\

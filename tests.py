@@ -193,7 +193,7 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 
         listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
-        #record.append(check_result(chromosomes, listOfSuperContigs, names, links))
+        record.append(check_result(chromosomes, listOfSegments, names))
         
         bf.export_to_GFA(listOfSegments, exportFile = 'tests/stats/test' + str(i)+'F.gfa')
         #draw_distance_HiCcontacts_correlation(listOfSuperContigs, links, [10000 for i in names], interactionMatrix)
@@ -203,23 +203,24 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
         fileRecord.write(str(i)+'\n')
     print(int(record.count(False)*100/n), '% of incorrectly changed GFA')
 
+t = time.time()
 # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
 #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
 #chromosomes = bf.import_from_csv('tests/fake.chro')
-# chromosomes = buildFakeChromosomes(10)
-# #bf.export_to_csv(chromosomes, 'tests/fake.chro')
+chromosomes = buildFakeChromosomes(10)
+#bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
-# lengthOfContig = 10000
-# exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
-# bf.export_to_csv(chromosomes, 'tests/fake.chro')
-# listOfSegments, names = load_gfa('tests/fake.gfa')
+lengthOfContig = 10000
+exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
+bf.export_to_csv(chromosomes, 'tests/fake.chro')
+listOfSegments, names = load_gfa('tests/fake.gfa')
 
-# interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
-# listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
+listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
-# #flatten_loop(links, listOfSuperContigs, 1, 2)
-# export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False)
+#flatten_loop(links, listOfSuperContigs, 1, 2)
+export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False, merge_adjacent_contigs = True)
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
 # export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')
@@ -231,8 +232,7 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 
 #print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
-t = time.time()
-stats_on_solve_ambiguities(n=200)
+#stats_on_solve_ambiguities(n=100)
 
 print('Finished in ', time.time()-t, ' seconds')
     
