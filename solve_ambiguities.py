@@ -72,7 +72,7 @@ def intensity_of_interactions(
             return [-1], [-1]
 
     #bestsignature decides what contig is most characterisic of the segment
-    bestSignature = np.min([copiesnumber[x] for x in segment.listOfContigs])
+    bestSignature = np.min([copiesnumber[x] for x in segment.names])
     # return for each supercontig its absolute score and its relative score (wihtout the common parts)
     absoluteScores = []
     relativeScores = []
@@ -104,7 +104,7 @@ def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContig
     if any(segment.links[endOfSegment].count(i)>=2 for i in segment.links[endOfSegment]): #if segment.links[endOfSegment] has two copies of the same segment, it means one link going towards each end, that is not solvable
         return 0
 
-    for i in segment.listOfContigs:
+    for i in segment.names:
         copiesnumber[i] += len(segment.links[endOfSegment]) - 1
 
     # add all the new supercontigs
@@ -214,12 +214,37 @@ def merge_adjacent_contigs(listOfSegments):
     return listOfSegments
 
 # a function to delete small contigs made of repeated sequences that have no HiC contacts but tons of links
-def crush_small_contigs(segments, interactionMatrix) :
+def crush_small_contigs(segments, interactionMatrix, copiesNumber) :
     
+    toBeDeleted = []
     for segment in segments :
-        if segment.length < 5000 and segment in segment.links : #this characterize a small repeated sequence
-            if 0 :
-                return 0
+        if segment.length < 5000 and segment in segment.links[0] : #this characterize a small repeated sequence
+            if segment.HiCcoverage == 0 : # this segment is blind, can't do anything
+            
+                #then make this segment disappear, by linking segments to the left of this contig to segment to the right :
+                for l, leftneighbor in enumerate(segment.links[0]) :
+                    for r, rightneighbor in enumerate(segment.links[1]):
+                        #if those two are not yet linked, link them
+                        endLeft = segment.otherEndOfLinks[0][l]
+                        endRight = segment.otherEndOfLinks[1][r]
+                        if rightneighbor not in leftneighbor.links[endLeft] and (rightneighbor.ID != leftneighbor.ID or endLeft != endRight) :
+                            s.add_link(leftneighbor, endLeft, rightneighbor, endRight , '0M')
+                                 
+                #all links going towards the segment and remember the segment ought to be deleted
+                for l, leftneighbor in enumerate(segment.links[0]) :
+                    leftneighbor.remove_end_of_link(segment.otherEndOfLinks[0][l], segment, 0)
+                for r, rightneighbor in enumerate(segment.links[1]) :
+                    rightneighbor.remove_end_of_link(segment.otherEndOfLinks[1][r], segment, 1)
+                toBeDeleted.append(segment.ID)
+    
+    #delete all segments that should be
+    for se in range(len(segments)-1, -1, -1) :
+        if len(toBeDeleted) > 0 :
+            if segments[se].ID == toBeDeleted[-1] :
+                toBeDeleted.pop()
+                for n in segments[se].names :
+                    copiesNumber[n] -= 1
+                del segments[se]
 
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesnumber,thresholdRejected,thresholdAccepted):
@@ -266,24 +291,24 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesnumber,thresho
                                 segment.freezeNode(endOfSegment)
                             n2+=1
                             
-                    else : #if there are too many options, do not compare anything pairwise because that would take too long
-                        absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, segment.links[endOfSegment]\
-                                                                 , listOfSegments, interactionMatrix, copiesnumber, True)
-                        if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
-                            segment.freezeNode(endOfSegment)
-                            print('get_rid_of_bad_links : big node freezed')
-                        elif not all([i==0 for i in absoluteLinksStrength]) :
+                else : #if there are too many options, do not compare anything pairwise because that would take too long
+                    absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, segment.links[endOfSegment]\
+                                                             , listOfSegments, interactionMatrix, copiesnumber, True)
+                    if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
+                        segment.freezeNode(endOfSegment)
+                        print('get_rid_of_bad_links : big node freezed')
+                    elif not all([i==0 for i in absoluteLinksStrength]) :
+                        
+                        smax = np.max(linksStrength)
+                        averageThreshold = thresholdAccepted/2+thresholdRejected/2 #new threshold because huge nodes would be systematically freezed : there we decide of a black-and-white decision make sure we go on : either the link exists or it does not
+                        for n, neighbor in enumerate(segment.links[endOfSegment]) :
                             
-                            smax = np.max(linksStrength)
-                            averageThreshold = thresholdAccepted/2+thresholdRejected/2 #new threshold because huge nodes would be systematically freezed : there we decide of a black-and-white decision make sure we go on : either the link exists or it does not
-                            for n, neighbor in enumerate(segment.links[endOfSegment]) :
-                                
-                                if linksStrength[n] < averageThreshold * smax : #delete the link
-                                     neighbor.remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
-                                     segment.remove_end_of_link(endOfSegment, neighbor, segment._otherEndOfLinks[endOfSegment][n])
-                            
-                        else :
-                            segment.freezeNode(endOfSegment)
+                            if linksStrength[n] < averageThreshold * smax : #delete the link
+                                 neighbor.remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
+                                 segment.remove_end_of_link(endOfSegment, neighbor, segment._otherEndOfLinks[endOfSegment][n])
+                        
+                    else :
+                        segment.freezeNode(endOfSegment)
     return listOfSegments
 
 #merge_contigs looks at choices endofsegment by endofsegment, and duplicates all the necessary contigs
@@ -314,10 +339,11 @@ def merge_contigs(listOfSegments, copiesnumber):
     
     return listOfSegments, copiesnumber
 
-def solve_ambiguities(listOfSegments, interactionMatrix, stringenceReject, stringenceAccept, steps, copiesNumber = []):
+def solve_ambiguities(listOfSegments, interactionMatrix, stringenceReject, stringenceAccept, steps, copiesNumber = {}):
         
-    if copiesNumber == [] :
-        copiesNumber = [1 for i in listOfSegments]
+    if copiesNumber == {} :
+        for segment in listOfSegments :
+            copiesNumber['_'.join(segment.names)] = 1
 
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     print('Merged adjacent contigs for the first time')
@@ -326,9 +352,10 @@ def solve_ambiguities(listOfSegments, interactionMatrix, stringenceReject, strin
 
         get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesNumber, stringenceReject, stringenceAccept)
         print('Got rid of bad links')
-        # print('Before getting rid of bad links : ')
-        # for j in listOfSegments :
-        #     j.print_complete()
+        
+        crush_small_contigs(listOfSegments, interactionMatrix, copiesNumber)
+        print('Crushed small contigs')
+
         listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber)
 
         #once all the contigs have been duplicated and merged, unfreeze everything so the cycle can start again
@@ -336,7 +363,6 @@ def solve_ambiguities(listOfSegments, interactionMatrix, stringenceReject, strin
             j.unfreeze()
         
         print(str(i / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
-       # print('At step ', i, ' the energy is : ', score_output(listOfSuperContigs, links, [10000 for i in names], interactionMatrix))
 
     return listOfSegments
 

@@ -102,24 +102,16 @@ def restrictionSitesInEachContigs(genomeFastaFile, restrictionSequence) :
 
 
 def check_if_there_are_restriction_fragments_in_this_contig(
-    contig, restrictionSiteSequence, genomeFastaFile
+    contig, restrictionSiteSequence, gfaFile
 ):
 
-    with open(genomeFastaFile) as f:
-
-        target = ">sequence" + str(contig)
-        readnextline = False
+    with open(gfaFile) as f:
 
         for line in f:
-
-            if readnextline == True:
-
-                return line.count(restrictionSiteSequence)
-            else:
-                # print(target)
-                if target in line:
-                    readnextline = True
-
+            ls = line.split('\t')
+            if 'S' in ls[0] and contig in ls[1] :
+                return ls[2].count(restrictionSiteSequence)
+            
     print("There is a problem with the input contig")
     return 0
 
@@ -170,10 +162,13 @@ fragmentsFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/fragments_list.txt"
 matrixFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_weighted.txt"
 contigFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/info_contigs.txt"
 fastaFile = "Arabidopsis/Arabidopsis_hybrid/assembly.fasta"
+gfaFile = "Arabidopsis/Arabidopsis_hybrid/assembly_graph.gfa"
 
-coverage = determine_HiC_coverage(matrixFile, bf.read_info_contig(contigFile), bf.read_fragment_list(fragmentsFile))
-restrictionSites = restrictionSitesInEachContigs(fastaFile, 'GATC')
-correlation_coverage_restrictionSites(coverage, restrictionSites)
+print(check_if_there_are_restriction_fragments_in_this_contig('contig_6405', 'GATC', gfaFile))
+
+# coverage = determine_HiC_coverage(matrixFile, bf.read_info_contig(contigFile), bf.read_fragment_list(fragmentsFile))
+# restrictionSites = restrictionSitesInEachContigs(fastaFile, 'GATC')
+# correlation_coverage_restrictionSites(coverage, restrictionSites)
 
 # coverage = bf.import_from_csv('listsPython/HiCcoverage.csv')
 # coverage = [x[0] for x in coverage]

@@ -182,8 +182,8 @@ class Segment:
                 # computing the partial area : that way, small supercontigs are not penalized when compared to much longer ones
                 partial_area += np.abs(newLengthForNow - lengthForNow)
                 
-            for contigInSegment in segment.listOfContigs:
-                if self.listOfContigs[contig] not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+            for c, contigInSegment in enumerate(segment.listOfContigs):
+                if self.listOfContigs[contig] not in commonContigs and copiesnumber[self._namesOfContigs[c]] <= bestSignature:
                     absoluteScore += interactionMatrix[contigInSegment,self.listOfContigs[contig]]
                     relativeScore += interactionMatrix[contigInSegment,self.listOfContigs[contig]]
                 else:

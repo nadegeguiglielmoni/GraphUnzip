@@ -98,7 +98,7 @@ def dist_law(distance) :
         distance = 10000
     return 10000/distance
 
-def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
+def constructFakeInteractionMatrix(chromosomes, names, segments, lengthOfContigs = 10000):
     
     interactionMatrix = sparse.dok_matrix((len(names), len(names)))
     for c in chromosomes :
@@ -106,8 +106,11 @@ def constructFakeInteractionMatrix(chromosomes, names, lengthOfContigs = 10000):
             for c2 in range(c1, len(c)) :
                 con1 = c[c1]
                 con2 = c[c2]
-                interactionMatrix[names[con1],names[con2]] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
-                interactionMatrix[names[con2],names[con1]] += integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
+                intensity = integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
+                interactionMatrix[names[con1],names[con2]] += intensity
+                interactionMatrix[names[con2],names[con1]] += intensity
+                segments[names[con1]].HiCcoverage += intensity
+                segments[names[con2]].HiCcoverage += intensity
     
     return interactionMatrix
 
@@ -204,22 +207,22 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
     print(int(record.count(False)*100/n), '% of incorrectly changed GFA')
 
 t = time.time()
-# chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
-#                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
+# # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
+# #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-chromosomes = bf.import_from_csv('tests/fake.chro')
-#chromosomes = buildFakeChromosomes(10)
-#bf.export_to_csv(chromosomes, 'tests/fake.chro')
+# chromosomes = bf.import_from_csv('tests/fake.chro')
+# chromosomes = buildFakeChromosomes(10)
+# bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
-lengthOfContig = 10000
-exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
-bf.export_to_csv(chromosomes, 'tests/fake.chro')
+# lengthOfContig = 10000
+# exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
+# # bf.export_to_csv(chromosomes, 'tests/fake.chro')
 listOfSegments, names = load_gfa('tests/fake.gfa')
 
-interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfContig)
+#interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, listOfSegments, lengthOfContig)
+interactionMatrix = sparse.dok_matrix((len(names), len(names)))
 listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
-#flatten_loop(links, listOfSuperContigs, 1, 2)
 export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False, merge_adjacent_contigs = False)
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
@@ -230,7 +233,7 @@ export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fa
 
 #passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
 
-print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
+#print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
 #stats_on_solve_ambiguities(n=100)
 
