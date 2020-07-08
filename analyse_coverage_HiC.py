@@ -12,28 +12,37 @@ import basic_functions as bf
 
 
 def determine_HiC_coverage(
-    hiccontactsfile, info_contig, fragment_list
+    hiccontactsfile, info_contig, fragment_list, header = True
 ):  # returns the number of HiC contacts per basepair
 
     with open(hiccontactsfile) as f:
 
-        coverage = [0] * (info_contig[-1][0] + 1)
+        coverage = {}
+        for c in info_contig :
+            coverage[c[0]] = 0
 
         for line in f:
 
             line = line.strip("\n")
             line = line.split("\t")
 
-            if line[0] != "487796":  # because the first line is a header
+            if not header:  # because the first line is a header
                 contact = [int(line[0]), int(line[1]), int(line[2])]
 
                 contig1 = fragment_list[contact[0]][0]
                 contig2 = fragment_list[contact[1]][0]
                 coverage[contig1] += contact[2]
                 coverage[contig2] += contact[2]
+                
+            header = False
 
-    xrange = [i for i in range(len(coverage))]
-    plt.scatter(xrange, coverage)
+    # xrange = [i for i in range(len(coverage))]
+    # y = []
+    # for i in coverage :
+    #     y.append(coverage[i])
+        
+    #plt.xlim([0,20000])
+    #plt.hist(y, bins = 4000)
     # plt.ylim([0,1])
 
     return coverage
@@ -68,6 +77,29 @@ def determine_unconnected_contigs(hiccontactsfile, fragmentList):
 
         print(contigUnconnected)
 
+def restrictionSitesInEachContigs(genomeFastaFile, restrictionSequence) :
+    restrictionSites = {}
+    
+    with open(genomeFastaFile, 'r') as f :
+        name = ''
+        seq = ''
+        fc = ''
+
+        for line in f :
+            if line[0] == '>' :
+                restrictionSites[name] = seq.count(restrictionSequence)
+                name = line.strip('>').strip('\n')
+                seq = ''
+            else :
+                # if '>' in line :
+                #     print('WHAT ?')
+                seq += line.strip('\n')
+        restrictionSites[name] = seq.count(restrictionSequence)
+                
+        restrictionSites.pop('')
+        
+    return restrictionSites
+
 
 def check_if_there_are_restriction_fragments_in_this_contig(
     contig, restrictionSiteSequence, genomeFastaFile
@@ -90,24 +122,6 @@ def check_if_there_are_restriction_fragments_in_this_contig(
 
     print("There is a problem with the input contig")
     return 0
-
-
-def check_if_there_are_restriction_fragments_in_unconnected_contigs(
-    contigs, restrictionSiteSequence, genomeFastaFile
-):
-
-    for i in contigs:
-        print(
-            "The contig "
-            + str(i)
-            + " contains "
-            + str(
-                check_if_there_are_restriction_fragments_in_this_contig(
-                    i, restrictionSiteSequence, genomeFastaFile
-                )
-            )
-            + " restriction sites"
-        )
 
 
 def correlation_GCcontent_HiCcoverage(coverage, genomeFastaFile, unconnectedContigs):
@@ -139,18 +153,28 @@ def correlation_GCcontent_HiCcoverage(coverage, genomeFastaFile, unconnectedCont
         plt.ylabel("Coverage")
         plt.ylim([0, 1])
 
+def correlation_coverage_restrictionSites(coverage, restrictionSites):
+    
+    keys = coverage.keys()
+    x = []
+    y = []
+    for k in keys :
+        x.append(restrictionSites[k])
+        y.append(coverage[k])
+        
+    plt.scatter(x,y, alpha = 0.5)
+    plt.xlabel('Number of restriction sites')
+    plt.ylabel('Coverage')
+    
+fragmentsFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/fragments_list.txt"
+matrixFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_weighted.txt"
+contigFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/info_contigs.txt"
+fastaFile = "Arabidopsis/Arabidopsis_hybrid/assembly.fasta"
 
-fragmentList = bf.import_from_csv("listsPython/fragmentList.csv")
-infcontigs = bf.read_info_contig("data/results/info_contigs.txt")
-# unconnectedcontigs = bf.import_from_csv('listsPython/unconnectedContigs.csv')
-# unconnectedcontigs = [x[0] for x in unconnectedcontigs]
-# print(len(unconnectedcontigs))
-# check_if_there_are_restriction_fragments_in_unconnected_contigs(unconnectedcontigs, 'GATC','data/Assembly.fasta') #GATC corresponds to the cutting site of DpnII
+coverage = determine_HiC_coverage(matrixFile, bf.read_info_contig(contigFile), bf.read_fragment_list(fragmentsFile))
+restrictionSites = restrictionSitesInEachContigs(fastaFile, 'GATC')
+correlation_coverage_restrictionSites(coverage, restrictionSites)
 
-coverage = determine_HiC_coverage(
-    "data/results/abs_fragments_contacts_weighted.txt", infcontigs, fragmentList
-)
-bf.export_to_csv(coverage, "listsPython/HiCcoverage.csv")
 # coverage = bf.import_from_csv('listsPython/HiCcoverage.csv')
 # coverage = [x[0] for x in coverage]
 

@@ -207,8 +207,8 @@ t = time.time()
 # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
 #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-#chromosomes = bf.import_from_csv('tests/fake.chro')
-chromosomes = buildFakeChromosomes(10)
+chromosomes = bf.import_from_csv('tests/fake.chro')
+#chromosomes = buildFakeChromosomes(10)
 #bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
 lengthOfContig = 10000
@@ -220,7 +220,7 @@ interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, lengthOfC
 listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
 
 #flatten_loop(links, listOfSuperContigs, 1, 2)
-export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False, merge_adjacent_contigs = True)
+export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False, merge_adjacent_contigs = False)
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
 # export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')
@@ -230,7 +230,7 @@ export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fa
 
 #passing the dist_law is very inefficient, much too much redundant integration of this fucntion (gain of time possible)
 
-#print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
+print('And the output is : ', check_result(chromosomes, listOfSegments, names))#, ', of energy ', score_output(listOfSuperContigs, links, [lengthOfContig for i in names], interactionMatrix, infinite_distance = 500000))
 
 #stats_on_solve_ambiguities(n=100)
 

@@ -15,6 +15,7 @@ import argparse
 import os.path
 import sys
 import pickle #reading and writing files
+import time
 
 def parse_args():
     """ 
@@ -82,6 +83,8 @@ def main():
     stringenceAccept = float(args.accepted)
     steps = int(args.steps)
     merge = args.merge
+    
+    t = time.time()
 
     if not os.path.exists(gfaFile):
         print("Error: could not find GFA file {0}.".format(gfaFile))
@@ -116,7 +119,6 @@ def main():
             print("Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map.")
             sys.exit(1)
 
-    
     print('Everything loaded, moving on to solve_ambiguities')
 
     segments = solve_ambiguities(segments, interactionMatrix, stringenceReject, stringenceAccept, steps)
@@ -127,6 +129,74 @@ def main():
     if merge != "Empty" and merge != "n":
         merge_adj = True
     bf.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs = merge_adj)
+    print('Finished in ', time.time()-t , " seconds")
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+gfaFile = "Arabidopsis/Arabidopsis_hybrid/assembly_graph.gfa"
+fragmentsFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/fragments_list.txt"
+matrixFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_weighted.txt"
+interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
+outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
+
+print('Loading the GFA file')
+segments, names = load_gfa(gfaFile)
+fragmentList = bf.read_fragment_list(fragmentsFile)
+
+# Now computing the interaction matrix
+interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names, segments)
+
+
+print('2497')
+print(interactionMatrix[names['contig_2497'],names['contig_6632']])
+print(interactionMatrix[names['contig_2497'],names['contig_2415']])
+print(interactionMatrix[names['contig_2497'],names['contig_109']])
+print(interactionMatrix[names['contig_2497'],names['contig_2486']])
+print(interactionMatrix[names['contig_2497'],names['contig_2487']])
+print(interactionMatrix[names['contig_2497'],names['contig_2489']])
+print(interactionMatrix[names['contig_2497'],names['contig_2488']])
+print('2495')
+print(interactionMatrix[names['contig_2495'],names['contig_109']])
+print(interactionMatrix[names['contig_2495'],names['contig_2415']])
+print(interactionMatrix[names['contig_2495'],names['contig_2486']])
+print(interactionMatrix[names['contig_2495'],names['contig_2487']])
+print(interactionMatrix[names['contig_2495'],names['contig_2489']])
+print(interactionMatrix[names['contig_2495'],names['contig_2488']])
+print('2415')
+print(interactionMatrix[names['contig_2415'],names['contig_2486']])
+print(interactionMatrix[names['contig_2415'],names['contig_2487']])
+print(interactionMatrix[names['contig_2415'],names['contig_2489']])
+print(interactionMatrix[names['contig_2415'],names['contig_2488']])
+print('109')
+print(interactionMatrix[names['contig_109'],names['contig_2486']])
+print(interactionMatrix[names['contig_109'],names['contig_2487']])
+print(interactionMatrix[names['contig_109'],names['contig_2489']])
+print(interactionMatrix[names['contig_109'],names['contig_2488']])
+print('6632')
+print(interactionMatrix[names['contig_6632'],names['contig_2486']])
+print(interactionMatrix[names['contig_6632'],names['contig_2487']])
+print(interactionMatrix[names['contig_6632'],names['contig_2489']])
+print(interactionMatrix[names['contig_6632'],names['contig_2488']])
+
+print('contig_1467')
+print(interactionMatrix.getcol(names['contig_1467']))
+print('contig_6405')
+print(interactionMatrix.getcol(names['contig_6405']))
+print('contig_1535')
+print(interactionMatrix.getcol(names['contig_1535']))
+
+# exporting it as to never have to do it again
+
+# print('Exporting interaction matrix')
+# with open(interactionFile, 'rb') as o:
+#     pickle.dump(interactionMatrix, o)
+    
+#interactionMatrix = pickle.load(interactionFile)
+# print("Solving ambiguities")
+    
+# segments = solve_ambiguities(segments, interactionMatrix, 0.35, 0.45, 10)
+
+# print('Now exporting')
+
+# bf.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = True)

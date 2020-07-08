@@ -68,12 +68,12 @@ def intensity_of_interactions(
 
     # now we have a list of common contigs
     for candidate in candidatesSegments :
-        if all(elem in commonContigs for elem in candidate.listOfContigs):  # if all elements of sg are in commoncontigs, the algorithm cannot make a choice for now
+        if all(elem in commonContigs for elem in candidate.listOfContigs):  # if all elements of candidate are in commoncontigs, the algorithm cannot make a choice for now
             return [-1], [-1]
 
     #bestsignature decides what contig is most characterisic of the segment
     bestSignature = np.min([copiesnumber[x] for x in segment.listOfContigs])
-    # we return for each supercontig its absolute score and its relative score (wihtout the common parts)
+    # return for each supercontig its absolute score and its relative score (wihtout the common parts)
     absoluteScores = []
     relativeScores = []
 
@@ -87,7 +87,6 @@ def intensity_of_interactions(
         if supercontigsaretouching:
             relativeScores[-1] /= partial_area
 
-    #print("*Common contigs : ", commonContigs)
     return absoluteScores, relativeScores
 
 #small function to look in a sorted list l if x is present in logarithmic time 
@@ -214,6 +213,14 @@ def merge_adjacent_contigs(listOfSegments):
 
     return listOfSegments
 
+# a function to delete small contigs made of repeated sequences that have no HiC contacts but tons of links
+def crush_small_contigs(segments, interactionMatrix) :
+    
+    for segment in segments :
+        if segment.length < 5000 and segment in segment.links : #this characterize a small repeated sequence
+            if 0 :
+                return 0
+
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesnumber,thresholdRejected,thresholdAccepted):
 
@@ -224,41 +231,62 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesnumber,thresho
             
             if len(segment.links[endOfSegment]) >= 2 : #then it means that there is a choice to be made at one end of the segment. Let's see how HiC contacts confirm those links
                 
+                if len(segment.links[endOfSegment]) <= 50 : #if there are not too many possibilities, compare pairwise. Elsewhise, just compare them all together
                 # comparison pairwise of the links, those that should be deleted are deleted
-                for n1 in range(len(segment.links[endOfSegment]) - 1):
-                    n2 = n1 + 1
-                    while n2 < len(segment.links[endOfSegment]):
-                        absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]]\
-                                                                                         , listOfSegments, interactionMatrix, copiesnumber, True)
+                    for n1 in range(len(segment.links[endOfSegment]) - 1):
+                        n2 = n1 + 1
+                        while n2 < len(segment.links[endOfSegment]):
+                            absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]]\
+                                                                                             , listOfSegments, interactionMatrix, copiesnumber, True)
+                            if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
+                                segment.freezeNode(endOfSegment)
+                                                            
+                            elif absoluteLinksStrength != [0,0]: #the condition is to prevent duplicating if there is no mapping at all  
+                                #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
+                                if linksStrength[0] > linksStrength[1]:
+                                    #     file = open('ratio.txt','a')
+                                    #     file.write(str(linksStrength[i]/maxStrength)+'\n')
+                                    if (linksStrength[1] < linksStrength[0] * thresholdRejected):  # then it means that the link does not exist
+                                        segment.links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
+                                        segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
+                                        
+                                    elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
+                                        segment.freeze(endOfSegment)
+        
+                                else:
+                                    #     file = open('ratio.txt','a')
+                                    #     file.write(str(linksStrength[i]/maxStrength)+'\n')
+                                    if linksStrength[0] < linksStrength[1] * thresholdRejected:  # then that the link does not exist
+                                        segment._links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
+                                        segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
+                                        
+                                    elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
+                                        segment.freeze(endOfSegment)
+                            else : #absoluteLinksStrength == [0,0]
+                                segment.freezeNode(endOfSegment)
+                            n2+=1
+                            
+                    else : #if there are too many options, do not compare anything pairwise because that would take too long
+                        absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, segment.links[endOfSegment]\
+                                                                 , listOfSegments, interactionMatrix, copiesnumber, True)
                         if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                             segment.freezeNode(endOfSegment)
-                                                        
-                        elif absoluteLinksStrength != [0,0]: #the condition is to prevent duplicating if there is no mapping at all  
-                            #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
-                            if linksStrength[0] > linksStrength[1]:
-                                #     file = open('ratio.txt','a')
-                                #     file.write(str(linksStrength[i]/maxStrength)+'\n')
-                                if (linksStrength[1] < linksStrength[0] * thresholdRejected):  # then it means that the link does not exist
-                                    segment.links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
-                                    segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
-                                    
-                                elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
-                                    segment.freeze(endOfSegment)
-    
-                            else:
-                                #     file = open('ratio.txt','a')
-                                #     file.write(str(linksStrength[i]/maxStrength)+'\n')
-                                if linksStrength[0] < linksStrength[1] * thresholdRejected:  # then that the link does not exist
-                                    segment._links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
-                                    segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
-                                    
-                                elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
-                                    segment.freeze(endOfSegment)
-                        n2+=1
-
+                            print('get_rid_of_bad_links : big node freezed')
+                        elif not all([i==0 for i in absoluteLinksStrength]) :
+                            
+                            smax = np.max(linksStrength)
+                            averageThreshold = thresholdAccepted/2+thresholdRejected/2 #new threshold because huge nodes would be systematically freezed : there we decide of a black-and-white decision make sure we go on : either the link exists or it does not
+                            for n, neighbor in enumerate(segment.links[endOfSegment]) :
+                                
+                                if linksStrength[n] < averageThreshold * smax : #delete the link
+                                     neighbor.remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
+                                     segment.remove_end_of_link(endOfSegment, neighbor, segment._otherEndOfLinks[endOfSegment][n])
+                            
+                        else :
+                            segment.freezeNode(endOfSegment)
     return listOfSegments
 
-#merge_contigs looks at choices end of segments by endofsegment, and duplicates all the necessary contigs
+#merge_contigs looks at choices endofsegment by endofsegment, and duplicates all the necessary contigs
 def merge_contigs(listOfSegments, copiesnumber):
     # each contig can be multiplied only once in this function (to ensure it is not multiplied by both ends) : once it is duplicated, it is locked
 
@@ -286,18 +314,18 @@ def merge_contigs(listOfSegments, copiesnumber):
     
     return listOfSegments, copiesnumber
 
-
 def solve_ambiguities(listOfSegments, interactionMatrix, stringenceReject, stringenceAccept, steps, copiesNumber = []):
         
     if copiesNumber == [] :
         copiesNumber = [1 for i in listOfSegments]
 
     listOfSegments = merge_adjacent_contigs(listOfSegments)
+    print('Merged adjacent contigs for the first time')
 
     for i in range(steps):
 
         get_rid_of_bad_links(listOfSegments, interactionMatrix, copiesNumber, stringenceReject, stringenceAccept)
-
+        print('Got rid of bad links')
         # print('Before getting rid of bad links : ')
         # for j in listOfSegments :
         #     j.print_complete()
@@ -308,7 +336,6 @@ def solve_ambiguities(listOfSegments, interactionMatrix, stringenceReject, strin
             j.unfreeze()
         
         print(str(i / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
-        #bf.export_to_GFA(listOfSegments, exportFile="tests/fake" + str(i) + ".gfa")
        # print('At step ', i, ' the energy is : ', score_output(listOfSuperContigs, links, [10000 for i in names], interactionMatrix))
 
     return listOfSegments

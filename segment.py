@@ -7,7 +7,7 @@ import random
 #a segment is a supercontig
 class Segment:
 
-    def __init__(self, segListOfContig, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], segCIGARs = [[],[]], lock = False):
+    def __init__(self, segListOfContig, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], segCIGARs = [[],[]], lock = False, HiCcoverage = 0):
         
         if len(segLinks[0]) != len(segOtherEndOfLinks[0]) or len(segLinks[1]) != len(segOtherEndOfLinks[1]) :
             print('ERROR in the links while initializing a segment')
@@ -28,6 +28,7 @@ class Segment:
             segInsideCIGARs = ['*' for i in range(len(segListOfContig)-1)]
         
         self._id = random.random() #a random number identifying the segment
+        self._HiCcoverage = HiCcoverage #to keep in mind how many HiC contacts this segment has in total
         
         #this group of attributes are linked arrays : element n in one corresponds with element n in the other. Therefore they shouldn't be modified independantly
         self._namesOfContigs = segNamesOfContig.copy() #names are strings with which sequences are described in the GFA
@@ -72,6 +73,9 @@ class Segment:
     def get_lengths(self):
         return self._lengths
     
+    def get_length(self):
+        return np.sum(self._lengths)
+    
     def get_namesOfContigs(self):
         return self._namesOfContigs
     
@@ -83,6 +87,9 @@ class Segment:
     
     def get_locked(self):
         return self._locked
+    
+    def get_coverage(self):
+        return self._HiCcoverage
     
     def full_name(self) :
         return '_'.join([self._namesOfContigs[i]+'-'+str(self._copiesOfContigs[i]) for i in range(len(self._namesOfContigs))])
@@ -100,6 +107,9 @@ class Segment:
             else :
                 self._copiesOfContigs[c] = 0
                 copiesNumberForNow[contig] = 1
+    
+    def set_coverage(self, newCoverage) :
+        self._HiCcoverage = newCoverage
     
     def freeze(self, endOfSegment): 
         self._freezed[endOfSegment] = True
@@ -122,7 +132,9 @@ class Segment:
         
     # properties
     
-    ID = property(get_id) 
+    ID = property(get_id)
+    HiCcoverage = property(get_coverage, set_coverage)
+    length = property(get_length)
     
     names = property(get_namesOfContigs)
     listOfContigs = property(get_listOfContigs)
@@ -303,7 +315,8 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
                                 segment2.otherEndOfLinks[1-endOfSegment2]],\
                                 segCIGARs = [segment1.CIGARs[1-endOfSegment1], \
                                 segment2.CIGARs[1-endOfSegment2]],
-                                lock = True)
+                                lock = True,
+                                HiCcoverage = segment1.HiCcoverage + segment2.HiCcoverage)
             
     listOfSegments.append(newSegment)
     

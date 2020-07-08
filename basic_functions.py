@@ -11,6 +11,7 @@ from scipy import sparse #to handle interactionMatrix, which should be sparse
 import time #to inform the user on what the programm is doing on a regular basis
 import os.path #to check the existence of files
 import pickle #for writing files and reading them
+import re #to find all numbers in a mixed number/letters string (such as 31M1D4M)
 
 from segment import Segment
 from segment import compute_copiesNumber
@@ -42,15 +43,14 @@ def read_info_contig(file):
         content = f.readlines()
 
     # parsing
-    content = [x.strip("\n") for x in content[1:]]
-    content = [x.strip("sequence") for x in content]
-    content = [x.split("\t") for x in content]
-    content = [[int(x[0]), int(x[1]), int(x[2]), int(x[3])] for x in content]
+    content = [x.strip("\n").split('\t') for x in content[1:]]
+    # 1: contig_id, 2: length, 3: n_frags, 4:cumul_length
+    content = [[x[0], int(x[1]), int(x[2]), int(x[3])] for x in content]
 
     return content
 
 
-def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the header refers to the hiccontactsfile
+def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=True):  # the header refers to the hiccontactsfile
 
     print('Building the interaction matrix')
     t = time.time()
@@ -58,7 +58,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the
     # 1 -> [1...N] N contigs
     # ...
     # N -> [1...N]
-    interactionMatrix = sparse.dok_matrix((len(names), len(names)))
+    interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
 
     with open(hiccontactsfile) as f:
@@ -89,7 +89,11 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, header=True):  # the
         
         # add contacts to interaction matrix
         interactionMatrix[index1,index2] += contact[2]
-        interactionMatrix[index1,index2] += contact[2]
+        interactionMatrix[index2,index1] += contact[2]
+        
+        #adds the HiC coverage to the right contigs
+        segments[index1].HiCcoverage += contact[2]
+        segments[index2].HiCcoverage += contact[2]
 
         n += 1
     return interactionMatrix
@@ -126,7 +130,7 @@ def get_contig_FASTA(fastaFile, contig, firstline=0):
             linenumber += 1
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
-#input : contig ID and gfa file
+#input : contig ID, gfa file and contigOffset, the position of the contig in the GFA file
 #output : sequence
 def get_contig_GFA(gfaFile, contig, contigOffset):
        
@@ -135,12 +139,15 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
         f.seek(contigOffset)
         line = f.readline()         
         sline = line.strip('\n').split('\t')
-        if len(sline) >= 3 and sline[0] == 'S' and (contig in sline[1]) :
+        if len(sline) == 3 and sline[0] == 'S' and (contig in sline[1]) :
                 return sline[2]
+        elif len(sline) > 3  and sline[0] == 'S' and (contig in sline[1]) :
+            return sline[2]+'\t'+sline[3]
         else :
             print('ERROR : Problem in the offset file, not pointing to the right lines')
 
     return "In get_contig : the contig you are seeking is not in the gfa file"
+
 # Input :
 #   offset file is for speeding up exportation
 #   merge_adjacent_contig is to produce a GFA with contigs merged
@@ -260,7 +267,8 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     if segment.orientations[c] == 0 :
                         s = s[::-1]
                     if c > 0 :
-                        s = s[int(segment.insideCIGARs[c-1].strip('M')):]
+                        CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
+                        s = s[CIGARlength:]
                     sequence += s
                 f.write(sequence + "\n")
                 
