@@ -70,6 +70,12 @@ def buildFakeChromosomes(chromosomesLength = 10):
         c = random.randint(0, len(chromosomes)-1)
         p = random.randint(0, len(chromosomes[c])-1)
         chromosomes[c].insert(c, contigCopies)
+        
+    repeatedElement = 20 #one transposon is going to go everywhere
+    for i in range(repeatedElement):  
+        c = random.randint(0, len(chromosomes)-1)
+        p = random.randint(0, len(chromosomes[c])-1)
+        chromosomes[c].insert(p, 'T')
     
     return chromosomes
 
@@ -94,8 +100,8 @@ def exportFakeToGFA(chromosomes, file, lengthOfContig) :
     return alreadyExported
       
 def dist_law(distance) :
-    if distance < 10000 :
-        distance = 10000
+    if distance < 1000 :
+        distance = 1000
     return 10000/distance
 
 def constructFakeInteractionMatrix(chromosomes, names, segments, lengthOfContigs = 10000):
@@ -106,11 +112,12 @@ def constructFakeInteractionMatrix(chromosomes, names, segments, lengthOfContigs
             for c2 in range(c1, len(c)) :
                 con1 = c[c1]
                 con2 = c[c2]
-                intensity = integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
-                interactionMatrix[names[con1],names[con2]] += intensity
-                interactionMatrix[names[con2],names[con1]] += intensity
-                segments[names[con1]].HiCcoverage += intensity
-                segments[names[con2]].HiCcoverage += intensity
+                if con1 != 'T' and con2 != 'T' :
+                    intensity = integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
+                    interactionMatrix[names[con1],names[con2]] += intensity
+                    interactionMatrix[names[con2],names[con1]] += intensity
+                    segments[names[con1]].HiCcoverage += intensity
+                    segments[names[con2]].HiCcoverage += intensity
     
     return interactionMatrix
 
@@ -210,20 +217,19 @@ t = time.time()
 # # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
 # #                 'B0*-B1-B1-B2-B3-B4*-B5-B6-B7-B8-B9'.split('-'), 'B0*-B1-B2*-B3-B4-B5-B6-B7-B8-B9'.split('-')]
 
-# chromosomes = bf.import_from_csv('tests/fake.chro')
-# chromosomes = buildFakeChromosomes(10)
-# bf.export_to_csv(chromosomes, 'tests/fake.chro')
+chromosomes = bf.import_from_csv('tests/fake.chro')
+#chromosomes = buildFakeChromosomes(10)
+#bf.export_to_csv(chromosomes, 'tests/fake.chro')
 
-# lengthOfContig = 10000
-# exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
-# # bf.export_to_csv(chromosomes, 'tests/fake.chro')
+lengthOfContig = 2500
+exportFakeToGFA(chromosomes, 'tests/fake.gfa', lengthOfContig)
 listOfSegments, names = load_gfa('tests/fake.gfa')
 
-#interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, listOfSegments, lengthOfContig)
-interactionMatrix = sparse.dok_matrix((len(names), len(names)))
-listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix , 0.2, 0.45 ,5) #rejectedThreshold<AcceptedThreshold
+interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, listOfSegments, lengthOfContig)
+#interactionMatrix = sparse.dok_matrix((len(names), len(names)))
+listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, names , 0.2, 0.45 ,3) #rejectedThreshold<AcceptedThreshold
 
-export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', useExistingOffsetsFile = False, merge_adjacent_contigs = False)
+export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', merge_adjacent_contigs = False)
 
 # links, listOfSuperContigs, cn = simulated_annealing(originalLinks, names, interactionMatrix, [lengthOfContig for i in names], lambda x:1, 0.2, 0.45 ,5)
 # export_to_GFA(links, listOfSuperContigs, cn, originalLinks, names = names, exportFile = 'tests/fakeA.gfa')

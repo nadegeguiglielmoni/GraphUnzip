@@ -84,16 +84,17 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
         contig2 = fragmentList[contact[1]][0]
 
         # search for the index of the contigs in names 
-        index1 = names[contig1]
-        index2 = names[contig2]
-        
-        # add contacts to interaction matrix
-        interactionMatrix[index1,index2] += contact[2]
-        interactionMatrix[index2,index1] += contact[2]
-        
-        #adds the HiC coverage to the right contigs
-        segments[index1].HiCcoverage += contact[2]
-        segments[index2].HiCcoverage += contact[2]
+        if contig1 in names and contig2 in names :
+            index1 = names[contig1]
+            index2 = names[contig2]
+            
+            # add contacts to interaction matrix
+            interactionMatrix[index1,index2] += contact[2]
+            interactionMatrix[index2,index1] += contact[2]
+            
+            #adds the HiC coverage to the right contigs
+            segments[index1].HiCcoverage += contact[2]
+            segments[index2].HiCcoverage += contact[2]
 
         n += 1
     return interactionMatrix
@@ -151,19 +152,24 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
 # Input :
 #   offset file is for speeding up exportation
 #   merge_adjacent_contig is to produce a GFA with contigs merged
-def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", useExistingOffsetsFile = True, merge_adjacent_contigs = False): 
+def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", merge_adjacent_contigs = False): 
     
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
+    noOffsets = False
+    print('Offsets  : ', offsetsFile)
     if offsetsFile == "" :
+        noOffsets = True
         offsetsFile = gfaFile.strip('.gfa') + '_offsets.pickle'
         
-    if gfaFile != "" and (not os.path.exists(offsetsFile) or not useExistingOffsetsFile) :
+    if gfaFile != "" and noOffsets:
+        #print("coucou")
         line_offset = {}
         offset = 0
         with open(gfaFile) as gfafile :
             for line in gfafile:
                 sline = line.strip('\n').split('\t')
                 if sline[0] == 'S' :
+                    #print('In export_to_GFA : exporting ', sline[1])
                     line_offset[sline[1]] = offset #adds pair sline[1]:offset to the dict
                     
                 offset += len(line)
@@ -183,7 +189,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     f = open(exportFile, "w")
     
     #compute the copiesnumber
-    cn = compute_copiesNumber(listOfSegments)
+    compute_copiesNumber(listOfSegments)
 
     #write the sequences and the links within the supercontigs
     t = time.time()

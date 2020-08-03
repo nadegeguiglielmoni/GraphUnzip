@@ -56,7 +56,7 @@ def load_gfa(file):
     for line in gfa_read:
         if line[0] == "S":
             l = line.strip('\n').split("\t")
-            s = Segment([len(segments)], [l[1]], [1], [len(l[2])])
+            s = Segment([l[1]], [1], [len(l[2])])
             segments.append(s)
             names[s.names[0]] = index #that is the (strange) way of adding a key to a dict in python
             index += 1
@@ -107,3 +107,26 @@ def check_segments(listOfSegments):
                     print("Problem in links, a one-end link going from: ", segment.names, ' to ', neighbor.names)
                     return False
     return True
+
+#function if you want to strip the suffix containing the copiesNumber
+def strip_copiesNumber(gfaFileIn, gfaFileOut):
+    with open(gfaFileIn, 'r') as f :
+        with open(gfaFileOut, 'w') as fo:
+            for line in f :
+                
+                l = line.split('\t')
+                if 'S' in l[0] :
+                    ll = l[1].split('-')
+                    l[1] = ll[0]
+                    
+                if 'L' in l[0] :
+                    ll = l[1].split('-')
+                    l[1] = ll[0]
+                    
+                    ll = l[3].split('-')
+                    l[3] = ll[0]
+                    
+                fo.write('\t'.join(l))
+                
+       
+#strip_copiesNumber('Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa', 'Arabidopsis/Arabidopsis_hybrid/simplified_graph2.gfa')
