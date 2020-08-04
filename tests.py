@@ -112,7 +112,7 @@ def constructFakeInteractionMatrix(chromosomes, names, segments, lengthOfContigs
             for c2 in range(c1, len(c)) :
                 con1 = c[c1]
                 con2 = c[c2]
-                if con1 != 'T' and con2 != 'T' :
+                if con1 != 'T' and con2 != 'T' : #because 'T' elements are transposons
                     intensity = integrate.quad(dist_law, (c2-c1-1)*lengthOfContigs, (c2-c1)*lengthOfContigs)[0]
                     interactionMatrix[names[con1],names[con2]] += intensity
                     interactionMatrix[names[con2],names[con1]] += intensity

@@ -24,35 +24,17 @@ def intensity_of_interactions(
     interactionMatrix,
     names, 
     copiesnumber,
-    supercontigsaretouching=False,
+    supercontigsaretouching=False, #usually True, though
 ):
     for candidate in candidatesSegments :
         if candidate == segment : #small loop, don't solve that !
-            return [-1], [-1]
+            return [-1], [-1], True #the True value does not matter here
     
-    commonContigs = []
-    potentialCommonContigs = candidatesSegments[0].names.copy()
-    if supercontigsaretouching:
-
-        for i in candidatesSegments[0].links[1-listOfTouchingEnds[0]] :
-            potentialCommonContigs += i.names
-
-    for contig in potentialCommonContigs:
-        
-        common = True
-
-        for n, candidate in enumerate(candidatesSegments[1:]):
-
-            presentInNeighbor = contig in candidate.names
-            if supercontigsaretouching:
-                
-                for i in candidate.links[1-listOfTouchingEnds[n+1]] :                       
-                    presentInNeighbor = presentInNeighbor or (contig in i.names)
-                    
-            common = common and presentInNeighbor
-
-        if common:
-            commonContigs += [contig]
+    ##first compute all contigs common to all candidates, to take them out
+    if supercontigsaretouching :
+            commonContigs, neighborsOfNeighborsUsed = compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds)
+            
+    ##Now compute the score of each candidates    
 
     #bestsignature decides what contig is most characterisic of the segment
     bestSignature = np.min([copiesnumber[x] for x in segment.names])
@@ -73,9 +55,62 @@ def intensity_of_interactions(
             returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
     if returnRelativeScore :
-        return absoluteScores, relativeScores
+        return absoluteScores, relativeScores, neighborsOfNeighborsUsed
     else :
-        return absoluteScores, [-1]
+        return absoluteScores, [-1], neighborsOfNeighborsUsed
+
+def compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds) :
+
+    commonContigs = []
+    
+    #first compute the list of common contigs counting neighbors and neighbors of neighbors of segment
+    potentialCommonContigs = candidatesSegments[0].names.copy()
+
+    for i in candidatesSegments[0].links[1-listOfTouchingEnds[0]] :
+        potentialCommonContigs += i.names
+
+    for contig in potentialCommonContigs:
+        
+        common = True
+
+        for n, candidate in enumerate(candidatesSegments[1:]):
+
+            presentInNeighbor = contig in candidate.names
+
+            for i in candidate.links[1-listOfTouchingEnds[n+1]] :                       
+                presentInNeighbor = presentInNeighbor or (contig in i.names)
+                    
+            common = common and presentInNeighbor
+
+        if common:
+            commonContigs += [contig]
+            
+    #check if that list of common contigs is not too big
+    neighborOfNeighborActivated = True
+    for c in candidatesSegments :
+        if all([elem in commonContigs for elem in c.names]) : #this is not good, commoncontigs is too big
+            neighborOfNeighborActivated = False
+    
+    if neighborOfNeighborActivated :
+        return commonContigs, True #the True value is to signifie that neighbors of neighbors were used
+    
+    
+    
+    else : #recompute common contigs but only with neighbors
+        potentialCommonContigs = candidatesSegments[0].names.copy()
+        
+        for contig in potentialCommonContigs:
+        
+            common = True
+    
+            for n, candidate in enumerate(candidatesSegments[1:]):
+    
+                common = common and (contig in candidate.names)
+
+        if common:
+            commonContigs += [contig]
+    
+        return commonContigs, False #the False value is to signifie that neighbors of neighbors were not used
 
 #small function to look in a sorted list l if x is present in logarithmic time 
 def isPresent(l, x):
@@ -248,10 +283,21 @@ def crush_small_contigs(segments, interactionMatrix) :
             
     print('There are ', len(segments), ' segments left')
 
+#delete all the link going from one end of a contig to another, because they are a pain
+def delete_small_loops(segments) :
+    
+    for segment in segments :
+        if segment in segment.links[0] :
+            segment.remove_end_of_link(0, segment, 1)
+            segment.remove_end_of_link(1, segment, 0)
+    
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted):
 
-    # loop through all segments inspecting the robustness of all links.
+    #as an appetizer delete all self-loops because they are a pain and the algorithm can't deal with them for now
+    delete_small_loops(listOfSegments)    
+
+    #loop through all segments inspecting the robustness of all links.
     c = 0
     for segment in listOfSegments:
         
@@ -265,21 +311,28 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                     for n1 in range(len(segment.links[endOfSegment]) - 1):
                         n2 = n1 + 1
                         while n2 < len(segment.links[endOfSegment]):
-                            absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
+                            
+                            absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, True)
+                                
+                            if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot : make a decision or this will be freezed indefinitely
+                                thresholdAccepted = 0.45
+                                thresholdRejected = 0.45
+                                
+                                
                             print('At contig ', segment.names, ' choosing between ',  [segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names], ' and the result is ', linksStrength)
-                            if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
+                            if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                                 segment.freezeNode(endOfSegment)
                                 #print('get_rid_of_bad_links, ...  freeznoding')
                                 
-                            elif linksStrength == [-1]: #means there is a complication (could be too many links due to crushing small contigs). In that case, retain only the absolute best (though that decision may be incorrect sometimes)
-                                if absoluteLinksStrength[0] > absoluteLinksStrength[1]:
-                                    segment.links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
-                                    segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
-                                else :
-                                    segment.links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
-                                    segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
+                            # elif linksStrength == [-1]: #means there is a complication (could be too many links due to crushing small contigs). In that case, retain only the absolute best (though that decision may be incorrect sometimes)
+                            #     if absoluteLinksStrength[0] > absoluteLinksStrength[1]:
+                            #         segment.links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
+                            #         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
+                            #     else :
+                            #         segment.links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
+                            #         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
                                     
                             elif absoluteLinksStrength != [0,0]: #the condition is to prevent duplicating if there is no mapping at all  
                                 #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
@@ -308,20 +361,26 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                             n2+=1
                             
                 else : #if there are too many options, do not compare anything pairwise because that would take too long
-                    absoluteLinksStrength, linksStrength = intensity_of_interactions(segment, segment.links[endOfSegment], segment.otherEndOfLinks[endOfSegment],\
-                                                             listOfSegments, interactionMatrix, names, copiesnumber, True)
-                    if absoluteLinksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
+                    
+                    absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, segment.links[endOfSegment], segment.otherEndOfLinks[endOfSegment],\
+                                                                 listOfSegments, interactionMatrix, names, copiesnumber, True)
+                    
+                    if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot : let's be very stringent
+                                thresholdAccepted = 0.45
+                                thresholdRejected = 0.45
+                        
+                    if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                         segment.freezeNode(endOfSegment)
                         #print('get_rid_of_bad_links : big node freezed')
                         
-                    elif linksStrength == [-1]: #means there is a complication (could be too many links due to crushing small contigs). In that case, retain only the absolute best (though that decision may be incorrect sometimes)
+                    # elif linksStrength == [-1]: #means there is a complication (could be too many links due to crushing small contigs). In that case, retain only the absolute best (though that decision may be incorrect sometimes)
                         
-                        smax = np.max(absoluteLinksStrength)
-                        for n, neighbor in enumerate(segment.links[endOfSegment]) :
+                    #     smax = np.max(absoluteLinksStrength)
+                    #     for n, neighbor in enumerate(segment.links[endOfSegment]) :
                             
-                            if absoluteLinksStrength[n] < smax : #delete the link
-                                 neighbor.remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
-                                 segment.remove_end_of_link(endOfSegment, neighbor, segment._otherEndOfLinks[endOfSegment][n])
+                    #         if absoluteLinksStrength[n] < smax : #delete the link
+                    #              neighbor.remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
+                    #              segment.remove_end_of_link(endOfSegment, neighbor, segment._otherEndOfLinks[endOfSegment][n])
                                  
                     elif not all([i==0 for i in absoluteLinksStrength]) :
                         
