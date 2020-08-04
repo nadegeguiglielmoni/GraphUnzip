@@ -38,15 +38,15 @@ def parse_args():
         "-A",
         "--accepted",
         required=False,
-        default=0.45,
-        help="""Threshold to accept links. [default: 0.45]""",
+        default=0.20,
+        help="""Threshold to accept links. [default: 0.20]""",
     )
     parser.add_argument(
         "-R",
         "--rejected",
         required=False,
-        default=0.20,
-        help="""Threshold to reject links. [default: 0.20]""",
+        default=0.10,
+        help="""Threshold to reject links. [default: 0.10]""",
     )
     parser.add_argument(
         "-s",

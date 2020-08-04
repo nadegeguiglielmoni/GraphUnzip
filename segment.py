@@ -23,6 +23,9 @@ class Segment:
         
         if segInsideCIGARs == None :
             segInsideCIGARs = ['*' for i in range(len(segNamesOfContig)-1)]
+            
+        if segCIGARs == [[],[]] :
+            segCIGARs = [['*' for i in segLinks[0]],['*' for i in segLinks[1]]]
         
         self._id = random.random() #a random number identifying the segment
         self._HiCcoverage = HiCcoverage #to keep in mind how many HiC contacts this segment has in total
@@ -36,15 +39,17 @@ class Segment:
         self._copiesOfContigs = [-1]*len(segNamesOfContig) #this is used exclusively while exporting, to indicate which copy of which contig is in the segment (copy 0/ copy 1 / copy 2 ...)
         
         #this group of attribute are linked arrays : one should never be modified without the others 
-        self._links = [segLinks[0].copy(), segLinks[1].copy()] #two lists of segments with which the segment is linked, at the left end and at the right end
-        self._otherEndOfLinks = [segOtherEndOfLinks[0].copy(), segOtherEndOfLinks[1].copy()] #for each link, indicates the side of the other segment on which the link arrives
-        self._CIGARs = [segCIGARs[0].copy(), segCIGARs[1].copy()] #for each link, indicates the CIGAR string found in the GFA
-        #Now sort the list of links : important for being sure quickly a link is not there twice
-        self._links[0].sort(key = lambda x: x.ID)
-        self._links[1].sort(key = lambda x: x.ID)
+        #They are sorted by ID of the neighbor : important handling quickly big nodes
+        lists_keyed = [[(segLinks[0][i], segOtherEndOfLinks[0][i], segCIGARs[0][i]) for i in range(len(segLinks[0]))], [(segLinks[1][i], segOtherEndOfLinks[1][i], segCIGARs[1][i]) for i in range(len(segLinks[1]))]]
+        lists_keyed[0].sort(key = lambda x: x[0].ID)
+        lists_keyed[1].sort(key = lambda x: x[0].ID)
+        self._links = [[i[0] for i in lists_keyed[0]], [i[0] for i in lists_keyed[1]]] #two lists of segments with which the segment is linked, at the left end and at the right end
+        self._otherEndOfLinks = [[i[1] for i in lists_keyed[0]], [i[1] for i in lists_keyed[1]]] #for each link, indicates the side of the other segment on which the link arrives
+        self._CIGARs = [[i[2] for i in lists_keyed[0]], [i[2] for i in lists_keyed[1]]] #for each link, indicates the CIGAR string found in the GFA
         
         self._freezed = [False, False]
         self._locked = lock #That is to duplicate a contig only once in each merge_contigs
+        
         
     # getters
     
