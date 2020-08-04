@@ -319,7 +319,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                 thresholdRejected = 0.45
                                 
                                 
-                            print('At contig ', segment.names, ' choosing between ',  [segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names], ' and the result is ', linksStrength)
+                            #print('At contig ', segment.names, ' choosing between ',  [segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names], ' and the result is ', linksStrength)
                             if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                                 segment.freezeNode(endOfSegment)
                                 #print('get_rid_of_bad_links, ...  freeznoding')
@@ -332,11 +332,9 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                             #         segment.links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
                             #         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
                                     
-                            elif absoluteLinksStrength != [0,0]: #the condition is to prevent duplicating if there is no mapping at all  
+                            elif len(segment.links[endOfSegment]) == 2 or absoluteLinksStrength != [0,0]: #the condition is to prevent too much duplicating if there is no mapping at all  
                                 #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
                                 if linksStrength[0] > linksStrength[1]:
-                                    #     file = open('ratio.txt','a')
-                                    #     file.write(str(linksStrength[i]/maxStrength)+'\n')
                                     if (linksStrength[1] < linksStrength[0] * thresholdRejected):  # then it means that the link does not exist
                                         segment.links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
                                         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
@@ -345,9 +343,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                         segment.freeze(endOfSegment)
         
                                 else:
-                                    #     file = open('ratio.txt','a')
-                                    #     file.write(str(linksStrength[i]/maxStrength)+'\n')
-                                    if linksStrength[0] < linksStrength[1] * thresholdRejected:  # then that the link does not exist
+                                    if linksStrength[0] < linksStrength[1] * thresholdRejected:  # then decide that the link does not exist
                                         segment._links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
                                         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
                                     elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed

@@ -144,12 +144,12 @@ matrixFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_w
 interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
 outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
 
-gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
-#gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
-fragmentsFile = "data_A_Vaga_PacBio/results/new_fragments_list.txt"
-matrixFile = "data_A_Vaga_PacBio/abs_fragments_contacts_weighted.txt"
-interactionFile = "data_A_Vaga_PacBio/interaction_matrix.pickle"
-outFile = "data_A_Vaga_PacBio/test_new_algo.gfa"
+# gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
+# #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
+# fragmentsFile = "data_A_Vaga_PacBio/results/new_fragments_list.txt"
+# matrixFile = "data_A_Vaga_PacBio/abs_fragments_contacts_weighted.txt"
+# interactionFile = "data_A_Vaga_PacBio/interaction_matrix.pickle"
+# outFile = "data_A_Vaga_PacBio/test_new_algo.gfa"
 
 print('Loading the GFA file')
 segments, names = load_gfa(gfaFile)
@@ -172,17 +172,11 @@ pickle.dump(interactionMatrix, file)
 file = open(interactionFile, 'rb')
 interactionMatrix = pickle.load(file)
 
-f = open('iiee.rien', 'w')
-for i in range(1312) :
-     f.write(str([i*2, interactionMatrix[names['470'], i]]) + '\n')
-#print(interactionMatrix[names['1444']])
 
-while(1) :
-    r = 0
 
 print("Solving ambiguities")
 
-segments = solve_ambiguities(segments, interactionMatrix, names, 0.35, 0.45, 1)
+segments = solve_ambiguities(segments, interactionMatrix, names, 0.1, 0.2, 2)
 
 print('Now exporting')
 
