@@ -49,9 +49,7 @@ def intensity_of_interactions(
         absoluteScores.append(absoluteScore)
         relativeScores.append(relativeScore)
         
-        if supercontigsaretouching and partial_area != 0:
-            relativeScores[-1] /= partial_area
-        elif partial_area == 0 :
+        if partial_area == 0 :
             returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
     if returnRelativeScore :
@@ -259,23 +257,23 @@ def crush_small_contigs(segments, interactionMatrix) :
     print('Deleted all links towards bad segments')
     
     #reroute all links going in and out of crushed segments
-    for segment in segments :
-        if segment.ID < 0 :
+    # for segment in segments :
+    #     if segment.ID < 0 :
     
-            print('Crushing segment ', segment.names)
+    #         print('Crushing segment ', segment.names)
             
-            #then make this segment disappear, by linking segments to the left of this contig to segment to the right :
-            for l, leftneighbor in enumerate(segment.links[0]) :
-                if leftneighbor.ID != segment.ID :
-                    #print('Ln before : ', leftneighbor.ID, [se.ID for se in leftneighbor.links[segment.otherEndOfLinks[0][l]]])
-                    leftneighbor.add_a_bunch_of_end_of_links(segment.otherEndOfLinks[0][l], segment.links[1], segment.otherEndOfLinks[1], ['0M' for i in segment.links[1]])
+    #         #then make this segment disappear, by linking segments to the left of this contig to segment to the right :
+    #         for l, leftneighbor in enumerate(segment.links[0]) :
+    #             if leftneighbor.ID != segment.ID :
+    #                 #print('Ln before : ', leftneighbor.ID, [se.ID for se in leftneighbor.links[segment.otherEndOfLinks[0][l]]])
+    #                 leftneighbor.add_a_bunch_of_end_of_links(segment.otherEndOfLinks[0][l], segment.links[1], segment.otherEndOfLinks[1], ['0M' for i in segment.links[1]])
                     
-            for r, rightneighbor in enumerate(segment.links[1]):
-                if rightneighbor.ID != segment.ID :
-                    #print('Rn before : ', [se.ID for se in rightneighbor.links[segment.otherEndOfLinks[1][l]]])
-                    rightneighbor.add_a_bunch_of_end_of_links(segment.otherEndOfLinks[1][r], segment.links[0], segment.otherEndOfLinks[0], ['0M' for i in segment.links[0]])
+    #         for r, rightneighbor in enumerate(segment.links[1]):
+    #             if rightneighbor.ID != segment.ID :
+    #                 #print('Rn before : ', [se.ID for se in rightneighbor.links[segment.otherEndOfLinks[1][l]]])
+    #                 rightneighbor.add_a_bunch_of_end_of_links(segment.otherEndOfLinks[1][r], segment.links[0], segment.otherEndOfLinks[0], ['0M' for i in segment.links[0]])
     
-    print('Rerouted all links around segments to delete')
+    # print('Rerouted all links around segments to delete')
     #delete all segments that should be
     for se in range(len(segments)-1, -1, -1) :
         if segments[se].ID < 0 :

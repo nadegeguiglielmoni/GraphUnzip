@@ -102,7 +102,7 @@ def exportFakeToGFA(chromosomes, file, lengthOfContig) :
 def dist_law(distance) :
     if distance < 1000 :
         distance = 1000
-    return 10000/distance
+    return 1000000/(distance**2)
 
 def constructFakeInteractionMatrix(chromosomes, names, segments, lengthOfContigs = 10000):
     
@@ -227,7 +227,7 @@ listOfSegments, names = load_gfa('tests/fake.gfa')
 
 interactionMatrix = constructFakeInteractionMatrix(chromosomes, names, listOfSegments, lengthOfContig)
 #interactionMatrix = sparse.dok_matrix((len(names), len(names)))
-listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, names , 0.2, 0.45 ,3) #rejectedThreshold<AcceptedThreshold
+listOfSegments = solve_ambiguities(listOfSegments, interactionMatrix, names , 0.1, 0.2 ,3) #rejectedThreshold<AcceptedThreshold
 
 export_to_GFA(listOfSegments, gfaFile = 'tests/fake.gfa', exportFile = 'tests/fakeF.gfa', merge_adjacent_contigs = False)
 
