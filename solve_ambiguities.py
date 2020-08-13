@@ -44,12 +44,12 @@ def intensity_of_interactions(
     returnRelativeScore = True
     for c in candidatesSegments:
 
-        absoluteScore, relativeScore, partial_area = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature)
+        absoluteScore, relativeScore = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature)
 
         absoluteScores.append(absoluteScore)
         relativeScores.append(relativeScore)
         
-        if partial_area == 0 :
+        if all([i==0 for i in relativeScores]) :
             returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
     # if '18178' in segment.names :    
@@ -342,7 +342,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                             elif any([i>1 for i in linksStrength]): #the condition is to prevent too much duplicating if there is no mapping, or almost  
                                 #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
                                 if linksStrength[0] > linksStrength[1]:
-                                    if (linksStrength[1] < linksStrength[0] * thresholdRejected):  # then it means that the link does not exist
+                                    if (linksStrength[1] < linksStrength[0] * thresholdRejected) or (linksStrength[1] == 1 and linksStrength[0] > 2):  # then it means that the link does not exist
                                         segment.links[endOfSegment][n2].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
                                         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n2], segment._otherEndOfLinks[endOfSegment][n2])
                                         
@@ -350,7 +350,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                         segment.freeze(endOfSegment)
         
                                 else:
-                                    if linksStrength[0] < linksStrength[1] * thresholdRejected:  # then decide that the link does not exist
+                                    if linksStrength[0] < linksStrength[1] * thresholdRejected or (linksStrength[0] == 1 and linksStrength[1] > 2):  # then decide that the link does not exist
                                         segment._links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
                                         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
                                     elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
@@ -457,7 +457,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         for j in listOfSegments :
             j.unfreeze()
         
-        print(str(i / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
+        print(str((i+1) / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
         
         # print('Now checking if all segments still have their links in good order')
         # s.check_if_all_links_are_sorted(listOfSegments)

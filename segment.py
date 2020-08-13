@@ -165,7 +165,6 @@ class Segment:
         absoluteScore = 0
         relativeScore = 0
         
-        partial_area = 0
         orientation = -1 # if supercontig is directly linked to the candidates, then this variable tells us by which end
         
         if segment in self.links[0]:
@@ -175,31 +174,35 @@ class Segment:
         else: #if the supercontigs are not touching, computing the partial area is useless, but harmless
             print('ERROR : trying to compute an interaction with supercontigsaretouching=True but actually not True')
             
-        # lengthForNow is a variable keeping track of how far the examined contig of the listOfSuperContigs is from supercontig
-        lengthForNow = orientation * np.sum([i for i in self.lengths])
         
+        #first compute interactions with self
         for co, contig in enumerate(self.names) :
-            
-            #print(contig)
-            newLengthForNow = (lengthForNow + self.lengths[co] * (0.5 - orientation) * 2)
-            if contig not in commonContigs:
-                # computing the partial area : that way, small supercontigs are not penalized when compared to much longer ones
-                partial_area += np.abs(newLengthForNow - lengthForNow)
-                
+                 
             for c, contigInSegment in enumerate(segment.names):
                 
-                    
                 if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
                     
                     absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                     relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
                 else:
                     absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-
-            lengthForNow = newLengthForNow
+                    
+        #now compute the interaction with neighbors of self
+        endOfSegment = 1-orientation
+        for neighbor in self.links[endOfSegment] :
+            for co, contig in enumerate(neighbor.names) :
+                for c, contigInSegment in enumerate(segment.names):
+                
+                    if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+                        
+                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+                        relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
+                    else:
+                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+                
             
-        return absoluteScore, relativeScore, partial_area
-        
+        return absoluteScore, relativeScore
+    
     def add_link_from_GFA(self, GFAline, names, segments, leftOrRight) : #leftOrRight = 0 when the segment is at the beginning of a link (left of a GFA line), 1 otherwise
         
         l = GFAline.strip('\n').split('\t')

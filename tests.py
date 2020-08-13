@@ -178,9 +178,6 @@ def blast_solution(solutionFile, fastaAssemblyDtb, outdirectory, chunks = 1000):
         if i not in contigsInChromosomes[0] :
             spec2 += [i]
     
-    print(spec1, len(spec1))
-    print(spec2, len(spec2))
-    
     file = open('Escherichia_Coli/1a1k/sol.pickle', 'wb')
     pickle.dump([spec1,spec2], file)
     
@@ -189,7 +186,34 @@ def check_with_solution(gfaFile) :
     file = open('Escherichia_Coli/1a1k/sol.pickle', 'rb')
     [spec1, spec2] = pickle.load(file)
     
-blast_solution('Escherichia_Coli/1a1k/diploid1a1k.fasta', 'Escherichia_Coli/1a1k/dtb/dbk63', 'Escherichia_Coli/1a1k', 1000)
+    file.close()
+    
+    allcontigs = []
+    gfa = open(gfaFile, 'r')
+    for line in gfa :
+        ls = line.split('\t')
+        if 'S' in ls[0] :
+            contigs = ls[1].split('_')
+            allcontigs.append([i.split('-')[0] for i in contigs])
+    
+    c = 0
+    for supercontig in allcontigs :
+        s1 = False
+        s2 = False
+        for contig in supercontig :
+            if contig in spec1 :
+                s1 = True
+            if contig in spec2 : 
+                s2 = True
+        
+        if s1 or s2:
+            c += 1
+        
+        if s1 and s2 :
+            print('Look at here : ', supercontig)
+    print('In total, there are ', c, ' haplotigs')
+        
+#blast_solution('Escherichia_Coli/1a1k/diploid1a1k.fasta', 'Escherichia_Coli/1a1k/dtb/dbk63', 'Escherichia_Coli/1a1k', 1000)
 check_with_solution('Escherichia_Coli/1a1k/unzipped_merged.gfa') 
     
 #function to test if the unzipped gfa maps on the solution
