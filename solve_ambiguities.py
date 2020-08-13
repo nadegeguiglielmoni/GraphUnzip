@@ -52,6 +52,10 @@ def intensity_of_interactions(
         if partial_area == 0 :
             returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
+    # if '18178' in segment.names :    
+    #     print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores)
+    #     print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names], '\n')
+    
     if returnRelativeScore :
         return absoluteScores, relativeScores, neighborsOfNeighborsUsed
     else :
@@ -292,8 +296,9 @@ def delete_small_loops(segments) :
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted):
 
+    ##Unused because in the version "keeping a perfect graph"
     #as an appetizer delete all self-loops because they are a pain and the algorithm can't deal with them for now
-    delete_small_loops(listOfSegments)    
+    #delete_small_loops(listOfSegments)    
 
     #loop through all segments inspecting the robustness of all links.
     c = 0
@@ -314,15 +319,16 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, True)
                                 
+    
                             if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot : make a decision or this will be freezed indefinitely
-                                thresholdAccepted = 0.45
-                                thresholdRejected = 0.45
+                                segment.freeze(endOfSegment)
+                            ##Unused because in the version "keeping a perfect graph"
+                            #       thresholdAccepted = 0.45
+                            #       thresholdRejected = 0.45
                                 
-                                
-                            #print('At contig ', segment.names, ' choosing between ',  [segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names], ' and the result is ', linksStrength)
+                            
                             if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                                 segment.freezeNode(endOfSegment)
-                                #print('get_rid_of_bad_links, ...  freeznoding')
                                 
                             # elif linksStrength == [-1]: #means there is a complication (could be too many links due to crushing small contigs). In that case, retain only the absolute best (though that decision may be incorrect sometimes)
                             #     if absoluteLinksStrength[0] > absoluteLinksStrength[1]:
@@ -331,8 +337,9 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                             #     else :
                             #         segment.links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
                             #         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
-                                    
-                            elif len(segment.links[endOfSegment]) == 2 or absoluteLinksStrength != [0,0]: #the condition is to prevent too much duplicating if there is no mapping at all  
+                               
+
+                            elif any([i>1 for i in linksStrength]): #the condition is to prevent too much duplicating if there is no mapping, or almost  
                                 #print('I have to decide, at ', segment.names, ' between ', segment.links[endOfSegment][n1].names, ' and ', segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength)
                                 if linksStrength[0] > linksStrength[1]:
                                     if (linksStrength[1] < linksStrength[0] * thresholdRejected):  # then it means that the link does not exist
@@ -348,7 +355,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
                                     elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
                                         segment.freeze(endOfSegment)
-                            else : #absoluteLinksStrength == [0,0]
+                            else : #linksStrength < [1,1]
                                 segment.freezeNode(endOfSegment)
                                 #print('get_rid_of_bad_links, ...  freeznoding2 : ', [segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names])
 
@@ -360,8 +367,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                  listOfSegments, interactionMatrix, names, copiesnumber, True)
                     
                     if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot : let's be very stringent
-                                thresholdAccepted = 0.45
-                                thresholdRejected = 0.45
+                           segment.freeze(endOfSegment)
                         
                     if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                         segment.freezeNode(endOfSegment)
@@ -376,7 +382,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                     #              neighbor.remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
                     #              segment.remove_end_of_link(endOfSegment, neighbor, segment._otherEndOfLinks[endOfSegment][n])
                                  
-                    elif not all([i==0 for i in absoluteLinksStrength]) :
+                    elif not all([i<2 for i in linksStrength]) : #to prevent mindless duplicating
                         
                         smax = np.max(linksStrength)
                         averageThreshold = thresholdRejected #new threshold because huge nodes would be systematically freezed : there we decide of a black-and-white decision make sure we go on : either the link exists or it does not
@@ -418,20 +424,23 @@ def merge_contigs(listOfSegments, copiesnumber):
     
     return listOfSegments, copiesnumber
 
+def strip_all_one(interactionMatrix):
+
+    badpairs = []
+    for pair in interactionMatrix.keys() :
+            #print(i, j)
+            if interactionMatrix[pair] == 1:
+                badpairs += [pair]
+    
+    for i in badpairs :
+        interactionMatrix[i] = 0
+
 def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}):
         
-    crush_small_contigs(listOfSegments, interactionMatrix)
-    
-    # print('Crushed small contigs, exporting the simplified gfa')
-    # bf.export_to_GFA(listOfSegments, gfaFile = 'Arabidopsis/Arabidopsis_hybrid/assembly_graph.gfa', exportFile = 'Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa', merge_adjacent_contigs = True)
-    # print('Simplified gfa exported')
-    
     if copiesNumber == {} :
         for segment in listOfSegments :
             copiesNumber['_'.join(segment.names)] = 1
             
-    s.check_if_all_links_are_sorted(listOfSegments)
-
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     print('Merged adjacent contigs for the first time')
 
@@ -450,9 +459,9 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         
         print(str(i / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
         
-        print('Now checking if all segments still have their links in good order')
-        s.check_if_all_links_are_sorted(listOfSegments)
-        print('Done checking links')
+        # print('Now checking if all segments still have their links in good order')
+        # s.check_if_all_links_are_sorted(listOfSegments)
+        # print('Done checking links')
         
     return listOfSegments
 

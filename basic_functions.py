@@ -88,13 +88,14 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
             index1 = names[contig1]
             index2 = names[contig2]
             
-            # add contacts to interaction matrix
-            interactionMatrix[index1,index2] += contact[2]
-            interactionMatrix[index2,index1] += contact[2]
-            
-            #adds the HiC coverage to the right contigs
-            segments[index1].HiCcoverage += contact[2]
-            segments[index2].HiCcoverage += contact[2]
+            if index1 != index2 :
+                # add contacts to interaction matrix
+                interactionMatrix[index1,index2] += contact[2]
+                interactionMatrix[index2,index1] += contact[2]
+                
+                #adds the HiC coverage to the right contigs
+                segments[index1].HiCcoverage += contact[2]
+                segments[index2].HiCcoverage += contact[2]
 
         n += 1
     return interactionMatrix

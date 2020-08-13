@@ -179,13 +179,18 @@ class Segment:
         lengthForNow = orientation * np.sum([i for i in self.lengths])
         
         for co, contig in enumerate(self.names) :
+            
+            #print(contig)
             newLengthForNow = (lengthForNow + self.lengths[co] * (0.5 - orientation) * 2)
             if contig not in commonContigs:
                 # computing the partial area : that way, small supercontigs are not penalized when compared to much longer ones
                 partial_area += np.abs(newLengthForNow - lengthForNow)
                 
             for c, contigInSegment in enumerate(segment.names):
-                if contig not in commonContigs and copiesnumber[contig] <= bestSignature:
+                
+                    
+                if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+                    
                     absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                     relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
                 else:

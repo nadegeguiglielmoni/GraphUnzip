@@ -8,8 +8,11 @@ import sys
 from segment import Segment
 
 
-def gfa_to_fasta(gfaFilename="data/Assembly.gfa", fastaFilename="data/Assembly.fasta"):
+def gfa_to_fasta(gfaFilename, fastaFilename = ''):
 
+    if fastaFilename == '' :
+        fastaFilename = gfaFilename.strip('gfa')+'fasta'
+        
     t1 = time.time()
 
     gfa_file = open(gfaFilename, "r")
@@ -130,3 +133,5 @@ def strip_copiesNumber(gfaFileIn, gfaFileOut):
                 
        
 #strip_copiesNumber('Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa', 'Arabidopsis/Arabidopsis_hybrid/simplified_graph2.gfa')
+#gfa_to_fasta("Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa")
+#gfa_to_fasta("Escherichia_Coli/1a1i/unzipped_merged.gfa")

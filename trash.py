@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from transform_gfa import load_gfa
 """
 Created on Tue Apr 28 16:22:21 2020
 
@@ -260,4 +261,6 @@ def HiC_vs_GFAtwo(hiccontacts, links, fragment_list, coverage):
 
     return confirmationOfLinks, weightedconfirmationOfLinks
 
+                     
+                
 

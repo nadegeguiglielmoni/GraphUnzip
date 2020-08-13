@@ -137,46 +137,59 @@ def main():
 # if __name__ == "__main__":
 #     main()
 
-gfaFile = "Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa"
-#gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
-fragmentsFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/fragments_list.txt"
-matrixFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_weighted.txt"
-interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
-outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
+# gfaFile = "Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa"
+# #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
+# fragmentsFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/fragments_list.txt"
+# matrixFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_weighted.txt"
+# interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
+# outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
 
 # gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
-# #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
 # fragmentsFile = "data_A_Vaga_PacBio/results/new_fragments_list.txt"
 # matrixFile = "data_A_Vaga_PacBio/abs_fragments_contacts_weighted.txt"
 # interactionFile = "data_A_Vaga_PacBio/interaction_matrix.pickle"
 # outFile = "data_A_Vaga_PacBio/test_new_algo.gfa"
 
+gfaFile = "Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa"
+fragmentsFile = "Escherichia_Coli/1a1k/mapping/fragments_list.txt"
+matrixFile = "Escherichia_Coli/1a1k/mapping/abs_fragments_contacts_weighted.txt"
+interactionFile = "Escherichia_Coli/1a1k/mapping/interaction_matrix.pickle"
+outFile = "Escherichia_Coli/1a1k/unzipped.gfa"
+
 print('Loading the GFA file')
 segments, names = load_gfa(gfaFile)
-fragmentList = bf.read_fragment_list(fragmentsFile)
 
-check_if_all_links_are_sorted(segments)
+#check_if_all_links_are_sorted(segments)
 
 # Now computing the interaction matrix
 
-interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names, segments)
+# fragmentList = bf.read_fragment_list(fragmentsFile)
+# interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names, segments)
+# #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
-#interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+# #exporting it as to never have to do it again
 
-#exporting it as to never have to do it again
-
-print('Exporting interaction matrix')
-file = open(interactionFile, 'wb')
-pickle.dump(interactionMatrix, file)
+# print('Exporting interaction matrix')
+# file = open(interactionFile, 'wb')
+# pickle.dump(interactionMatrix, file)
     
+#print(names)
 file = open(interactionFile, 'rb')
 interactionMatrix = pickle.load(file)
 
+# print(names)
+# print(interactionMatrix[names['18179'], names['18217']])
+# print(interactionMatrix[names['18179'], names['18215']])
+# print('Next')
+# print(interactionMatrix[names['20502']])
+# print(interactionMatrix[names['20503'], names['6492']])
+# print(interactionMatrix[names['20502'], names['6492']])
 
-
+#time.sleep(100)
+    
 print("Solving ambiguities")
 
-segments = solve_ambiguities(segments, interactionMatrix, names, 0.1, 0.2, 2)
+segments = solve_ambiguities(segments, interactionMatrix, names, 0.1, 0.2, 5)
 
 print('Now exporting')
 
