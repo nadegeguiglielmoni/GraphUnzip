@@ -144,17 +144,17 @@ def main():
 # interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
 # outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
 
-# gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
-# fragmentsFile = "data_A_Vaga_PacBio/results/new_fragments_list.txt"
-# matrixFile = "data_A_Vaga_PacBio/abs_fragments_contacts_weighted.txt"
-# interactionFile = "data_A_Vaga_PacBio/interaction_matrix.pickle"
-# outFile = "data_A_Vaga_PacBio/test_new_algo.gfa"
+gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
+fragmentsFile = "data_A_Vaga_PacBio/mapping/new_fragments_list.txt"
+matrixFile = "data_A_Vaga_PacBio/mapping/abs_fragments_contacts_weighted.txt"
+interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
+outFile = "data_A_Vaga_PacBio/unzipped.gfa"
 
-gfaFile = "Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa"
-fragmentsFile = "Escherichia_Coli/1a1k/mapping/fragments_list.txt"
-matrixFile = "Escherichia_Coli/1a1k/mapping/abs_fragments_contacts_weighted.txt"
-interactionFile = "Escherichia_Coli/1a1k/mapping/interaction_matrix.pickle"
-outFile = "Escherichia_Coli/1a1k/unzipped.gfa"
+# gfaFile = "Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa"
+# fragmentsFile = "Escherichia_Coli/1a1k/mapping/fragments_list.txt"
+# matrixFile = "Escherichia_Coli/1a1k/mapping/abs_fragments_contacts_weighted.txt"
+# interactionFile = "Escherichia_Coli/1a1k/mapping/interaction_matrix.pickle"
+# outFile = "Escherichia_Coli/1a1k/unzipped.gfa"
 
 print('Loading the GFA file')
 segments, names = load_gfa(gfaFile)
@@ -167,7 +167,7 @@ segments, names = load_gfa(gfaFile)
 # interactionMatrix = bf.interactionMatrix(matrixFile, fragmentList, names, segments)
 # #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
-# #exporting it as to never have to do it again
+# # #exporting it as to never have to do it again
 
 # print('Exporting interaction matrix')
 # file = open(interactionFile, 'wb')
@@ -177,22 +177,29 @@ segments, names = load_gfa(gfaFile)
 file = open(interactionFile, 'rb')
 interactionMatrix = pickle.load(file)
 
-# print(names)
-print(interactionMatrix[names['5553'], names['9697']])
-# print(interactionMatrix[names['9887'], names['9841']])
-# print(interactionMatrix[names['9861'], names['9843']])
-# print(interactionMatrix[names['9865'], names['9841']])
-# print('Next')
-# print(interactionMatrix[names['20502']])
-# print(interactionMatrix[names['20503'], names['6492']])
-# print(interactionMatrix[names['20502'], names['6492']])
+#print(names)
+#print(interactionMatrix[names['2276'], names['1504']])
+    
+#print(interactionMatrix[names['111']])
+print(interactionMatrix[names['556'], names['177']])
+print(interactionMatrix[names['556'], names['341']])
+
+print(interactionMatrix[names['190'], names['501']])
+# print(interactionMatrix[names['438'], names['1020']])
+
+# print(interactionMatrix[names['100'], names['907']])
+# print(interactionMatrix[names['100'], names['1024']])
+
+print('Next')
 
 #time.sleep(100)
     
-print("Solving ambiguities")
+#print("Solving ambiguities")
 
-segments = solve_ambiguities(segments, interactionMatrix, names, 0.1, 0.2, 5)
+segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.2, stringenceAccept = 0.4, steps = 5)
 
 print('Now exporting')
 
 bf.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
+
+print('Done!')

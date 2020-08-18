@@ -135,3 +135,5 @@ def strip_copiesNumber(gfaFileIn, gfaFileOut):
 #strip_copiesNumber('Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa', 'Arabidopsis/Arabidopsis_hybrid/simplified_graph2.gfa')
 #gfa_to_fasta("Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa")
 #gfa_to_fasta("Escherichia_Coli/1a1k/unzipped_merged.gfa")
+#gfa_to_fasta('data_A_Vaga_PacBio/Assembly.gfa')
+gfa_to_fasta('data_A_Vaga_PacBio/unzipped_merged.gfa')

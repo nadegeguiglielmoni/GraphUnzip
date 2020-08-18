@@ -188,17 +188,17 @@ class Segment:
                     absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                     
         #now compute the interaction with neighbors of self
-        endOfSegment = 1-orientation
-        for neighbor in self.links[endOfSegment] :
-            for co, contig in enumerate(neighbor.names) :
-                for c, contigInSegment in enumerate(segment.names):
+        # endOfSegment = 1-orientation
+        # for neighbor in self.links[endOfSegment] :
+        #     for co, contig in enumerate(neighbor.names) :
+        #         for c, contigInSegment in enumerate(segment.names):
                 
-                    if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+        #             if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
                         
-                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-                        relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
-                    else:
-                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+        #                 absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+        #                 relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
+        #             else:
+        #                 absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                 
             
         return absoluteScore, relativeScore
@@ -230,7 +230,7 @@ class Segment:
                 print('ERROR while creating a link : orientations not properly given.')
                 print('Problematic line : ', GFAline)
                 
-            if leftOrRight == 0 and o1 != self._orientationOfContigs[0] :
+            if leftOrRight == 0 and o1 == 0:
                 index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[0])
                 self._links[0].insert(index, segments[names[l[3]]])
                 self._otherEndOfLinks[0].insert(index, 1-o2)
@@ -239,7 +239,7 @@ class Segment:
                 else :
                     self._CIGARs[0].insert(index, '*')
                     
-            elif leftOrRight == 0 and o1 == self._orientationOfContigs[-1] :
+            elif leftOrRight == 0 and o1 == 1 :
                 index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[1])
                 self._links[1].insert(index, segments[names[l[3]]])
                 self._otherEndOfLinks[1].insert(index, 1-o2)
@@ -248,7 +248,7 @@ class Segment:
                 else :
                     self._CIGARs[1].insert(index, '*')
                 
-            elif leftOrRight == 1 and o2 == self._orientationOfContigs[0] :
+            elif leftOrRight == 1 and o2 == 1 :
                 index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[0])
                 self._links[0].insert(index, segments[names[l[1]]])
                 self._otherEndOfLinks[0].insert(index, o1)
@@ -257,7 +257,7 @@ class Segment:
                 else :
                     self._CIGARs[0].insert(index, '*')
                     
-            elif leftOrRight == 1 and o2 != self._orientationOfContigs[-1] :
+            elif leftOrRight == 1 and o2 == 0 :
                 index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[1])
                 self._links[1].insert(index, segments[names[l[1]]])
                 self._otherEndOfLinks[1].insert(index, o1)
@@ -376,9 +376,9 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
     CIGAR = segment1.CIGARs[endOfSegment1][segment1.links[endOfSegment1].index(segment2)]
     
     newSegment = Segment(segment1.names[::orientation1] + segment2.names[::orientation2],\
-                                orientationOfContigs1+orientationOfContigs2,\
+                                orientationOfContigs1[::orientation1]+orientationOfContigs2[::orientation2],\
                                 segment1.lengths[::orientation1]+segment2.lengths[::orientation2], \
-                                segment1.insideCIGARs + [CIGAR] + segment2.insideCIGARs,\
+                                segment1.insideCIGARs[::orientation1] + [CIGAR] + segment2.insideCIGARs[::orientation2],\
                                 segLinks = [segment1.links[1-endOfSegment1], \
                                 segment2.links[1-endOfSegment2]], \
                                 segOtherEndOfLinks = [segment1.otherEndOfLinks[1-endOfSegment1], \
