@@ -14,8 +14,12 @@ from transform_gfa import check_segments
 import segment as s
 from segment import Segment
 
-# this function measures the intensity of interactions between one supercontig and several candidate, including without taking account of the common parts of the supercontigs
-# It also weighs the interaction with the length of a supercontig, so that a very long candidate spercontig is not seen as having a lot of connexion just because it is long
+# this function measures the intensity of interactions between one supercontig
+# and several candidate, including without taking account of the common parts
+# of the supercontigs
+# It also weighs the interaction with the length of a supercontig, so that a
+# very long candidate spercontig is not seen as having a lot of connexion just
+# because it is long
 def intensity_of_interactions(
     segment,
     candidatesSegments,
@@ -26,6 +30,7 @@ def intensity_of_interactions(
     copiesnumber,
     supercontigsaretouching=False, #usually True, though
 ):
+<<<<<<< HEAD
     for candidate in candidatesSegments :
         if candidate == segment : #small loop, don't solve that !
             return [-1], [-1], True #the True value does not matter here
@@ -36,7 +41,7 @@ def intensity_of_interactions(
             
     ##Now compute the score of each candidates    
 
-    #bestsignature decides what contig is most characterisic of the segment
+    # bestsignature decides what contig is most characterisic of the segment
     bestSignature = np.min([copiesnumber[x] for x in segment.names])
     # return for each supercontig its absolute score and its relative score (wihtout the common parts)
     absoluteScores = []
@@ -114,19 +119,28 @@ def compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds) :
     
         return commonContigs, False #the False value is to signifie that neighbors of neighbors were not used
 
-#small function to look in a sorted list l if x is present in logarithmic time 
+
+# small function to look in a sorted list l if x is present in logarithmic time
 def isPresent(l, x):
     i = bisect_left(l, x)
     if i != len(l) and l[i] == x:
         return True
     return False
 
-# here we look specifically at one contig and its immediate surroundings (can return -1 if fails in short loop)
-def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContigs, copiesnumber): #endOfSegment should be 0 if it's the left end and1 if it's the right end
-    
-    if segment in segment.links[endOfSegment] : #if a segment loops on itself, another module would be needed
+
+# here we look specifically at one contig and its immediate surroundings (can
+# return -1 if fails in short loop)
+def duplicate_around_this_end_of_contig(
+    segment, endOfSegment, listOfSuperContigs, copiesnumber
+):  # endOfSegment should be 0 if it's the left end and1 if it's the right end
+
+    if (
+        segment in segment.links[endOfSegment]
+    ):  # if a segment loops on itself, another module would be needed
         return 0
-    if any(segment.links[endOfSegment].count(i)>=2 for i in segment.links[endOfSegment]): #if segment.links[endOfSegment] has two copies of the same segment, it means one link going towards each end, that is not solvable
+    if any(
+        segment.links[endOfSegment].count(i) >= 2 for i in segment.links[endOfSegment]
+    ):  # if segment.links[endOfSegment] has two copies of the same segment, it means one link going towards each end, that is not solvable
         return 0
 
     for i in segment.names:
@@ -134,7 +148,9 @@ def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContig
 
     # add all the new supercontigs
     for neighbor in segment.links[endOfSegment]:
-        s.merge_two_segments(segment, endOfSegment, neighbor, listOfSuperContigs) #the merged segment is appended at the end of listOfSuperContigs
+        s.merge_two_segments(
+            segment, endOfSegment, neighbor, listOfSuperContigs
+        )  # the merged segment is appended at the end of listOfSuperContigs
 
     # now delete the merged supercontigs
     # start by deleting the links that linked the merged supercontigs to the outside
@@ -143,51 +159,69 @@ def duplicate_around_this_end_of_contig(segment, endOfSegment, listOfSuperContig
     otherEnd = 1 - endOfSegment
 
     for i, neighbor in enumerate(segment.links[otherEnd]):
-    
-        neighbor.remove_end_of_link(segment.otherEndOfLinks[otherEnd][i], segment, otherEnd)
-        
+
+        neighbor.remove_end_of_link(
+            segment.otherEndOfLinks[otherEnd][i], segment, otherEnd
+        )
 
     for m, merged in enumerate(segment.links[endOfSegment]):
-        
-        if len(merged.links[segment.otherEndOfLinks[endOfSegment][m]]) == 1:  # then the original copy is fully integrated in the supercontig
+
+        if (
+            len(merged.links[segment.otherEndOfLinks[endOfSegment][m]]) == 1
+        ):  # then the original copy is fully integrated in the supercontig
             deletedContigs.append(merged.ID)
-            
-            otherEnd = 1-segment.otherEndOfLinks[endOfSegment][m]
+
+            otherEnd = 1 - segment.otherEndOfLinks[endOfSegment][m]
             for i, neighbor in enumerate(merged.links[otherEnd]):
                 try:
-                    neighbor.remove_end_of_link(merged.otherEndOfLinks[otherEnd][i], merged, otherEnd)
+                    neighbor.remove_end_of_link(
+                        merged.otherEndOfLinks[otherEnd][i], merged, otherEnd
+                    )
                 except ValueError:  # that means we're in a small loop which we can't solve
-                    print("There is merging difficulty around the far end of "
-                        + str(merged.names)+ " from "
-                        + str(segment.names)+ " . Please check that there is indeed a loop there.")
+                    print(
+                        "There is merging difficulty around the far end of "
+                        + str(merged.names)
+                        + " from "
+                        + str(segment.names)
+                        + " . Please check that there is indeed a loop there."
+                    )
                     return 0
-                
+
         else:  # then the original contig still exists by itself, just delete the link going toward segment
             try:
-                merged.remove_end_of_link(segment.otherEndOfLinks[endOfSegment][m], segment, endOfSegment)
+                merged.remove_end_of_link(
+                    segment.otherEndOfLinks[endOfSegment][m], segment, endOfSegment
+                )
             except ValueError:  # that means we're in a small loop which whe can't solve
-                print("There is merging difficulty around the near end of "
-                        + str(merged.names)+ " from "
-                        + str(segment.names)+ " . Please check that there is indeed a loop there.")
+                print(
+                    "There is merging difficulty around the near end of "
+                    + str(merged.names)
+                    + " from "
+                    + str(segment.names)
+                    + " . Please check that there is indeed a loop there."
+                )
                 return 0
 
-    #delete all segments that should be
+    # delete all segments that should be
     deletedContigs.sort()
-    for i in range(len(listOfSuperContigs)-1,-1,-1) :
+    for i in range(len(listOfSuperContigs) - 1, -1, -1):
         h = listOfSuperContigs[i].ID
-        if isPresent(deletedContigs, h) : #in other words, if h is in deletedContigs (written like that because it has logarithmic efficiency) 
+        if isPresent(
+            deletedContigs, h
+        ):  # in other words, if h is in deletedContigs (written like that because it has logarithmic efficiency)
             del listOfSuperContigs[i]
-            
-    #lock all the segments that have been duplicated, so that they are not duplicated by both ends
+
+    # lock all the segments that have been duplicated, so that they are not duplicated by both ends
     segment.lockNode(endOfSegment)
 
-# similar to the function above, but simpler : put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
+
+# similar to the function above, but simpler: put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
 def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
-  
-    if len(segment.links[endOfSegment]) != 1 :
-        print('ERROR : trying to merge simply two contigs that cannot be merged simply')
+
+    if len(segment.links[endOfSegment]) != 1:
+        print("ERROR : trying to merge simply two contigs that cannot be merged simply")
         return -1, -1
-    
+
     neighbor = segment.links[endOfSegment][0]
     endOfSegmentNeighbor = segment.otherEndOfLinks[endOfSegment][0]
 
@@ -204,7 +238,7 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     # delete links going towards the two ex-segments
     otherEnd = 1 - endOfSegment
     otherEndNeighbor = 1 - endOfSegmentNeighbor
-    
+
     for i, n in enumerate(segment.links[otherEnd]) :
         n.remove_end_of_link(segment.otherEndOfLinks[otherEnd][i], segment, otherEnd)
         
@@ -218,23 +252,35 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     
     return listOfSegments
 
-#a loop to merge all adjacent contigs
+
+# a loop to merge all adjacent contigs
 def merge_adjacent_contigs(listOfSegments):
-        
+
     goOn = True
-    while goOn :
+    while goOn:
         goOn = False
         for segment in listOfSegments:
-            
-            alreadyDidThisOne = False #if the segment is deleted when looking at its first end, you don't want it to look at its other end, since it does not exist anymore
+
+            alreadyDidThisOne = (
+                False
+            )  # if the segment is deleted when looking at its first end, you don't want it to look at its other end, since it does not exist anymore
             for endOfSegment in range(2):
-                if not alreadyDidThisOne :
+                if not alreadyDidThisOne:
                     alreadyDidThisOne = True
-                    if len(segment.links[endOfSegment]) == 1\
-                        and len(segment.links[endOfSegment][0].links[segment.otherEndOfLinks[endOfSegment][0]]) == 1:  # then merge
+                    if (
+                        len(segment.links[endOfSegment]) == 1
+                        and len(
+                            segment.links[endOfSegment][0].links[
+                                segment.otherEndOfLinks[endOfSegment][0]
+                            ]
+                        )
+                        == 1
+                    ):  # then merge
                         if segment != segment.links[endOfSegment][0]:
                             goOn = True
-                            listOfSegments = merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments)
+                            listOfSegments = merge_simply_two_adjacent_contig(
+                                segment, endOfSegment, listOfSegments
+                            )
 
     return listOfSegments
 
@@ -369,14 +415,11 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
 
         listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber)
 
-        #once all the contigs have been duplicated and merged, unfreeze everything so the cycle can start again
-        for j in listOfSegments :
+        # once all the contigs have been duplicated and merged, unfreeze everything so the cycle can start again
+        for j in listOfSegments:
             j.unfreeze()
         
         print(str((i+1) / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
-        # print('Now checking if all segments still have their links in good order')
-        # s.check_if_all_links_are_sorted(listOfSegments)
-        # print('Done checking links')
         
         #io.export_to_GFA(listOfSegments, gfaFile = 'Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa', exportFile = 'Escherichia_Coli/1a1k/unzipped'+str(i)+'.gfa')
         
