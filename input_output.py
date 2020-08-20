@@ -5,7 +5,6 @@ Created on Thu Apr 23 15:59:45 2020
 
 File basically dedicated to small functions involving reading and writing files
 """
-import pandas as pd
 import numpy as np
 from scipy import sparse #to handle interactionMatrix, which should be sparse
 import time #to inform the user on what the programm is doing on a regular basis
@@ -68,6 +67,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
         del inFile[0]
     
     n = 0
+    unknowncontacts = 0
     for line in inFile:
         
         if time.time()-t > 2 :
@@ -96,22 +96,25 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
                 #adds the HiC coverage to the right contigs
                 segments[index1].HiCcoverage += contact[2]
                 segments[index2].HiCcoverage += contact[2]
+                
+        else :
+            unknowncontacts += 1
 
         n += 1
+        
+    if unknowncontacts != 0 :
+        print('There are ', unknowncontacts, ' out of ', n, ' contacts I did not manage to map : you may want to check if the names of the contigs are consistent throughout your files')
+        
     return interactionMatrix
 
-
-def export_to_csv(l, file):
-    df = pd.DataFrame(l)
-    df.to_csv(file)
-
-def import_from_csv(file):
-
-    df = pd.read_csv(file)
-    l = df.values.tolist()
-
-    newl = [[x for x in i if not pd.isnull(x)] for i in l]
-    return [x[1:] for x in newl]  # we discard the header line
+def load_interactionMatrix(file, listOfSegments, names) :
+    f = open(file, 'rb')
+    interactionMatrix  = pickle.load(f)
+    for segment in listOfSegments :
+        for contig in segment.names :
+            segment.HiCcoverage += np.sum(interactionMatrix[names[contig]])
+    
+    return interactionMatrix
 
 #input : contig ID and fasta file
 #output : sequence
@@ -294,6 +297,39 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                         f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
                                 '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
 
+# Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
+# Also returns the list of the contig's names
+def load_gfa(file):
+
+    print('Loading contigs')
+    gfa_read = open(file, "r")
+
+    segments = []
+    
+    index = 0
+    names = {}
+    for line in gfa_read:
+        if line[0] == "S":
+            l = line.strip('\n').split("\t")
+            s = Segment([l[1]], [1], [len(l[2])])
+            segments.append(s)
+            names[s.names[0]] = index #that is the (strange) way of adding a key to a dict in python
+            index += 1
+            
+
+    print('Loading links')
+    gfa_read = open(file, "r")
+        
+    for line in gfa_read:
+        if line[0] == "L":
+
+            l = line.strip('\n').split("\t")
+            segments[names[l[1]]].add_link_from_GFA(line, names, segments, 0)
+            segments[names[l[3]]].add_link_from_GFA(line, names, segments, 1)
+
+    gfa_read.close()
+
+    return segments, names
 
 
 

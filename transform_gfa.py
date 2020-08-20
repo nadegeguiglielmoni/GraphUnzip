@@ -45,40 +45,6 @@ def gfa_to_fasta(gfaFilename, fastaFilename = ''):
     return seqs
 
 
-# Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
-# Also returns the list of the contig's names
-def load_gfa(file):
-
-    print('Loading contigs')
-    gfa_read = open(file, "r")
-
-    segments = []
-    
-    index = 0
-    names = {}
-    for line in gfa_read:
-        if line[0] == "S":
-            l = line.strip('\n').split("\t")
-            s = Segment([l[1]], [1], [len(l[2])])
-            segments.append(s)
-            names[s.names[0]] = index #that is the (strange) way of adding a key to a dict in python
-            index += 1
-            
-
-    print('Loading links')
-    gfa_read = open(file, "r")
-        
-    for line in gfa_read:
-        if line[0] == "L":
-
-            l = line.strip('\n').split("\t")
-            segments[names[l[1]]].add_link_from_GFA(line, names, segments, 0)
-            segments[names[l[3]]].add_link_from_GFA(line, names, segments, 1)
-
-    gfa_read.close()
-
-    return segments, names
-
 #print_short is useful to read a sequence file, shortening the sequences
 def print_short():
 
@@ -99,7 +65,6 @@ def print_short():
     print(s)
     return 0
 
-
 # a function to test that links are, as they should, represented once at each of their extremities
 def check_segments(listOfSegments):
     
@@ -111,7 +76,7 @@ def check_segments(listOfSegments):
                     return False
     return True
 
-#function if you want to strip the suffix containing the copiesNumber
+#function if you want to strip the suffix containing the copiesNumber. Careful though, if contigs are duplicated they will be merged back since they will have the same name
 def strip_copiesNumber(gfaFileIn, gfaFileOut):
     with open(gfaFileIn, 'r') as f :
         with open(gfaFileOut, 'w') as fo:
@@ -136,4 +101,4 @@ def strip_copiesNumber(gfaFileIn, gfaFileOut):
 #gfa_to_fasta("Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa")
 #gfa_to_fasta("Escherichia_Coli/1a1k/unzipped_merged.gfa")
 #gfa_to_fasta('data_A_Vaga_PacBio/Assembly.gfa')
-gfa_to_fasta('data_A_Vaga_PacBio/unzipped_merged.gfa')
+#gfa_to_fasta('data_A_Vaga_PacBio/unzipped_merged.gfa')

@@ -261,6 +261,52 @@ def HiC_vs_GFAtwo(hiccontacts, links, fragment_list, coverage):
 
     return confirmationOfLinks, weightedconfirmationOfLinks
 
+# a function to delete small contigs made of repeated sequences that have no HiC contacts but tons of links
+def crush_small_contigs(segments, interactionMatrix) :
+    
+    #first list all segments to be deleted
+    for segment in segments :
+        if segment.length < 5000 and segment in segment.links[0] : #this characterize a small repeated sequence
+            if segment.HiCcoverage == 0 : # this segment is blind, can't do anything but crush it
+                segment.ID = -segment.ID #segments marked with negative IDs should be deleted
+                print(segment.names, ' is a small contig')
+                
+    print('Listed all segments to delete')
+            
+    #then delete all the links going toward unwanted segments (we don't want to reroute useless links)
+    for segment in segments :
+        for endOfSegment in range(2) :
+            for n in range(len(segment.links[endOfSegment])-1, -1, -1) :
+                if segment.links[endOfSegment][n].ID < 0 :
+                    del segment.links[endOfSegment][n]
+                    del segment.otherEndOfLinks[endOfSegment][n]
+                    del segment.CIGARs[endOfSegment][n]                                        
+    print('Deleted all links towards bad segments')
+    
+    #reroute all links going in and out of crushed segments
+    # for segment in segments :
+    #     if segment.ID < 0 :
+    
+    #         print('Crushing segment ', segment.names)
+            
+    #         #then make this segment disappear, by linking segments to the left of this contig to segment to the right :
+    #         for l, leftneighbor in enumerate(segment.links[0]) :
+    #             if leftneighbor.ID != segment.ID :
+    #                 #print('Ln before : ', leftneighbor.ID, [se.ID for se in leftneighbor.links[segment.otherEndOfLinks[0][l]]])
+    #                 leftneighbor.add_a_bunch_of_end_of_links(segment.otherEndOfLinks[0][l], segment.links[1], segment.otherEndOfLinks[1], ['0M' for i in segment.links[1]])
+                    
+    #         for r, rightneighbor in enumerate(segment.links[1]):
+    #             if rightneighbor.ID != segment.ID :
+    #                 #print('Rn before : ', [se.ID for se in rightneighbor.links[segment.otherEndOfLinks[1][l]]])
+    #                 rightneighbor.add_a_bunch_of_end_of_links(segment.otherEndOfLinks[1][r], segment.links[0], segment.otherEndOfLinks[0], ['0M' for i in segment.links[0]])
+    
+    # print('Rerouted all links around segments to delete')
+    #delete all segments that should be
+    for se in range(len(segments)-1, -1, -1) :
+        if segments[se].ID < 0 :
+            del segments[se]
+            
+    print('There are ', len(segments), ' segments left')
                      
                 
 
