@@ -30,7 +30,6 @@ def intensity_of_interactions(
     copiesnumber,
     supercontigsaretouching=False, #usually True, though
 ):
-<<<<<<< HEAD
     for candidate in candidatesSegments :
         if candidate == segment : #small loop, don't solve that !
             return [-1], [-1], True #the True value does not matter here
