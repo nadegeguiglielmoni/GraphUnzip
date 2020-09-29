@@ -75,7 +75,7 @@ def parse_args():
         "--interactions",
         required=False,
         default="Empty",
-        help="""File with interactions [default: interactionMatrix.pickle]""",
+        help="""File with interactions [default: None]""",
     )
     parser.add_argument(
         "--merge",
@@ -120,6 +120,9 @@ def main():
             interactionMatrix = io.interactionMatrix(
                 matrixFile, fragmentList, names, segments
             )
+
+            if interactionFile is "Empty":
+                interactionFile = "interactionMatrix.pickle"
 
             # exporting it as to never have to do it again
 
