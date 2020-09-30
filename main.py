@@ -163,9 +163,9 @@ matrixFile = "data_A_vaga_HiFi/p/mapping/abs_fragments_contacts_weighted.txt"
 interactionFile = "data_A_vaga_HiFi/p/mapping/interactionMatrix.pickle"
 outFile = "data_A_vaga_HiFi/p/output.gfa"
 
-# gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
-# interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
-# outFile = "data_A_Vaga_PacBio/unzipped.gfa"
+gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
+interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
+outFile = "data_A_Vaga_PacBio/unzipped.gfa"
 
 # gfaFile = "bacteria_mix/SPAdes_output/assembly_graph_after_simplification.gfa"
 # fragmentsFile = "bacteria_mix/HiCmapping/fragments_list.txt"
@@ -197,8 +197,8 @@ interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 
     
 #print(interactionMatrix[names['utg000024l']])
-print(interactionMatrix[names['utg000037l'], names['utg000024l']])
-print(interactionMatrix[names['utg000037l'], names['utg000005l']])
+print(interactionMatrix[names['894'], names['229']])
+print(interactionMatrix[names['709'], names['229']])
 
 print('Next')
 
@@ -206,7 +206,7 @@ print('Next')
     
 #print("Solving ambiguities")
 
-segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.1, stringenceAccept = 0.3, steps = 2)
+segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.1, stringenceAccept = 0.3, steps = 7)
 
 
 print('Now exporting')
