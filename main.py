@@ -6,7 +6,8 @@ Created on Wed May  6 07:42:14 2020
 """
 
 import input_output as io
-#import analyse_HiC
+
+# import analyse_HiC
 from transform_gfa import gfa_to_fasta
 from solve_ambiguities import solve_ambiguities
 #from segment import check_if_all_links_are_sorted
@@ -16,8 +17,9 @@ from solve_ambiguities import solve_ambiguities
 import argparse
 import os.path
 import sys
-import pickle #reading and writing files
+import pickle  # reading and writing files
 import time
+
 
 def parse_args():
     """ 
@@ -72,13 +74,17 @@ def parse_args():
         "-i",
         "--interactions",
         required=False,
-        default="interactionMatrix.pickle",
-        help="""File with interactions [default: interactionMatrix.pickle]""",
+        default="Empty",
+        help="""File with interactions [default: None]""",
     )
     parser.add_argument(
-        "--merge", required=False, default = "Empty",  help="""If you want the output to have all possible contigs merged (y/n) [default: n]"""
+        "--merge",
+        required=False,
+        default="Empty",
+        help="""If you want the output to have all possible contigs merged (y/n) [default: n]""",
     )
     return parser.parse_args()
+
 
 def main():
 
@@ -93,7 +99,7 @@ def main():
     stringenceAccept = float(args.accepted)
     steps = int(args.steps)
     merge = args.merge
-    
+
     t = time.time()
 
     if not os.path.exists(gfaFile):
@@ -101,51 +107,65 @@ def main():
         sys.exit(1)
 
     # Loading the data
-    print('Loading the GFA file')
-    segments, names = io.load_gfa(gfaFile) #outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
+    print("Loading the GFA file")
+    segments, names = io.load_gfa(
+        gfaFile
+    )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
 
     if fragmentsFile is not "Empty" and matrixFile is not "Empty":
         if os.path.exists(fragmentsFile):
             fragmentList = io.read_fragment_list(fragmentsFile)
 
             # Now computing the interaction matrix
-            interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
-            
+
+            interactionMatrix = io.interactionMatrix(
+                matrixFile, fragmentList, names, segments
+            )
+
+            if interactionFile is "Empty":
+                interactionFile = "interactionMatrix.pickle"
 
             # exporting it as to never have to do it again
 
-            print('Exporting interaction matrix')
-            with open(interactionFile, 'wb') as o:
+            print("Exporting interaction matrix")
+            with open(interactionFile, "wb") as o:
                 pickle.dump(interactionMatrix, o)
 
         else:
             print("Error: could not find fragments file {0}.".format(fragmentsFile))
             sys.exit(1)
-            
-    elif interactionFile is not "Empty" :
-        print('Loading the interaction matrix')
+
+    elif interactionFile is not "Empty":
+        print("Loading the interaction matrix")
         interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
     else:
         if not os.path.exists(interactionFile):
-            print("Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map.")
+            print(
+                "Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map."
+            )
             sys.exit(1)
 
-    print('Everything loaded, moving on to solve_ambiguities')
+    print("Everything loaded, moving on to solve_ambiguities")
 
-    segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps)
+    segments = solve_ambiguities(
+        segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps
+    )
 
     # now exporting the output
-    print('Now exporting')
+    print("Now exporting")
     merge_adj = False
     if merge != "Empty" and merge != "n":
         merge_adj = True
-        
-    io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs = merge_adj)
-    
-    if fastaFile != "None" :
+
+    io.export_to_GFA(
+        segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge_adj
+    )
+
+    if fastaFile != "None":
         gfa_to_fasta(outFile, fastaFile)
-    
-    print('Finished in ', time.time()-t , " seconds")
+
+    print("Finished in ", time.time() - t, " seconds")
+
 
 if __name__ == "__main__":
     main()
@@ -189,21 +209,21 @@ outFile = "data_A_Vaga_PacBio/unzipped.gfa"
 # # print('Exporting interaction matrix')
 # # file = open(interactionFile, 'wb')
 # # pickle.dump(interactionMatrix, file)
-    
+
 # #print(names)
 # interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 
 # #print(names)
-
     
 # #print(interactionMatrix[names['utg000024l']])
 # print(interactionMatrix[names['894'], names['229']])
 # print(interactionMatrix[names['709'], names['229']])
 
+
 # print('Next')
 
 # #time.sleep(100)
-    
+
 # #print("Solving ambiguities")
 
 # segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.1, stringenceAccept = 0.3, steps = 7)
