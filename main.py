@@ -147,8 +147,8 @@ def main():
     
     print('Finished in ', time.time()-t , " seconds")
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
 
 # gfaFile = "Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa"
 # #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
@@ -173,44 +173,44 @@ outFile = "data_A_Vaga_PacBio/unzipped.gfa"
 # interactionFile = "bacteria_mix/HiCmapping/interaction_matrix.pickle"
 # outFile = "bacteria_mix/output.gfa"
 
-print('Loading the GFA file')
-segments, names = io.load_gfa(gfaFile)
+# print('Loading the GFA file')
+# segments, names = io.load_gfa(gfaFile)
 
-#check_if_all_links_are_sorted(segments)
+# #check_if_all_links_are_sorted(segments)
 
-#Now computing the interaction matrix
+# #Now computing the interaction matrix
 
-# fragmentList = io.read_fragment_list(fragmentsFile)
-# interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
-# #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+# # fragmentList = io.read_fragment_list(fragmentsFile)
+# # interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
+# # #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
-# #exporting it as to never have to do it again
+# # #exporting it as to never have to do it again
 
-# print('Exporting interaction matrix')
-# file = open(interactionFile, 'wb')
-# pickle.dump(interactionMatrix, file)
+# # print('Exporting interaction matrix')
+# # file = open(interactionFile, 'wb')
+# # pickle.dump(interactionMatrix, file)
     
-#print(names)
-interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
+# #print(names)
+# interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 
-#print(names)
+# #print(names)
 
     
-#print(interactionMatrix[names['utg000024l']])
-print(interactionMatrix[names['894'], names['229']])
-print(interactionMatrix[names['709'], names['229']])
+# #print(interactionMatrix[names['utg000024l']])
+# print(interactionMatrix[names['894'], names['229']])
+# print(interactionMatrix[names['709'], names['229']])
 
-print('Next')
+# print('Next')
 
-#time.sleep(100)
+# #time.sleep(100)
     
-#print("Solving ambiguities")
+# #print("Solving ambiguities")
 
-segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.1, stringenceAccept = 0.3, steps = 7)
+# segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.1, stringenceAccept = 0.3, steps = 7)
 
 
-print('Now exporting')
+# print('Now exporting')
 
-io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
+# io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
 
-print('Done!')
+# print('Done!')

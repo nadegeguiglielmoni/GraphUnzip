@@ -488,7 +488,9 @@ def delete_links_present_twice(segments):
                 
                 for n2 in range(n1+1, len(segment.links[endOfSegment])) :
                     
-                    if segment.links[endOfSegment][n1].ID == segment.links[endOfSegment][n2].ID and segment.otherEndOfLinks[endOfSegment][n1] == segment.otherEndOfLinks[endOfSegment][n2]:
+                    print(segment.links[endOfSegment][n1].ID)
+                    print(segment.links[endOfSegment][n2].ID)
+                    if segment.links[endOfSegment][n1].ID == segment.links[endOfSegment][n2].ID and segment.otherEndOfLinks[endOfSegment][n1] == segment.otherEndOfLinks[endOfSegment][n2] and segment.links[endOfSegment][n1].ID != segment.ID:
                         
                         segment.links[endOfSegment][n2].remove_end_of_link(segment.otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
                         toBeRemoved += [[endOfSegment, segment.links[endOfSegment][n2], segment.otherEndOfLinks[endOfSegment][n2]]]
