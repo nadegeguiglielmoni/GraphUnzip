@@ -44,22 +44,37 @@ def intensity_of_interactions(
     # bestsignature decides what contig is most characterisic of the segment
     bestSignature = np.min([copiesnumber[x] for x in segment.names])
     # return for each supercontig its absolute score and its relative score (wihtout the common parts)
-    absoluteScores = []
-    relativeScores = []
-    returnRelativeScore = True
-    for c in candidatesSegments:
-
-        absoluteScore, relativeScore = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature, neighborsOfNeighborsUsed)
-
-        absoluteScores.append(absoluteScore)
-        relativeScores.append(relativeScore)
-        
-        if all([i==0 for i in relativeScores]) :
-            returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
-    # if '262' in segment.names :    
-    #     print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores)
-    #     print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names], '\n')
+    depthFound = True
+    depth = 2
+    while depthFound == True : #do the process again without neighborOfneighbor if neighbors of neighbors are only used sometimes
+        absoluteScores = []
+        relativeScores = []
+        returnRelativeScore = True
+        depthFound = False
+
+        for c in candidatesSegments:
+    
+            if depth == 2 :
+                absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature, neighborsOfNeighborsUsed)
+        
+                if depthHere == 1 and depth == 2 :
+                    depth = 1
+                    depthFound = False
+                    
+            else :
+                absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature, False)
+    
+            absoluteScores.append(absoluteScore)
+            relativeScores.append(relativeScore)
+            
+    if all([i==0 for i in relativeScores]) :
+        returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
+    
+    if 'edge_78' in segment.names or 'edge_356' in segment.names :    
+        print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores, absoluteScores)
+        # print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
+        print('Common contigs : ', commonContigs, '\n')
     
     if returnRelativeScore :
         return absoluteScores, relativeScores, neighborsOfNeighborsUsed
@@ -76,20 +91,20 @@ def compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds) :
     for i in candidatesSegments[0].links[1-listOfTouchingEnds[0]] :
         potentialCommonContigs += i.names
 
+
     for contig in potentialCommonContigs:
         
-        common = True
 
-        for n, candidate in enumerate(candidatesSegments[1:]):
+        for n in range(1, len(candidatesSegments)):
 
+            candidate = candidatesSegments[n]
             presentInNeighbor = contig in candidate.names
 
-            for i in candidate.links[1-listOfTouchingEnds[n+1]] :                       
+            for i in candidate.links[1-listOfTouchingEnds[n]] :                      
                 presentInNeighbor = presentInNeighbor or (contig in i.names)
-                    
-            common = common and presentInNeighbor
+                
 
-        if common:
+        if presentInNeighbor:
             commonContigs += [contig]
             
     #check if that list of common contigs is not too big
@@ -116,6 +131,7 @@ def compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds) :
 
         if common:
             commonContigs += [contig]
+            
     
         return commonContigs, False #the False value is to signifie that neighbors of neighbors were not used
 
@@ -321,6 +337,8 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
     #f = open('dbg.txt', 'a')
     #loop through all segments inspecting the robustness of all links.
     c = 0
+    
+    #then compute the intensity of interactions knowing the common contigs
     for segment in listOfSegments:
         
         c += 1
@@ -340,8 +358,8 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, True)
                             
-                            if '229' in segment.names : 
-                                print('At 229, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)
+                            # if 'edge_357' in segment.names : 
+                            #     print('At 357, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)
                                 
                             if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot
                                 segment.freeze(endOfSegment)
@@ -401,6 +419,8 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                         segment.freezeNode(endOfSegment)
                         
     #f.close()
+    
+        
     return listOfSegments                        
 
 def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}):
@@ -416,10 +436,19 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
     
     for i in range(steps):
 
+        # for se in listOfSegments :
+        #     if 'edge_357' in se.names :
+        #         print ('Here is one : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
+        
         get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept)
         print('Got rid of bad links')
 
+        # for se in listOfSegments :
+        #     if 'edge_357' in se.names :
+        #         print ('Here is two : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
+
         listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber)
+    
 
         #print('end of merge_contigs : ', [i.names for i in listOfSegments[names['262']].links[0]])
 

@@ -342,11 +342,24 @@ fastaFile = 'data_A_Vaga_PacBio/Assembly.fasta'
 # gfaFile = 'Escherichia_Coli/unzipped1*.gfa'
 # fastaFile = 'Escherichia_Coli/unzipped1*.fasta'
 #names, lengths = get_names(gfaFile)
-segments, name = load_gfa('data_A_Vaga_PacBio/unzipped_merged.gfa')
+#segments, name = load_gfa('data_A_Vaga_PacBio/unzipped_merged.gfa')
 
 #blast_check(fastaFile, 'data_A_vaga_HiFi/dtb/dtb_HiFi')
 #blast_find_contig('221', gfaFile, 'Escherichia_Coli/databases/diploid1a1b.dtb')
-check_phasing('assign_contigs.txt', 'test_assigns.txt', segments)
+#check_phasing('assign_contigs.txt', 'test_assigns.txt', segments)
+
+def scan_interactionMatrix(gfa, matrix, contigs):
+    segments, names = io.load_gfa(gfa)
+    interactions = io.load_interactionMatrix(matrix, segments, names)
+    
+    for i in contigs :
+        print('scan_interactions : ', interactions[names[i[0]],names[i[1]]])
+
+gfaFile = 'data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa'
+matrix = 'data_A_vaga_HiFi/Flye/interactionMatrix.pickle'
+
+contigs = [['edge_267', 'edge_78'], ['edge_268', 'edge_78'], ['edge_78', 'edge_267']]
+scan_interactionMatrix(gfaFile, matrix, contigs)
 
 def testRatios():
     file = open('ratio.txt', 'r')

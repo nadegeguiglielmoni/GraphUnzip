@@ -174,7 +174,7 @@ class Segment:
         else: #if the supercontigs are not touching, computing the partial area is useless, but harmless
             print('ERROR : trying to compute an interaction with supercontigsaretouching=True but actually not True')
             
-        
+        depth = 1
         #first compute interactions with self
         for co, contig in enumerate(self.names) :
                  
@@ -197,13 +197,15 @@ class Segment:
                     
                         if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
                             
+                            depth = 2
+                            
                             absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                             relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
                         else:
                             absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                 
             
-        return absoluteScore, relativeScore
+        return absoluteScore, relativeScore, depth
     
     def add_link_from_GFA(self, GFAline, names, segments, leftOrRight) : #leftOrRight = 0 when the segment is at the beginning of a link (left of a GFA line), 1 otherwise
         
@@ -488,8 +490,6 @@ def delete_links_present_twice(segments):
                 
                 for n2 in range(n1+1, len(segment.links[endOfSegment])) :
                     
-                    print(segment.links[endOfSegment][n1].ID)
-                    print(segment.links[endOfSegment][n2].ID)
                     if segment.links[endOfSegment][n1].ID == segment.links[endOfSegment][n2].ID and segment.otherEndOfLinks[endOfSegment][n1] == segment.otherEndOfLinks[endOfSegment][n2] and segment.links[endOfSegment][n1].ID != segment.ID:
                         
                         segment.links[endOfSegment][n2].remove_end_of_link(segment.otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
