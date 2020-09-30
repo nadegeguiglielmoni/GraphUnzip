@@ -228,8 +228,9 @@ class Segment:
                 
             if o1 == -1 or o2 == -1 :
                 print('ERROR while creating a link : orientations not properly given.')
-                print('Problematic line : ', GFAline)
-                
+                print('Problematic line : ', GFAline)   
+
+            
             if leftOrRight == 0 and o1 == 0:
                 index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[0])
                 self._links[0].insert(index, segments[names[l[3]]])
@@ -268,7 +269,7 @@ class Segment:
             
             else :
                 print('ERROR while trying to add a new link from the gfa : could not locate a correct name')
-               
+        
     #this adds the end of a links, but only on this segment, not on the other end
     def add_end_of_link(self, endOfSegment, segment2, endOfSegment2, CIGAR = '*'):
         
@@ -352,6 +353,7 @@ class Segment:
             del self._links[endOfSegment][index]
             del self._otherEndOfLinks[endOfSegment][index]
             del self._CIGARs[endOfSegment][index]
+            
                     
         
 #This function is OUTSIDE the class. It takes two segments and the end of the first segment which is linked to the second. It appends a merged contig to the listOfSegments, without modifying the two inputed segments
@@ -472,6 +474,26 @@ def check_if_all_links_are_sorted(listOfSegments) :
                 if segment not in neighbor.links[segment.otherEndOfLinks[endOfSegment][n]] :
                     print('Non-reciprocal links : ', segment.names, segment.ID, neighbor.names, neighbor.ID)
                 
+#funtion to delete links that are present twice in the graph (often because they are present twice in the gfa)
+def delete_links_present_twice(segments):
+    
+
+    for segment in segments :
+        toBeRemoved = []
+        for endOfSegment in range(2) :
+            
+            for n1 in range(len(segment.links[endOfSegment])-1) :
+                
+                for n2 in range(n1+1, len(segment.links[endOfSegment])) :
+                    
+                    if segment.links[endOfSegment][n1].ID == segment.links[endOfSegment][n2].ID and segment.otherEndOfLinks[endOfSegment][n1] == segment.otherEndOfLinks[endOfSegment][n2]:
+                        
+                        segment.links[endOfSegment][n2].remove_end_of_link(segment.otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
+                        toBeRemoved += [[endOfSegment, segment.links[endOfSegment][n2], segment.otherEndOfLinks[endOfSegment][n2]]]
+
+        for r in toBeRemoved :
+            segment.remove_end_of_link(r[0], r[1], r[2])
+
 
 ## A few lines to test the functions of the file
 

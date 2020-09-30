@@ -56,7 +56,7 @@ def intensity_of_interactions(
         if all([i==0 for i in relativeScores]) :
             returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
-    # if '18178' in segment.names :    
+    # if '262' in segment.names :    
     #     print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores)
     #     print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names], '\n')
     
@@ -290,15 +290,18 @@ def merge_contigs(listOfSegments, copiesnumber):
     #look at both ends of each segment sequentially
     for segment in listOfSegments:
         
-        for endOfSegment in range(2) : 
             
+        for endOfSegment in range(2) :      
+
             l = segment.links[endOfSegment]
+ 
             if len(l) > 1 and not segment.freezed[endOfSegment]:
                 
                 startMerging = not segment.locked
                 for i in l:
                     startMerging = startMerging and (not i.locked)
-
+                    
+                   
                 if startMerging:  # if nothing is locked for now
                     duplicate_around_this_end_of_contig(segment,endOfSegment,listOfSegments,copiesnumber)
                     
@@ -314,12 +317,13 @@ def merge_contigs(listOfSegments, copiesnumber):
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted):
   
-    #f = open('dbg.txt', 'a')
+    f = open('dbg.txt', 'a')
     #loop through all segments inspecting the robustness of all links.
     c = 0
     for segment in listOfSegments:
         
         c += 1
+        f.write(str(listOfSegments[names['utg000037l']].freezed)+ ' ' + segment.full_name()+'\n')
 
         for endOfSegment in range(2):
                 
@@ -336,18 +340,23 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, True)
                                 
-                                
-                            if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot : make a decision or this will be freezed indefinitely
+                            if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot
                                 segment.freeze(endOfSegment)
-                                
+                                if 'utg000005l' in segment.names and endOfSegment == 1 :
+                                    print('Ouf')
+                                #print('get_rid_of_bad_links, ...  freeznoding : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
                             
                             if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                                 segment.freezeNode(endOfSegment)
+                                if 'utg000005l' in segment.names and endOfSegment == 1:
+                                    print('Ouf2')
                                 
 
                             elif any([i>1 for i in linksStrength]): #the condition is to prevent too much duplicating if there is no mapping or almost  
                                 
-                                #f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
+                                # if '262' in segment.names :
+                                #     print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
+                                #     print([i.names for i in segment.links[0]])
                                         
                                 if linksStrength[0] > linksStrength[1]:
                                     if (linksStrength[1] < linksStrength[0] * thresholdRejected) or (linksStrength[1] == 1 and linksStrength[0] > 2):  # then it means that the link does not exist
@@ -356,16 +365,22 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                         
                                     elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
                                         segment.freezeNode(endOfSegment)
-        
+                                        if 'utg000005l' in segment.names :
+                                            print('Ouf3')
+
                                 else:
                                     if linksStrength[0] < linksStrength[1] * thresholdRejected or (linksStrength[0] == 1 and linksStrength[1] > 2):  # then decide that the link does not exist
                                         segment._links[endOfSegment][n1].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n1], segment, endOfSegment)
                                         segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n1], segment._otherEndOfLinks[endOfSegment][n1])
                                     elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
+                                        if 'utg000005l' in segment.names :
+                                            print('Ouf5')
                                         segment.freezeNode(endOfSegment)
                             else : #linksStrength <= [1,1]
                                 segment.freezeNode(endOfSegment)
-                                #f.write('get_rid_of_bad_links, ...  freeznoding2 : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
+                                if 'utg000005l' in segment.names :
+                                    print('Ouf6')
+                                # print('get_rid_of_bad_links, ...  freeznoding2 : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
 
                             n2+=1
                             
@@ -413,6 +428,8 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         print('Got rid of bad links')
 
         listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber)
+
+        #print('end of merge_contigs : ', [i.names for i in listOfSegments[names['262']].links[0]])
 
         # once all the contigs have been duplicated and merged, unfreeze everything so the cycle can start again
         for j in listOfSegments:

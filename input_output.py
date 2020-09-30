@@ -14,6 +14,7 @@ import re #to find all numbers in a mixed number/letters string (such as 31M1D4M
 
 from segment import Segment
 from segment import compute_copiesNumber
+from segment import delete_links_present_twice
 
 # Read fragments list file
 # Input :
@@ -190,6 +191,9 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     print('Line_offsets loaded, launching proper writing of the new GFA')
     #Now that the preliminary work is done, start writing the new gfa file    
 
+    # for s in listOfSegments :
+
+
     f = open(exportFile, "w")
     
     #compute the copiesnumber
@@ -240,12 +244,14 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
             if  time.time() > t+1 :
                 t = time.time()
                 print(int(s / len(listOfSegments) * 1000) / 10, "% of links written", end = '\r')
+            
                 
             for endOfSegment in range(2):
                 for l, neighbor in enumerate(segment.links[endOfSegment]):
                     
                     if segment.ID <= neighbor.ID : #that is to ensure each link is written only once
                     
+                            
                         endOfNeighbor = segment.otherEndOfLinks[endOfSegment][l]
                         orientation1, orientation2 = '-', '-'
                         
@@ -255,6 +261,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                         if neighbor.orientations[-endOfNeighbor] != endOfNeighbor :
                             orientation2 = '+'
                             
+            
                         f.write("L\t"+segment.names[-endOfSegment] +"-"+ str(segment.copiesnumber[-endOfSegment]) + '\t' \
                                 + orientation1 + '\t' +\
                                     neighbor.names[-endOfNeighbor] +"-"+ str(neighbor.copiesnumber[-endOfNeighbor])+'\t'\
@@ -328,6 +335,8 @@ def load_gfa(file):
             segments[names[l[3]]].add_link_from_GFA(line, names, segments, 1)
 
     gfa_read.close()
+    
+    delete_links_present_twice(segments)
 
     return segments, names
 

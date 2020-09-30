@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 import random
 from copy import deepcopy
 
-import basic_functions as bf
+import input_output as io
 
-from transform_gfa import load_gfa
+from input_output import load_gfa
 from solve_ambiguities import solve_ambiguities
 
 #function scoring the output of solve_ambiguities (evaluating how well HiC contacts correlate with GFA distance)

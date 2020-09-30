@@ -26,21 +26,22 @@ def gfa_to_fasta(gfaFilename, fastaFilename = ''):
 
     for line in gfa_file.readlines():
         line = line.strip().split()
-        if "S" in line[0]:
-            if len(line) >= 3:
-                fasta_file.write(">{0}\n{1}\n".format(line[1], line[2]))
-                seqs.append(line[2])
-                seq_i = seq_i + 1
-            else:
-                print("Wrong format in line {0}: expected three fields.".format(i))
-                sys.exit(1)
+        if len(line) > 3 :
+            if "S" in line[0]:
+                if len(line) >= 3:
+                    fasta_file.write(">{0}\n{1}\n".format(line[1], line[2]))
+                    seqs.append(line[2])
+                    seq_i = seq_i + 1
+                else:
+                    print("Wrong format in line {0}: expected three fields.".format(i))
+                    sys.exit(1)
         i = i + 1
 
     gfa_file.close()
     fasta_file.close()
 
     print("Processed {0} sequences.".format(seq_i))
-    print(time.time() - t1)
+    print(time.time() - t1, 's')
 
     return seqs
 
@@ -99,6 +100,5 @@ def strip_copiesNumber(gfaFileIn, gfaFileOut):
        
 #strip_copiesNumber('Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa', 'Arabidopsis/Arabidopsis_hybrid/simplified_graph2.gfa')
 #gfa_to_fasta("Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa")
-#gfa_to_fasta("Escherichia_Coli/1a1k/unzipped_merged.gfa")
-#gfa_to_fasta('data_A_Vaga_PacBio/Assembly.gfa')
-#gfa_to_fasta('data_A_Vaga_PacBio/unzipped_merged.gfa')
+#gfa_to_fasta('bacteria_mix/SPAdes_output/assembly_graph_after_simplification.gfa')
+#gfa_to_fasta('data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa')
