@@ -146,9 +146,13 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
         line = f.readline()         
         sline = line.strip('\n').split('\t')
         if len(sline) == 3 and sline[0] == 'S' and (contig in sline[1]) :
-                return sline[2]
-        elif len(sline) > 3  and sline[0] == 'S' and (contig in sline[1]) :
-            return sline[2]+'\t'+sline[3]
+                return sline[2], ''
+            
+        elif len(sline) > 3 and sline[0] == 'S' and (contig in sline[1]):
+            for f in sline :
+                if 'dp' in f or 'DP' in f :
+                    return sline[2], f
+
         else :
             print('ERROR : Problem in the offset file, not pointing to the right lines')
 
@@ -197,7 +201,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     f = open(exportFile, "w")
     
     #compute the copiesnumber
-    compute_copiesNumber(listOfSegments)
+    copies = compute_copiesNumber(listOfSegments)
 
     #write the sequences and the links within the supercontigs
     t = time.time()
@@ -212,7 +216,12 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 
                 f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
                 if gfaFile != "":
-                    f.write(get_contig_GFA(gfaFile, contig, line_offset[contig]) + "\n")
+                    sequence, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    if depth == '':
+                        f.write(sequence + "\n")
+                    else :
+                        newdepth = str(float(depth.split(':')[-1])/copies[contig])
+                        f.write(sequence + '\tDP:f:'+newdepth + '\n')
                 else:
                     f.write("*\n")
     
@@ -268,41 +277,41 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                                 +orientation2+'\t'+segment.CIGARs[endOfSegment][l]+'\n')
 
     # in the case the user prefers having merged contigs as an output
-    else : #if merge_adjacent_contigs == True
+    # else : #if merge_adjacent_contigs == True
         
-        for s, segment in enumerate(listOfSegments):
-            if  time.time() > t+1 :
-                t = time.time()
-                print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
+    #     for s, segment in enumerate(listOfSegments):
+    #         if  time.time() > t+1 :
+    #             t = time.time()
+    #             print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
             
-            f.write("S\t" + segment.full_name() + "\t")
-            if gfaFile != "":
+    #         f.write("S\t" + segment.full_name() + "\t")
+    #         if gfaFile != "":
                 
-                sequence = ''
-                for c, contig in enumerate(segment.names) :
-                    s = get_contig_GFA(gfaFile, contig, line_offset[contig])
-                    if segment.orientations[c] == 0 :
-                        s = s[::-1]
-                    if c > 0 :
-                        CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
-                        s = s[CIGARlength:]
-                    sequence += s
-                f.write(sequence + "\n")
+    #             sequence = ''
+    #             for c, contig in enumerate(segment.names) :
+    #                 s = get_contig_GFA(gfaFile, contig, line_offset[contig])
+    #                 if segment.orientations[c] == 0 :
+    #                     s = s[::-1]
+    #                 if c > 0 :
+    #                     CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
+    #                     s = s[CIGARlength:]
+    #                 sequence += s
+    #             f.write(sequence + "\n")
                 
-            else:
-                f.write("*\n")
+    #         else:
+    #             f.write("*\n")
                 
-            for endOfSegment in range(2) :
-                for n, neighbor in enumerate(segment.links[endOfSegment]):
-                    if segment.ID < neighbor.ID : #to write each link just one
-                        orientation1, orientation2 = '+', '+'
-                        if endOfSegment == 0 :
-                            orientation1 = '-'
-                        if segment.otherEndOfLinks[endOfSegment][n] == 1 :
-                            orientation2 = '-'
+    #         for endOfSegment in range(2) :
+    #             for n, neighbor in enumerate(segment.links[endOfSegment]):
+    #                 if segment.ID < neighbor.ID : #to write each link just one
+    #                     orientation1, orientation2 = '+', '+'
+    #                     if endOfSegment == 0 :
+    #                         orientation1 = '-'
+    #                     if segment.otherEndOfLinks[endOfSegment][n] == 1 :
+    #                         orientation2 = '-'
                             
-                        f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
-                                '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+    #                     f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
+    #                             '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
 
 # Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
 # Also returns the list of the contig's names

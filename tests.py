@@ -358,7 +358,7 @@ def scan_interactionMatrix(gfa, matrix, contigs):
 gfaFile = 'data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa'
 matrix = 'data_A_vaga_HiFi/Flye/interactionMatrix.pickle'
 
-contigs = [['edge_267', 'edge_78'], ['edge_268', 'edge_78'], ['edge_78', 'edge_267']]
+contigs = [['edge_267', 'edge_78'], ['edge_268', 'edge_78']]
 scan_interactionMatrix(gfaFile, matrix, contigs)
 
 def testRatios():

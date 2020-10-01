@@ -71,10 +71,10 @@ def intensity_of_interactions(
     if all([i==0 for i in relativeScores]) :
         returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
-    if 'edge_78' in segment.names or 'edge_356' in segment.names :    
-        print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores, absoluteScores)
-        # print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
-        print('Common contigs : ', commonContigs, '\n')
+    # if 'edge_78' in segment.names or 'edge_356' in segment.names :    
+    #     print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores, absoluteScores)
+    #     # print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
+    #     print('Common contigs : ', commonContigs, '\n')
     
     if returnRelativeScore :
         return absoluteScores, relativeScores, neighborsOfNeighborsUsed

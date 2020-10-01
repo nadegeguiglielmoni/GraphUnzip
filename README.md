@@ -22,7 +22,7 @@ hic2gfa needs two things to work :
 python3 main.py --help
 usage: main.py [-h] -g GFA [-o OUTPUT] [-fo FASTA_OUTPUT] [-A ACCEPTED]
                [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
-               [-i INTERACTIONS] [--merge MERGE]
+               [-i INTERACTIONS]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -44,8 +44,6 @@ optional arguments:
                         Fragments list
   -i INTERACTIONS, --interactions INTERACTIONS
                         File with interactions [default: None]
-  --merge MERGE         If you want the output to have all possible contigs
-                        merged (y/n) [default: n]
 
 ```
 
