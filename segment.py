@@ -357,9 +357,38 @@ class Segment:
             del self._links[endOfSegment][index]
             del self._otherEndOfLinks[endOfSegment][index]
             del self._CIGARs[endOfSegment][index]
+     
+    #function to be used on small loops only
+    def flatten(self, replicas) :
+        if self not in self._links[0] :
             
+            print('ERROR : in segment.flatten, trying to flatten something that is not a loop')
+            
+        else :
+            
+            newName = self._namesOfContigs.copy()
+            newOrientations = self._orientationOfContigs.copy()
+            newLengths = self._lengths.copy()
+            newinsideCIGARs = self._insideCIGARs.copy()
+            newCopies = self._copiesOfContigs.copy()
+            for i in range(replicas) :
+                newName += self._namesOfContigs
+                newOrientations += self._orientationOfContigs
+                newLengths += self._lengths
+                newCopies += self._copiesOfContigs
+                newinsideCIGARs += [self._CIGARs[0][self._links[0].index(self)]] + self._insideCIGARs
+            
+            self._namesOfContigs = newName
+            self._orientationOfContigs = newOrientations
+            self._lengths = newLengths
+            self._copiesOfContigs = newCopies
+            self._insideCIGARs = newinsideCIGARs
+            
+           # print('In segment.flatten : ', self._namesOfContigs, self._insideCIGARs, [self._CIGARs[0][self._links[0].index(self)]])
+                
+            self.remove_end_of_link(0, self)
+            self.remove_end_of_link(1, self)
                     
-        
 #This function is OUTSIDE the class. It takes two segments and the end of the first segment which is linked to the second. It appends a merged contig to the listOfSegments, without modifying the two inputed segments
 def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
     

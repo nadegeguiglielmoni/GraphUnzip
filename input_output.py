@@ -10,7 +10,7 @@ from scipy import sparse #to handle interactionMatrix, which should be sparse
 import time #to inform the user on what the programm is doing on a regular basis
 import os.path #to check the existence of files
 import pickle #for writing files and reading them
-import re #to find all numbers in a mixed number/letters string (such as 31M1D4M)
+import re #to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
 
 from segment import Segment
 from segment import compute_copiesNumber
@@ -36,7 +36,6 @@ def read_fragment_list(file, header=True):
 
     return content
 
-
 def read_info_contig(file):
 
     with open(file) as f:
@@ -48,7 +47,6 @@ def read_info_contig(file):
     content = [[x[0], int(x[1]), int(x[2]), int(x[3])] for x in content]
 
     return content
-
 
 def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=True):  # the header refers to the hiccontactsfile
 
@@ -108,6 +106,36 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
         
     return interactionMatrix
 
+#input : a gaf file (outputted by graphaligner)
+#output : an interaction matrix with two values : 100 if the contigs are next to each other in some reads, 0 elsewhise
+def longReads_interactionsMatrix(gafFile, names, segments, SEGMENT_REPEAT = 100): #this last parameter if you want to add on the hic contact matrix the long reads martrix
+     
+    print('Buiding interaction matrix from the gaf file')
+    f = open(gafFile, 'r')
+    
+    interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+    
+    allLinks = set()
+    
+    for line in f :
+        
+        ls = line.split('\t')
+        if ls[5].count('>') + ls[5].count('<') > 1 :
+            contigs = re.split('[><]' , ls[5])
+            orientations = "".join(re.findall("[<>]", ls[5]))
+            del contigs[0] #because the first element is always ''
+            
+            for c1 in range(len(contigs)-1) :
+                for c2 in range(c1+1, len(contigs)):
+                    if names[contigs[c1]] != names[contigs[c2]] :
+                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = SEGMENT_REPEAT
+                        if c2 == c1 +1 :
+                            allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
+                    else :
+                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = contigs.count(contigs[c1])*(SEGMENT_REPEAT-1)
+                    
+    return interactionMatrix, allLinks
+
 def load_interactionMatrix(file, listOfSegments, names) :
     f = open(file, 'rb')
     interactionMatrix  = pickle.load(f)
@@ -149,9 +177,10 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
                 return sline[2], ''
             
         elif len(sline) > 3 and sline[0] == 'S' and (contig in sline[1]):
-            for f in sline :
+            for f in sline[3:] :
                 if 'dp' in f or 'DP' in f :
                     return sline[2], f
+            return sline[2], ''
 
         else :
             print('ERROR : Problem in the offset file, not pointing to the right lines')

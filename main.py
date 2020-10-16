@@ -77,12 +77,12 @@ def parse_args():
         default="Empty",
         help="""File with interactions [default: None]""",
     )
-    parser.add_argument(
-        "--merge",
-        required=False,
-        default="Empty",
-        help="""If you want the output to have all possible contigs merged (y/n) [default: n]""",
-    )
+    # parser.add_argument(
+    #     "--merge",
+    #     required=False,
+    #     default="Empty",
+    #     help="""If you want the output to have all possible contigs merged (y/n) [default: n]""",
+    # )
     return parser.parse_args()
 
 
@@ -98,7 +98,7 @@ def main():
     stringenceReject = float(args.rejected)
     stringenceAccept = float(args.accepted)
     steps = int(args.steps)
-    merge = args.merge
+    # merge = args.merge
 
     t = time.time()
 
@@ -154,8 +154,8 @@ def main():
     # now exporting the output
     print("Now exporting")
     merge_adj = False
-    if merge != "Empty" and merge != "n":
-        merge_adj = True
+    # if merge != "Empty" and merge != "n":
+    #     merge_adj = True
 
     io.export_to_GFA(
         segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge_adj
@@ -167,8 +167,8 @@ def main():
     print("Finished in ", time.time() - t, " seconds")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 # gfaFile = "Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa"
 # #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
@@ -177,15 +177,17 @@ if __name__ == "__main__":
 # interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
 # outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
 
-gfaFile = "data_A_vaga_HiFi/p/avaga.hifiasm_l0.hifi_default.min20kb.p_utg.gfa"
-fragmentsFile = "data_A_vaga_HiFi/p/mapping/fragments_list.txt"
-matrixFile = "data_A_vaga_HiFi/p/mapping/abs_fragments_contacts_weighted.txt"
-interactionFile = "data_A_vaga_HiFi/p/mapping/interactionMatrix.pickle"
-outFile = "data_A_vaga_HiFi/p/output.gfa"
+gfaFile = "data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa"
+#fragmentsFile = "data_A_vaga_HiFi/p/mapping/fragments_list.txt"
+#matrixFile = "data_A_vaga_HiFi/p/mapping/abs_fragments_contacts_weighted.txt"
+interactionFile = "data_A_vaga_HiFi/Flye/interactionMatrix.pickle"
+gafFile = "data_A_vaga_HiFi/Flye/aln_assemblyFlyeHiFi_nanopore1.gaf"
+outFile = "data_A_vaga_HiFi/Flye/HiFi_Flye_hic2gfa_lr.gfa"
 
 gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
+gafFile = "data_A_Vaga_PacBio/aln_Assembly.gaf"
 interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
-outFile = "data_A_Vaga_PacBio/unzipped.gfa"
+outFile = "data_A_Vaga_PacBio/PacBio_Shasta_hic2gfa_lr_twice.gfa"
 
 # gfaFile = "bacteria_mix/SPAdes_output/assembly_graph_after_simplification.gfa"
 # fragmentsFile = "bacteria_mix/HiCmapping/fragments_list.txt"
@@ -193,44 +195,55 @@ outFile = "data_A_Vaga_PacBio/unzipped.gfa"
 # interactionFile = "bacteria_mix/HiCmapping/interaction_matrix.pickle"
 # outFile = "bacteria_mix/output.gfa"
 
-# print('Loading the GFA file')
-# segments, names = io.load_gfa(gfaFile)
+print('Loading the GFA file')
+segments, names = io.load_gfa(gfaFile)
 
-# #check_if_all_links_are_sorted(segments)
+#check_if_all_links_are_sorted(segments)
 
-# #Now computing the interaction matrix
+#Now computing the interaction matrix
 
-# # fragmentList = io.read_fragment_list(fragmentsFile)
-# # interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
-# # #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+# fragmentList = io.read_fragment_list(fragmentsFile)
+# interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
+# #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
-# # #exporting it as to never have to do it again
+# #exporting it as to never have to do it again
 
-# # print('Exporting interaction matrix')
-# # file = open(interactionFile, 'wb')
-# # pickle.dump(interactionMatrix, file)
+# print('Exporting interaction matrix')
+# file = open(interactionFile, 'wb')
+# pickle.dump(interactionMatrix, file)
 
-# #print(names)
-# interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
+#print(names)
+SEGMENT_REPEAT = 10
+hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 
-# #print(names)
+# print(hicinteractionMatrix[names['edge_348'], names['edge_229']])
+# print(hicinteractionMatrix[names['edge_218'], names['edge_229']])
+
+lrinteractionMatrix, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments, SEGMENT_REPEAT)
+
+interactionMatrix = lrinteractionMatrix + hicinteractionMatrix
+
+#print(allLinks)
     
-# #print(interactionMatrix[names['utg000024l']])
-# print(interactionMatrix[names['894'], names['229']])
-# print(interactionMatrix[names['709'], names['229']])
+#print(interactionMatrix[names['utg000024l']])
+# print(lrinteractionMatrix[names['edge_348'], names['edge_229']])
+# print(lrinteractionMatrix[names['edge_218'], names['edge_229']])
+#print(interactionMatrix[names['709'], names['229']])
 
 
-# print('Next')
+print('Next')
 
-# #time.sleep(100)
+#time.sleep(100)
 
-# #print("Solving ambiguities")
+#print("Solving ambiguities")
 
-# segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.1, stringenceAccept = 0.3, steps = 7)
+segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.2, stringenceAccept = 0.4, steps = 7, SEGMENT_REPEAT = 10, lr_links = allLinks)
+#io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile+'.temp', merge_adjacent_contigs = False)
 
+segments = solve_ambiguities(segments, lrinteractionMatrix, names, stringenceReject = 0.2, stringenceAccept = 0.4, steps = 7, SEGMENT_REPEAT = 10)
 
-# print('Now exporting')
+print('Now exporting')
 
-# io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
+io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
 
-# print('Done!')
+print('Done!')

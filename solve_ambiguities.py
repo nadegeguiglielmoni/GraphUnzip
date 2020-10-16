@@ -10,6 +10,8 @@ import numpy as np
 import input_output as io
 from bisect import bisect_left #to look through sorted lists
 
+from copy import deepcopy
+
 from transform_gfa import check_segments
 import segment as s
 from segment import Segment
@@ -47,7 +49,7 @@ def intensity_of_interactions(
     
     depthFound = True
     depth = 2
-    while depthFound == True : #do the process again without neighborOfneighbor if neighbors of neighbors are only used sometimes
+    while depthFound == True : #do the process again without neighborOfneighbor if neighbors of neighbors are only used sometimes but not always
         absoluteScores = []
         relativeScores = []
         returnRelativeScore = True
@@ -60,7 +62,7 @@ def intensity_of_interactions(
         
                 if depthHere == 1 and depth == 2 :
                     depth = 1
-                    depthFound = False
+                    depthFound = True
                     
             else :
                 absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature, False)
@@ -71,9 +73,9 @@ def intensity_of_interactions(
     if all([i==0 for i in relativeScores]) :
         returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
     
-    # if 'edge_78' in segment.names or 'edge_356' in segment.names :    
+    # if 'edge_229' in segment.names:    
     #     print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores, absoluteScores)
-    #     # print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
+    #     #print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
     #     print('Common contigs : ', commonContigs, '\n')
     
     if returnRelativeScore :
@@ -230,7 +232,6 @@ def duplicate_around_this_end_of_contig(
     # lock all the segments that have been duplicated, so that they are not duplicated by both ends
     segment.lockNode(endOfSegment)
 
-
 # similar to the function above, but simpler: put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
 def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
 
@@ -267,7 +268,6 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     listOfSegments.remove(neighbor)
     
     return listOfSegments
-
 
 # a loop to merge all adjacent contigs
 def merge_adjacent_contigs(listOfSegments):
@@ -330,7 +330,57 @@ def merge_contigs(listOfSegments, copiesnumber):
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     
     return listOfSegments, copiesnumber
-                 
+             
+#function to solve small loops (works only if long reads are there)
+def solve_small_loops(listOfSegments, interactionMatrix, names, segment_repeat) :
+    
+    for se in range(len(listOfSegments)) :
+        
+        segment = listOfSegments[se]
+        if segment in segment.links[0] : #this is a small loop
+        
+            replications = 0
+            for contig in segment.names :
+                replications = max(replications, int(interactionMatrix[names[contig], names[contig]] / segment_repeat))
+            for contig in segment.names :
+                interactionMatrix[names[contig], names[contig]] = 0
+                
+            segment.flatten(replications)
+            #print('In solve_small_loops, flattening ', segment.names, segment.insideCIGARs)
+         
+def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig is in contact with both end of another contig
+    
+    for segment in segments :
+        for endOfSegment in range(2) :
+            toRemove = []
+            for n in range(len(segment.links[endOfSegment])-1) :
+                
+                if segment.links[endOfSegment][n].ID == segment.links[endOfSegment][n+1].ID : #the two links going toward the same contig are next to each other because links are sorted
+                    
+                    #here we have a l-loop
+                    neighbor = segment.links[endOfSegment][n]
+                    #let's check if the two links of the l-loop are confirmed by long reads
+                    
+                    
+                    cA0 = segment.names[-endOfSegment]
+                    oA0 = (endOfSegment == segment.orientations[-endOfSegment])
+                    cB0 = neighbor.names[-segment.otherEndOfLinks[endOfSegment][n]]
+                    oB0 = (neighbor.orientations[-segment.otherEndOfLinks[endOfSegment][n]] == segment.otherEndOfLinks[endOfSegment][n])
+                    if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, not oB0, cA0, not oA0) in lr_links :
+                        toRemove += [(segment, endOfSegment, neighbor, int(oB0))]
+                            
+                    cA1 = segment.names[-endOfSegment]
+                    oA1 = (endOfSegment == segment.orientations[-endOfSegment])
+                    cB1 = neighbor.names[-segment.otherEndOfLinks[endOfSegment][n+1]]
+                    oB1 = (neighbor.orientations[-segment.otherEndOfLinks[endOfSegment][n+1]] == segment.otherEndOfLinks[endOfSegment][n+1])
+                    if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, not oB1, cA1, not oA1) in lr_links:
+                        toRemove += [(segment, endOfSegment, neighbor, int(oB1))]
+                        
+            for i in toRemove :
+                i[0].remove_end_of_link(i[1], i[2], i[3])
+                i[2].remove_end_of_link(i[3], i[0], i[1])
+        
+
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted):
   
@@ -358,8 +408,8 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, True)
                             
-                            # if 'edge_357' in segment.names : 
-                            #     print('At 357, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)
+                            # if 'edge_229' in segment.names : 
+                            #     print('At 229, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)
                                 
                             if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot
                                 segment.freeze(endOfSegment)
@@ -423,7 +473,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
         
     return listOfSegments                        
 
-def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}):
+def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 100, lr_links = None):
         
     if copiesNumber == {} :
         for segment in listOfSegments :
@@ -440,6 +490,10 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         #     if 'edge_357' in se.names :
         #         print ('Here is one : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
         
+        solve_small_loops(listOfSegments, interactionMatrix, names, SEGMENT_REPEAT)
+        if lr_links != None :
+            solve_l_loops(listOfSegments, lr_links)
+            
         get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept)
         print('Got rid of bad links')
 
