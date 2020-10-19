@@ -8,21 +8,24 @@ hic2gfa has the specificity of phasing from an uncollapsed assembly graph in GFA
 
 ## Installation
 
+hic2gfa requires numpy and scipy, you can install them using `pip install`.
 ## Usage
 
 ### Input
 hic2gfa needs two things to work :
 
 1. An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) 
-
-2. Hi-C data : `hic2gfa` needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats).
+and
+2. Hi-C data : hic2gfa needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats)
+or 
+3. Long reads (mapped in the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
 
 ### Options
 ```bash
 python3 main.py --help
 usage: main.py [-h] -g GFA [-o OUTPUT] [-fo FASTA_OUTPUT] [-A ACCEPTED]
                [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
-               [-i INTERACTIONS]
+               [-i INTERACTIONS] [-lr LONGREADS]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -44,6 +47,8 @@ optional arguments:
                         Fragments list
   -i INTERACTIONS, --interactions INTERACTIONS
                         File with interactions [default: None]
+  -lr LONGREADS, --longreads LONGREADS
+                        Long reads mapped to the GFA with GraphAligner (GAF format)
 
 ```
 
