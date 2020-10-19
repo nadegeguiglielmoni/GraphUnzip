@@ -1,6 +1,6 @@
 # hic2gfa
 
-Phases an assembly graph using Hi-C data. 
+Phases an assembly graph using Hi-C data and/or long reads. 
 
 ## Why use hic2gfa ?
 
