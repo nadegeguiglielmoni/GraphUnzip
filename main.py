@@ -68,7 +68,7 @@ def parse_args():
         "-m", "--matrix", required=False, default="Empty", help="""Sparse Hi-C contact map"""
     )
     parser.add_argument(
-        "-lr", "--long-reads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (gaf format)"""
+        "-lr", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (gaf format)"""
     )
     parser.add_argument(
         "-F", "--fragments", required=False, default="Empty", help="""Fragments list"""
@@ -96,7 +96,7 @@ def main():
     outFile = args.output
     fastaFile = args.fasta_output
     matrixFile = args.matrix
-    lrFile = args.long-reads
+    lrFile = args.longreads
     fragmentsFile = args.fragments
     interactionFile = args.interactions
     stringenceReject = float(args.rejected)
@@ -140,14 +140,15 @@ def main():
         else:
             print("Error: could not find fragments file {0}.".format(fragmentsFile))
             sys.exit(1)    
-
+        
     elif interactionFile is not "Empty":
         print("Loading the interaction matrix")
         interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
     
+    lrLinks = []
     if lrFile is not "Empty":
         
-        lrInteractionMatrix = longReads_interactionsMatrix(lrFile, names, segments)
+        lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments)
         interactionMatrix += lrInteractionMatrix
         
         if interactionFile is "Empty":
@@ -155,11 +156,11 @@ def main():
 
             # exporting it as to never have to do it again
 
-            print("Exporting interaction matrix as ", interactionFile)
-            with open(interactionFile, "wb") as o:
-                pickle.dump(interactionMatrix, o)
+        print("Exporting interaction matrix as ", interactionFile)
+        with open(interactionFile, "wb") as o:
+            pickle.dump(interactionMatrix, o)
     
-    if interactionMatrix == sparse.dok_matrix((len(segments), len(segments))) :
+    if interactionMatrix.count_nonzero() > 0 :
         if not os.path.exists(interactionFile):
             print(
                 "Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map, or a gaf file produced with long reads and GraphAligner."
@@ -169,7 +170,7 @@ def main():
     print("Everything loaded, moving on to solve_ambiguities")
 
     segments = solve_ambiguities(
-        segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps
+        segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, lr_links=lrLinks
     )
 
     # now exporting the output

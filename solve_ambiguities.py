@@ -473,7 +473,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
         
     return listOfSegments                        
 
-def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 100, lr_links = None):
+def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 100, lr_links = []):
         
     if copiesNumber == {} :
         for segment in listOfSegments :
@@ -491,7 +491,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         #         print ('Here is one : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
         
         solve_small_loops(listOfSegments, interactionMatrix, names, SEGMENT_REPEAT)
-        if lr_links != None :
+        if lr_links != [] :
             solve_l_loops(listOfSegments, lr_links)
             
         get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept)
