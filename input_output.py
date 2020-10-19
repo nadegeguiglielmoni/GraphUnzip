@@ -110,7 +110,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
 #output : an interaction matrix with two values : 100 if the contigs are next to each other in some reads, 0 elsewhise
 def longReads_interactionsMatrix(gafFile, names, segments, SEGMENT_REPEAT = 100): #this last parameter if you want to add on the hic contact matrix the long reads martrix
      
-    print('Buiding interaction matrix from the gaf file')
+    print('Building interaction matrix from the gaf file')
     f = open(gafFile, 'r')
     
     interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
