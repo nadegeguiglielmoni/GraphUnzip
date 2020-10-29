@@ -349,6 +349,8 @@ class Segment:
     def remove_end_of_link(self, endOfSegment, segmentToRemove, endOfSegmentToRemove = None): #endOfSegmentToRemove is there in case there exists two links between self[endOfSegment] and segment to remove. Needed for extra security
         
         #first determine the index of the segment to remove
+        #print('Removing ', segmentToRemove.names, endOfSegmentToRemove, ' from ', self._namesOfContigs)
+        #print('Among these links :', [i.names for i in self._links[endOfSegment]], self._otherEndOfLinks[endOfSegment])
         index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment])
         #index = self._links[endOfSegment].index(segmentToRemove)
    
@@ -385,7 +387,7 @@ class Segment:
             self._insideCIGARs = newinsideCIGARs
             
            # print('In segment.flatten : ', self._namesOfContigs, self._insideCIGARs, [self._CIGARs[0][self._links[0].index(self)]])
-                
+            #print('Links before any removal, ', [i.names for i in self._links[0]], '\n')
             self.remove_end_of_link(0, self)
             self.remove_end_of_link(1, self)
                     
@@ -447,7 +449,7 @@ def compute_copiesNumber(listOfSegments):
     return cn
 
 #returns the position of the link pointing towards segment and its endOfSegment
-def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks) :
+def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warning = True) :
 
     lo = 0
     hi = len(listOfLinks)
@@ -468,9 +470,14 @@ def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks) :
             elif mid > 0 and listOfLinks[mid-1].ID == segment.ID :
                 return mid-1
             else :
-                print('Slight problem in find_this_link...')
-                return mid
-            
+                if warning :
+                    print('Slight problem in find_this_link...')
+                    return mid
+                else :
+                    return -1
+    
+    if not warning :
+        return -1
     #print([[listOfLinks[se].names, listOfEndsOfLinks[se]] for se in range(len(listOfLinks))])
     print(segment.names, endOfSegment, segment.ID)
     print(listOfLinks[mid].names, listOfLinks[mid].ID, listOfEndsOfLinks[mid])
