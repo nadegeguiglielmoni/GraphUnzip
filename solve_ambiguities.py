@@ -419,9 +419,10 @@ def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig i
         
 
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
-def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted):
-  
-    #f = open('dbg.txt', 'a')
+def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, debug_mode = False):
+
+    if debug_mode :
+        f = open('debug_log.txt', 'a')
     #loop through all segments inspecting the robustness of all links.
     c = 0
     
@@ -445,7 +446,10 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, True)
                             
+                            if debug_mode :
+                                f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
                             # if 'edge_229' in segment.names : 
+                            
                             #     print('At 229, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)
                                 
                             if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot
@@ -510,7 +514,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
         
     return listOfSegments                        
 
-def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 100, lr_links = []):
+def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 100, lr_links = [], debug_mode = False):
         
     if copiesNumber == {} :
         for segment in listOfSegments :
@@ -527,7 +531,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         #     if 'edge_357' in se.names :
         #         print ('Here is one : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
             
-        get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept)
+        get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept, debug_mode = debug_mode)
         
         if lr_links != [] :
             solve_small_loops(listOfSegments, interactionMatrix, names, SEGMENT_REPEAT, lr_links)
@@ -548,9 +552,13 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         for j in listOfSegments:
             j.unfreeze()
         
-        print(str((i+1) / steps * 100) + "% of solving ambiguities done")#, fake"+ str(i) + ".gfa built")
+        print(str((i+1) / steps * 100) + "% of solving ambiguities done")
         
-        #io.export_to_GFA(listOfSegments, gfaFile = 'Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa', exportFile = 'Escherichia_Coli/1a1k/unzipped'+str(i)+'.gfa')
+        if debug_mode :
+            io.export_to_GFA(listOfSegments, exportFile = 'debug_gfa_step'+str(i)+'.gfa')
+            f = open('debug_log.txt')
+            f.write('\n\n\n, finished step ', i)
+            f.close()
         
     return listOfSegments
 
