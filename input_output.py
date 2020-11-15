@@ -108,7 +108,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
 
 #input : a gaf file (outputted by graphaligner)
 #output : an interaction matrix with two values : 100 if the contigs are next to each other in some reads, 0 elsewhise
-def longReads_interactionsMatrix(gafFile, names, segments, SEGMENT_REPEAT = 100): #this last parameter if you want to add on the hic contact matrix the long reads martrix
+def longReads_interactionsMatrix(gafFile, names, segments):
      
     print('Building interaction matrix from the gaf file')
     f = open(gafFile, 'r')
@@ -128,11 +128,11 @@ def longReads_interactionsMatrix(gafFile, names, segments, SEGMENT_REPEAT = 100)
             for c1 in range(len(contigs)-1) :
                 for c2 in range(c1+1, len(contigs)):
                     if names[contigs[c1]] != names[contigs[c2]] :
-                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = SEGMENT_REPEAT
+                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = 10
                         if c2 == c1 +1 :
                             allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
                     else :
-                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = contigs.count(contigs[c1])*(SEGMENT_REPEAT-1)
+                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = max(contigs.count(contigs[c1])*10, interactionMatrix[names[contigs[c1]], names[contigs[c2]]])
                     
     return interactionMatrix, allLinks
 

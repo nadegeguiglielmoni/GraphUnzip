@@ -13,7 +13,7 @@ from solve_ambiguities import solve_ambiguities
 #from segment import check_if_all_links_are_sorted
 
 from scipy import sparse
-#import numpy as np
+import numpy as np
 import argparse
 import os.path
 import sys
@@ -146,10 +146,20 @@ def main():
         interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
     
     lrLinks = []
+    normalizationFactor = 1
     if lrFile is not "Empty":
         
         lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments)
-        interactionMatrix += lrInteractionMatrix
+        lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
+        hicSum = np.sum([np.sum(i) for i in interactionMatrix])
+        #normalizationFactor = hicSum/lrSum * 1 #you can use a factor bigger than 1 to give more importance to long reads, smaller than 1 to give more importance to Hi-C
+        
+        for i in lrInteractionMatrix.keys() :
+                
+                lrInteractionMatrix[i] *= normalizationFactor
+                #print('a, ', i)
+        
+        #interactionMatrix += lrInteractionMatrix
         
         if interactionFile is "Empty":
                 interactionFile = "interactionMatrix.pickle"
@@ -169,8 +179,11 @@ def main():
 
     print("Everything loaded, moving on to solve_ambiguities")
 
-    segments = solve_ambiguities(
-        segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, lr_links=lrLinks
+    segments, cn = solve_ambiguities(
+        segments, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, lr_links=lrLinks, SEGMENT_REPEAT = normalizationFactor*10
+    )
+    segments, cn = solve_ambiguities(
+        segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn
     )
 
     # now exporting the output
@@ -189,8 +202,8 @@ def main():
     print("Finished in ", time.time() - t, " seconds")
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
 
 # gfaFile = "Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa"
 # #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
@@ -213,6 +226,7 @@ outFile = "data_A_Vaga_PacBio/PacBio_Shasta_hic2gfa_lr_twice.gfa"
 
 gfaFile = "bactos/Flyeallreads_cleaning2merged.gfa"
 gafFile = "bactos/Flyeallreads_cleaning2merged_readsabove5kb.gaf"
+gafFile = "bactos/newaln.gaf"
 outFile = "bactos/output.gfa"
 
 # gfaFile = "bacteria_mix/SPAdes_output/assembly_graph_after_simplification.gfa"
@@ -221,8 +235,8 @@ outFile = "bactos/output.gfa"
 # interactionFile = "bacteria_mix/HiCmapping/interaction_matrix.pickle"
 # outFile = "bacteria_mix/output.gfa"
 
-print('Loading the GFA file')
-segments, names = io.load_gfa(gfaFile)
+# print('Loading the GFA file')
+# segments, names = io.load_gfa(gfaFile)
 
 #check_if_all_links_are_sorted(segments)
 
@@ -239,37 +253,39 @@ segments, names = io.load_gfa(gfaFile)
 # pickle.dump(interactionMatrix, file)
 
 #print(names)
-SEGMENT_REPEAT = 10
 # hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 
 # print(hicinteractionMatrix[names['edge_348'], names['edge_229']])
 # print(hicinteractionMatrix[names['edge_218'], names['edge_229']])
 
-lrinteractionMatrix, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments, SEGMENT_REPEAT)
+# lrinteractionMatrix, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments)
 
-interactionMatrix = lrinteractionMatrix #+ hicinteractionMatrix
+# interactionMatrix = lrinteractionMatrix #+ hicinteractionMatrix
 
-#print(allLinks)
+# #print(allLinks)
     
-#print(interactionMatrix[names['utg000024l']])
-# print(lrinteractionMatrix[names['edge_348'], names['edge_229']])
-# print(lrinteractionMatrix[names['edge_218'], names['edge_229']])
-#print(interactionMatrix[names['709'], names['229']])
+# #print(interactionMatrix[names['utg000024l']])
+# # print(lrinteractionMatrix[names['edge_348'], names['edge_229']])
+# # print(lrinteractionMatrix[names['edge_218'], names['edge_229']])
+# #print(interactionMatrix[names['709'], names['229']])
+# for i in allLinks :
+#     if 'edge_498' in i :
+#         print(i)
 
 
-print('Next')
+# print('Next')
 
-#time.sleep(100)
+# #time.sleep(100)
 
-#print("Solving ambiguities")
+# #print("Solving ambiguities")
 
-segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.1, stringenceAccept = 0.4, steps = 1, SEGMENT_REPEAT = 10, lr_links = allLinks, debug_mode = True)
-#io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile+'.temp', merge_adjacent_contigs = False)
+# segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.01, stringenceAccept = 0.4, steps = 5, SEGMENT_REPEAT = 10, lr_links = allLinks, useNeighborOfNeighbor = False, debug_mode = True)
+# #io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile+'.temp', merge_adjacent_contigs = False)
 
-# segments = solve_ambiguities(segments, lrinteractionMatrix, names, stringenceReject = 0.2, stringenceAccept = 0.4, steps = 7, SEGMENT_REPEAT = 10)
+# # segments = solve_ambiguities(segments, lrinteractionMatrix, names, stringenceReject = 0.2, stringenceAccept = 0.4, steps = 7, SEGMENT_REPEAT = 10)
 
-print('Now exporting')
+# print('Now exporting')
 
-io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
+# io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
 
-print('Done!')
+# print('Done!')
