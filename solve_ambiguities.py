@@ -476,7 +476,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, depthOfCommonContigs = d)
                             
                             if debug_mode :
-                                f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
+                                f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength)+'\n')
                             # if 'edge_229' in segment.names : 
                             
                             #     print('At 229, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)

@@ -80,6 +80,14 @@ def parse_args():
         default="Empty",
         help="""File with interactions [default: None]""",
     )
+    
+    parser.add_argument(
+        "-dbg",
+        "--debug_mode",
+        required=False,
+        default=False,
+        help="""Debug mode. [default: False]""",
+    )
     # parser.add_argument(
     #     "--merge",
     #     required=False,
@@ -102,6 +110,7 @@ def main():
     stringenceReject = float(args.rejected)
     stringenceAccept = float(args.accepted)
     steps = int(args.steps)
+    dbg = args.debug_mode
     # merge = args.merge
 
     t = time.time()
@@ -152,23 +161,15 @@ def main():
         lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments)
         lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
         hicSum = np.sum([np.sum(i) for i in interactionMatrix])
-        #normalizationFactor = hicSum/lrSum * 1 #you can use a factor bigger than 1 to give more importance to long reads, smaller than 1 to give more importance to Hi-C
-        
-        for i in lrInteractionMatrix.keys() :
-                
-                lrInteractionMatrix[i] *= normalizationFactor
+        # normalizationFactor = hicSum/lrSum * 0.1 + 1 #you can use a factor bigger than 1 to give more importance to long reads, smaller than 1 to give more importance to Hi-C
+        # 
+        # for i in lrInteractionMatrix.keys() :
+        #         
+        #         lrInteractionMatrix[i] *= normalizationFactor
                 #print('a, ', i)
         
         #interactionMatrix += lrInteractionMatrix
         
-        if interactionFile is "Empty":
-                interactionFile = "interactionMatrix.pickle"
-
-            # exporting it as to never have to do it again
-
-        print("Exporting interaction matrix as ", interactionFile)
-        with open(interactionFile, "wb") as o:
-            pickle.dump(interactionMatrix, o)
     
     if interactionMatrix.count_nonzero() > 0 :
         if not os.path.exists(interactionFile):
@@ -178,13 +179,16 @@ def main():
             sys.exit(1)
 
     print("Everything loaded, moving on to solve_ambiguities")
+    cn = {}
+    if lrFile is not "Empty" :
+        segments, cn = solve_ambiguities(
+            segments, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, lr_links=lrLinks, SEGMENT_REPEAT = normalizationFactor*10, debug_mode = dbg
+        )
 
-    segments, cn = solve_ambiguities(
-        segments, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, lr_links=lrLinks, SEGMENT_REPEAT = normalizationFactor*10
-    )
-    segments, cn = solve_ambiguities(
-        segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn
-    )
+    if interactionMatrix.count_nonzero() > 0 :
+        segments, cn = solve_ambiguities(
+            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debug_mode = dbg
+        )
 
     # now exporting the output
     print("Now exporting")
