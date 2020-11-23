@@ -1,24 +1,26 @@
-# hic2gfa
+# GraphUnzip
 
 Phases an assembly graph using Hi-C data and/or long reads. 
 
-## Why use hic2gfa ?
+## Why use GraphUnzip ?
 
-hic2gfa has the specificity of phasing from an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes.
+GraphUnzip phases an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes.
 
 ## Installation
 
-hic2gfa requires numpy and scipy, you can install them using `pip install`.
+GraphUnzip requires numpy and scipy, you can install them using `pip install`.
+
 ## Usage
 
 ### Input
-hic2gfa needs two things to work :
+
+GraphUnzip needs two things to work :
 
 1. An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) 
 and
-2. Hi-C data : hic2gfa needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats)
+2. Hi-C data : GraphUnzip needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats)
 or 
-3. Long reads (mapped in the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
+3. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
 
 ### Options
 ```bash
@@ -52,7 +54,7 @@ optional arguments:
 
 ```
 
-`hic2gfa` produces an intermediary file, by default interactionMatrix.pickle. If it is the second time you run `hic2gfa` on the same dataset, specify with -i the path to this file, it will make the program run much faster.
+`GraphUnzip` produces an intermediary file, by default interactionMatrix.pickle. If it is the second time you run `GraphUnzip` on the same dataset, specify with -i the path to this file, it will make the program run much faster.
 
 The accepted threshold is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
 
