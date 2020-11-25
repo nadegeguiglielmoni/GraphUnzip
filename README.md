@@ -1,20 +1,22 @@
 # GraphUnzip
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4291093.svg)](https://doi.org/10.5281/zenodo.4291093)
+
 Phases an assembly graph using Hi-C data and/or long reads. 
 
 ## Why use GraphUnzip ?
 
-GraphUnzip phases an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes.
+`GraphUnzip` phases an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes.
 
 ## Installation
 
-GraphUnzip requires numpy and scipy, you can install them using `pip install`.
+`GraphUnzip` requires numpy and scipy, you can install them using `pip install`.
 
 ## Usage
 
 ### Input
 
-GraphUnzip needs two things to work :
+`GraphUnzip` needs two things to work :
 
 1. An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) 
 and
@@ -59,3 +61,9 @@ optional arguments:
 The accepted threshold is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
 
 The rejected threshold is the threshold below which a link is considered non-existent (compared with a competing link). If the outputted assembly graph is too fragmented, lower this threshold.
+
+## Citation
+
+Please cite `GraphUnzip` using the official DOI as follows:
+
+Roland Faure, Nadège Guiglielmoni, & Jean-François Flot. (2020, November 25). GraphUnzip: First release (Version v1.0). Zenodo. http://doi.org/10.5281/zenodo.4291093
