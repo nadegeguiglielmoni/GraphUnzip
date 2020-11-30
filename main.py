@@ -233,14 +233,17 @@ def main():
                 "Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map, or a gaf file produced with long reads and GraphAligner."
             )
             sys.exit(1)
+    
 
     print("Everything loaded, moving on to solve_ambiguities")
     cn = {}
     
-    if interactionMatrix.count_nonzero() > 0 :
+    if interactionMatrix.count_nonzero() > 0 or exhaustive:
         segments, cn = solve_ambiguities(
             segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debug_mode = dbg, lr_links = lrLinks, check_links = exhaustive,
         )
+    if interactionMatrix.count_nonzero() == 0:
+        print("WARNING: the interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")
 
     # now exporting the output
     print("Now exporting")
