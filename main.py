@@ -133,7 +133,7 @@ def parse_args():
         "-dbg",
         "--debug_mode",
         action="store_true",
-        help="""Debug mode. [default: False]""",
+        help="Debug mode",
     )
     # parser.add_argument(
     #     "--merge",
