@@ -42,20 +42,22 @@ def parse_args():
         default="None",
         help="""Optional fasta output [default: None]""",
     )
+    
     parser.add_argument(
         "-A",
         "--accepted",
         required=False,
         default=0.30,
-        help="""Threshold to accept links. [default: 0.30]""",
+        help="""Threshold to accept Hi-C links. [default: 0.30]""",
     )
     parser.add_argument(
         "-R",
         "--rejected",
         required=False,
         default=0.15,
-        help="""Threshold to reject links. [default: 0.15]""",
+        help="""Threshold to reject Hi-C links. [default: 0.15]""",
     )
+    
     parser.add_argument(
         "-s",
         "--steps",
@@ -67,9 +69,7 @@ def parse_args():
     parser.add_argument(
         "-m", "--matrix", required=False, default="Empty", help="""Sparse Hi-C contact map"""
     )
-    parser.add_argument(
-        "-lr", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (gaf format)"""
-    )
+
     parser.add_argument(
         "-F", "--fragments", required=False, default="Empty", help="""Fragments list"""
     )
@@ -80,6 +80,40 @@ def parse_args():
         default="Empty",
         help="""File with interactions [default: None]""",
     )
+    
+    parser.add_argument(
+        "-lr", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (gaf format)"""
+    )
+    
+    parser.add_argument(
+        "--exhaustive",
+        required = False,
+        default = False,
+        help = "If True, all links not found in the gaf file will be considered as fake and removed [default: False]",
+    )
+    
+    
+    # parser.add_argument(
+    #     "-Alr",
+    #     "--accepted-lr",
+    #     required=False,
+    #     default=0.30,
+    #     help="""Threshold to accept long-reads links. [default: 0.30]""",
+    # )
+    # parser.add_argument(
+    #     "-Rlr",
+    #     "--rejected-lr",
+    #     required=False,
+    #     default=0.15,
+    #     help="""Threshold to reject long-reads links. [default: 0.15]""",
+    # )
+    # parser.add_argument(
+    #     "-c",
+    #     "--combine-matrices",
+    #     required=False,
+    #     default=0,
+    #     help="""Define how Hi-C and long reads interaction matrices are combined. Values are 0 (add the two matrices), 1 (run first long-reads), 2 (run first Hi-C). [default: 0]""",
+    # )
     
     parser.add_argument(
         "-dbg",
@@ -109,8 +143,12 @@ def main():
     interactionFile = args.interactions
     stringenceReject = float(args.rejected)
     stringenceAccept = float(args.accepted)
+    # stringenceRejectLR = float(args.rejected-lr)
+    # stringenceAcceptLR = float(args.accepted-lr)
     steps = int(args.steps)
+    exhaustive = bool(args.exhaustive)
     dbg = args.debug_mode
+    
     # merge = args.merge
 
     t = time.time()
@@ -166,9 +204,9 @@ def main():
         # for i in lrInteractionMatrix.keys() :
         #         
         #         lrInteractionMatrix[i] *= normalizationFactor
-                #print('a, ', i)
+        #         print('a, ', i)
         
-        #interactionMatrix += lrInteractionMatrix
+        interactionMatrix += lrInteractionMatrix
         
     
     if interactionMatrix.count_nonzero() > 0 :
@@ -180,14 +218,10 @@ def main():
 
     print("Everything loaded, moving on to solve_ambiguities")
     cn = {}
-    if lrFile is not "Empty" :
-        segments, cn = solve_ambiguities(
-            segments, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, lr_links=lrLinks, SEGMENT_REPEAT = normalizationFactor*10, debug_mode = dbg
-        )
-
+    
     if interactionMatrix.count_nonzero() > 0 :
         segments, cn = solve_ambiguities(
-            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debug_mode = dbg
+            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debug_mode = dbg, lr_links = lrLinks, check_links = exhaustive,
         )
 
     # now exporting the output
@@ -216,22 +250,22 @@ if __name__ == "__main__":
 # interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
 # outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
 
-gfaFile = "data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa"
+# gfaFile = "data_A_vaga_HiFi/Flye/assemblyFlyeHiFi+.gfa"
 #fragmentsFile = "data_A_vaga_HiFi/p/mapping/fragments_list.txt"
 #matrixFile = "data_A_vaga_HiFi/p/mapping/abs_fragments_contacts_weighted.txt"
-interactionFile = "data_A_vaga_HiFi/Flye/interactionMatrix.pickle"
-gafFile = "data_A_vaga_HiFi/Flye/aln_assemblyFlyeHiFi_nanopore1.gaf"
-outFile = "data_A_vaga_HiFi/Flye/HiFi_Flye_hic2gfa_lr.gfa"
+# interactionFile = "data_A_vaga_HiFi/Flye/interactionMatrix.pickle"
+# gafFile = "data_A_vaga_HiFi/Flye/aln_assemblyFlyeHiFi_nanopore1.gaf"
+# outFile = "data_A_vaga_HiFi/Flye/HiFi_Flye_hic2gfa_lr.gfa"
 
-gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
-gafFile = "data_A_Vaga_PacBio/aln_Assembly.gaf"
-interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
-outFile = "data_A_Vaga_PacBio/PacBio_Shasta_hic2gfa_lr_twice.gfa"
-
-gfaFile = "bactos/Flyeallreads_cleaning2merged.gfa"
-gafFile = "bactos/Flyeallreads_cleaning2merged_readsabove5kb.gaf"
-gafFile = "bactos/newaln.gaf"
-outFile = "bactos/output.gfa"
+# gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
+# gafFile = "data_A_Vaga_PacBio/aln_Assembly.gaf"
+# interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
+# outFile = "data_A_Vaga_PacBio/PacBio_Shasta_hic2gfa_lr_twice.gfa"
+# 
+# gfaFile = "bactos/Flyeallreads_cleaning2merged.gfa"
+# gafFile = "bactos/Flyeallreads_cleaning2merged_readsabove5kb.gaf"
+# gafFile = "bactos/newaln.gaf"
+# outFile = "bactos/output.gfa"
 
 # gfaFile = "bacteria_mix/SPAdes_output/assembly_graph_after_simplification.gfa"
 # fragmentsFile = "bacteria_mix/HiCmapping/fragments_list.txt"
@@ -258,9 +292,12 @@ outFile = "bactos/output.gfa"
 
 #print(names)
 # hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
-
-# print(hicinteractionMatrix[names['edge_348'], names['edge_229']])
-# print(hicinteractionMatrix[names['edge_218'], names['edge_229']])
+# 
+# print(hicinteractionMatrix[names['edge_10'], names['edge_115_edge_189']])
+# print(hicinteractionMatrix[names['edge_10'], names['edge_175_edge_105_edge_353_edge_198']])
+# 
+# print(hicinteractionMatrix[names['edge_203'], names['edge_24']])
+# print(hicinteractionMatrix[names['edge_204'], names['edge_24']])
 
 # lrinteractionMatrix, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments)
 

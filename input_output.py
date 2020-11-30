@@ -127,12 +127,13 @@ def longReads_interactionsMatrix(gafFile, names, segments):
             
             for c1 in range(len(contigs)-1) :
                 for c2 in range(c1+1, len(contigs)):
-                    if names[contigs[c1]] != names[contigs[c2]] :
-                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = 10
-                        if c2 == c1 +1 :
-                            allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
-                    else :
-                        interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = max(contigs.count(contigs[c1])*10, interactionMatrix[names[contigs[c1]], names[contigs[c2]]])
+                    if contigs[c1] in names and contigs[c2] in names :
+                        if names[contigs[c1]] != names[contigs[c2]] :
+                            interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = 10
+                            if c2 == c1 +1 :
+                                allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
+                        else :
+                            interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = max(contigs.count(contigs[c1])*10, interactionMatrix[names[contigs[c1]], names[contigs[c2]]])
                     
     return interactionMatrix, allLinks
 

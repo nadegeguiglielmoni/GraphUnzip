@@ -543,7 +543,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
         
     return listOfSegments                        
 
-def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 0, lr_links = [], useNeighborOfNeighbor = True, debug_mode = False):
+def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 0, lr_links = [], useNeighborOfNeighbor = True, debug_mode = False, check_links = False):
         
     if debug_mode :
         f = open('debug_log.txt', 'w')
@@ -553,8 +553,8 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         for segment in listOfSegments :
             copiesNumber['_'.join(segment.names)] = 1
             
-    if lr_links != [] :
-        check_all_links(listOfSegments, lr_links) #just check if all links there are present in the long reads
+    if lr_links != [] and check_all_links :
+        check_all_links(listOfSegments, lr_links) # check if all links there are present in the long reads
         if SEGMENT_REPEAT == 0 :
             print('SEGMENT_REPEAT not given in solve_ambiguities, putting 1 but this is doubtful')
             
