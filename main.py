@@ -92,6 +92,22 @@ def parse_args():
         help = "If True, all links not found in the gaf file will be considered as fake and removed [default: False]",
     )
     
+    parser.add_argument(
+        "-mm",
+        "--minimum_match",
+        required = False,
+        default = 0,
+        help = "Filters all alignment with a match rate <minimum-match [default: 0]",
+    )
+    
+    parser.add_argument(
+        "-wm",
+        "--whole_match",
+        required = False,
+        default = False,
+        help = "Filters all alignment that do not match full-lengthly [default: False]",
+    )
+    
     
     # parser.add_argument(
     #     "-Alr",
@@ -134,6 +150,7 @@ def parse_args():
 def main():
 
     args = parse_args()
+    
     gfaFile = args.gfa
     outFile = args.output
     fastaFile = args.fasta_output
@@ -147,6 +164,10 @@ def main():
     # stringenceAcceptLR = float(args.accepted-lr)
     steps = int(args.steps)
     exhaustive = bool(args.exhaustive)
+    
+    mm = float(args.minimum_match)
+    wm = bool(args.whole_match)
+    
     dbg = args.debug_mode
     
     # merge = args.merge
@@ -196,7 +217,7 @@ def main():
     normalizationFactor = 1
     if lrFile is not "Empty":
         
-        lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments)
+        lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
         lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
         hicSum = np.sum([np.sum(i) for i in interactionMatrix])
         # normalizationFactor = hicSum/lrSum * 0.1 + 1 #you can use a factor bigger than 1 to give more importance to long reads, smaller than 1 to give more importance to Hi-C

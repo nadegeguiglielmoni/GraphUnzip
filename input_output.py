@@ -108,7 +108,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
 
 #input : a gaf file (outputted by graphaligner)
 #output : an interaction matrix with two values : 100 if the contigs are next to each other in some reads, 0 elsewhise
-def longReads_interactionsMatrix(gafFile, names, segments):
+def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold = 0, whole_mapping = False):
      
     print('Building interaction matrix from the gaf file')
     f = open(gafFile, 'r')
@@ -121,19 +121,24 @@ def longReads_interactionsMatrix(gafFile, names, segments):
         
         ls = line.split('\t')
         if ls[5].count('>') + ls[5].count('<') > 1 :
-            contigs = re.split('[><]' , ls[5])
-            orientations = "".join(re.findall("[<>]", ls[5]))
-            del contigs[0] #because the first element is always ''
             
-            for c1 in range(len(contigs)-1) :
-                for c2 in range(c1+1, len(contigs)):
-                    if contigs[c1] in names and contigs[c2] in names :
-                        if names[contigs[c1]] != names[contigs[c2]] :
-                            interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = 10
-                            if c2 == c1 +1 :
-                                allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
-                        else :
-                            interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = max(contigs.count(contigs[c1])*10, interactionMatrix[names[contigs[c1]], names[contigs[c2]]])
+            if not 'id:f' in ls[-2] or float(ls[-2].split(':')[-1]) > similarity_threshold :
+                
+                if not whole_mapping or (ls[2] == 0 and ls[1] == ls[3]) :
+                    
+                    contigs = re.split('[><]' , ls[5])
+                    orientations = "".join(re.findall("[<>]", ls[5]))
+                    del contigs[0] #because the first element is always ''
+                    
+                    for c1 in range(len(contigs)-1) :
+                        for c2 in range(c1+1, len(contigs)):
+                            if contigs[c1] in names and contigs[c2] in names :
+                                if names[contigs[c1]] != names[contigs[c2]] :
+                                    interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = 10
+                                    if c2 == c1 +1 :
+                                        allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
+                                else :
+                                    interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = max(contigs.count(contigs[c1])*10, interactionMatrix[names[contigs[c1]], names[contigs[c2]]])
                     
     return interactionMatrix, allLinks
 
