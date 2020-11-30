@@ -82,13 +82,13 @@ def parse_args():
     )
     
     parser.add_argument(
-        "-lr", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (gaf format)"""
+        "-lr", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format)"""
     )
     
     parser.add_argument(
         "--exhaustive",
         action="store_true",
-        help = "If activated, all links not found in the gaf file will be considered as fake and removed",
+        help = "Removes all links not found in the GAF file",
     )
     
     parser.add_argument(
@@ -96,14 +96,14 @@ def parse_args():
         "--minimum_match",
         required = False,
         default = 0,
-        help = "Filters all alignment with a match rate <minimum-match [default: 0]",
+        help = "Filters out alignments with a minimum match identity < minimum-match [default: 0]",
     )
     
     parser.add_argument(
         "-wm",
         "--whole_match",
         action="store_true",
-        help = "Filters all alignment that do not match full-lengthly [default: False]",
+        help = "Filters out alignments that do not extend over the whole length of the read",
     )
     
     
