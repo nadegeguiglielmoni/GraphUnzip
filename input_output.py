@@ -213,8 +213,8 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     
                 offset += len(line)
             
-        with open(offsetsFile, 'wb') as o:
-            pickle.dump(line_offset, o)
+        # with open(offsetsFile, 'wb') as o:
+        #     pickle.dump(line_offset, o)
     
     if gfaFile != '' :
         with open(offsetsFile, 'rb') as o:
@@ -222,7 +222,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
         
         #print(line_offset)
  
-    print('Line_offsets loaded, launching proper writing of the new GFA')
+    print('Line_offsets computed, launching proper writing of the new GFA')
     #Now that the preliminary work is done, start writing the new gfa file    
 
     # for s in listOfSegments :
