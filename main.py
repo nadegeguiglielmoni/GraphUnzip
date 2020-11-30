@@ -87,9 +87,8 @@ def parse_args():
     
     parser.add_argument(
         "--exhaustive",
-        required = False,
-        default = False,
-        help = "If True, all links not found in the gaf file will be considered as fake and removed [default: False]",
+        action="store_true",
+        help = "If activated, all links not found in the gaf file will be considered as fake and removed",
     )
     
     parser.add_argument(
@@ -103,8 +102,7 @@ def parse_args():
     parser.add_argument(
         "-wm",
         "--whole_match",
-        required = False,
-        default = False,
+        action="store_true",
         help = "Filters all alignment that do not match full-lengthly [default: False]",
     )
     
@@ -134,8 +132,7 @@ def parse_args():
     parser.add_argument(
         "-dbg",
         "--debug_mode",
-        required=False,
-        default=False,
+        action="store_true",
         help="""Debug mode. [default: False]""",
     )
     # parser.add_argument(
