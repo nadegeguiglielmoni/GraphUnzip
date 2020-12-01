@@ -39,20 +39,28 @@ optional arguments:
   -fo FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
   -A ACCEPTED, --accepted ACCEPTED
-                        Threshold to accept links. [default: 0.30]
+                        Threshold to accept Hi-C links. [default: 0.30]
   -R REJECTED, --rejected REJECTED
-                        Threshold to reject links. [default: 0.15]
+                        Threshold to reject Hi-C links. [default: 0.15]
   -s STEPS, --steps STEPS
                         Number of cycles get rid of bad links - duplicate
                         contigs. [default: 10]
   -m MATRIX, --matrix MATRIX
-                        Sparse contact map
+                        Sparse Hi-C contact map
   -F FRAGMENTS, --fragments FRAGMENTS
                         Fragments list
   -i INTERACTIONS, --interactions INTERACTIONS
                         File with interactions [default: None]
   -lr LONGREADS, --longreads LONGREADS
-                        Long reads mapped to the GFA with GraphAligner (GAF format)
+                        Long reads mapped to the GFA with GraphAligner (GAF
+                        format)
+  --exhaustive          Removes all links not found in the GAF file
+  -mm MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
+                        Filters out alignments with a minimum match identity <
+                        minimum-match [default: 0]
+  -wm, --whole_match    Filters out alignments that do not extend over the
+                        whole length of the read
+  -dbg, --debug_mode    Debug mode
 
 ```
 
