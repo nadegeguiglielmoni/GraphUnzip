@@ -130,10 +130,11 @@ def parse_args():
     # )
     
     parser.add_argument(
-        "-dbg",
-        "--debug_mode",
-        action="store_true",
-        help="""Debug mode. [default: False]""",
+        "-v",
+        "--verbose",
+        required = False,
+        default = '',
+        help="""Activate the debug mode. Parameter: directory to put the logs and the intermediary GFAs.""",
     )
     # parser.add_argument(
     #     "--merge",
@@ -165,7 +166,7 @@ def main():
     mm = float(args.minimum_match)
     wm = bool(args.whole_match)
     
-    dbg = args.debug_mode
+    dbgDir = args.verbose
     
     # merge = args.merge
 
@@ -240,7 +241,7 @@ def main():
     
     if interactionMatrix.count_nonzero() > 0 or exhaustive:
         segments, cn = solve_ambiguities(
-            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debug_mode = dbg, lr_links = lrLinks, check_links = exhaustive,
+            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive,
         )
     if interactionMatrix.count_nonzero() == 0:
         print("WARNING: the interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")

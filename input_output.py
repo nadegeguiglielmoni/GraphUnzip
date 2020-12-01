@@ -124,7 +124,7 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
             
             if not 'id:f' in ls[-2] or float(ls[-2].split(':')[-1]) > similarity_threshold :
                 
-                if not whole_mapping or (ls[2] == 0 and ls[1] == ls[3]) :
+                if not whole_mapping or (ls[2] == 0 and float(ls[1]) == float(ls[3])) :
                     
                     contigs = re.split('[><]' , ls[5])
                     orientations = "".join(re.findall("[<>]", ls[5]))

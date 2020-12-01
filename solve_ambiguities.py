@@ -445,10 +445,10 @@ def check_all_links(segments, lr_links) :
     
     
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
-def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, lr_links, debug_mode = False, neighborsOfNeighbors = True):
+def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, lr_links, debugDir = '', neighborsOfNeighbors = True):
 
-    if debug_mode :
-        f = open('debug_log.txt', 'a')
+    if debugDir != '' :
+        f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
     #loop through all segments inspecting the robustness of all links.
     c = 0
     
@@ -475,7 +475,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, interactionMatrix, names, copiesnumber, depthOfCommonContigs = d)
                             
-                            if debug_mode :
+                            if debugDir != '' :
                                 f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength)+'\n')
                             # if 'edge_229' in segment.names : 
                             
@@ -538,25 +538,25 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
                     else :
                         segment.freezeNode(endOfSegment)
                         
-    #f.close()
-    
+    if debugDir != '' :
+        f.close()
         
     return listOfSegments                        
 
-def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 0, lr_links = [], useNeighborOfNeighbor = True, debug_mode = False, check_links = False):
+def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 0, lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = False):
         
-    if debug_mode :
-        f = open('debug_log.txt', 'w')
+    if debugDir != '' :
+        f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'w')
         f.close()
     
     if copiesNumber == {} :
         for segment in listOfSegments :
             copiesNumber['_'.join(segment.names)] = 1
             
-    if lr_links != [] and check_all_links :
+    if check_links :
         check_all_links(listOfSegments, lr_links) # check if all links there are present in the long reads
         if SEGMENT_REPEAT == 0 :
-            print('SEGMENT_REPEAT not given in solve_ambiguities, putting 1 but this is doubtful')
+            SEGMENT_REPEAT = 10
             
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     print('Merged adjacent contigs for the first time')            
@@ -569,7 +569,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         #     if 'edge_357' in se.names :
         #         print ('Here is one : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
             
-        get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debug_mode = debug_mode, neighborsOfNeighbors = useNeighborOfNeighbor)
+        get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor)
         
         if lr_links != [] :
             solve_small_loops(listOfSegments, interactionMatrix, names, SEGMENT_REPEAT, lr_links)
@@ -592,9 +592,9 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
         
         print(str((i+1) / steps * 100) + "% of solving ambiguities done")
         
-        if debug_mode :
-            io.export_to_GFA(listOfSegments, exportFile = 'debug_gfa_step'+str(i)+'.gfa')
-            f = open('debug_log.txt', 'a')
+        if debugDir != '' :
+            io.export_to_GFA(listOfSegments, exportFile = debugDir.strip('/')+'/'+'verbose_gfa_step'+str(i)+'.gfa')
+            f = open(debugDir.strip('/')+'/'+'verbose_log.txt', 'a')
             f.write('Finished step '+ str(i)+ ' \n\n\n')
             f.close()
         
