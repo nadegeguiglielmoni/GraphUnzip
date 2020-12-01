@@ -86,6 +86,7 @@ def parse_args():
     )
     
     parser.add_argument(
+        "-e",
         "--exhaustive",
         action="store_true",
         help = "Removes all links not found in the GAF file",
@@ -133,6 +134,12 @@ def parse_args():
         "-v",
         "--verbose",
         required = False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        required = False,
         default = '',
         help="""Activate the debug mode. Parameter: directory to put the logs and the intermediary GFAs.""",
     )
@@ -166,7 +173,9 @@ def main():
     mm = float(args.minimum_match)
     wm = bool(args.whole_match)
     
-    dbgDir = args.verbose
+    verbose = args.verbose
+    
+    dbgDir = args.debug
     
     # merge = args.merge
 
@@ -223,6 +232,7 @@ def main():
         
         if not os.path.exists(lrFile):
             print('Error: could not find the long-reads file.')
+            sys.exit(1)
             
         lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
         lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
@@ -242,7 +252,7 @@ def main():
     
     if interactionMatrix.count_nonzero() > 0 or exhaustive:
         segments, cn = solve_ambiguities(
-            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive,
+            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
         )
     if interactionMatrix.count_nonzero() == 0:
         print("WARNING: the interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")
