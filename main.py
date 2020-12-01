@@ -210,11 +210,20 @@ def main():
     elif interactionFile is not "Empty":
         print("Loading the interaction matrix")
         interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
+        
+    elif not os.path.exists(interactionFile) and not os.path.exists(lrFile):
+        print(
+            "Error: could not find the file(s) to build/load the interaction matrix. You should provide either a processed interaction file in pickle format or a fragment list and a hic contact sparse matrix in hicstuff format. You can check you spelled everything correctly."
+        )
+        sys.exit(1)
     
     lrLinks = []
     normalizationFactor = 1
     if lrFile is not "Empty":
         
+        if not os.path.exists(lrFile):
+            print('Error: could not find the long-reads file.')
+            
         lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
         lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
         hicSum = np.sum([np.sum(i) for i in interactionMatrix])
@@ -226,14 +235,6 @@ def main():
         #         print('a, ', i)
         
         interactionMatrix += lrInteractionMatrix
-        
-    
-    if interactionMatrix.count_nonzero() > 0 :
-        if not os.path.exists(interactionFile):
-            print(
-                "Error: you should provide either a processed interaction file, or the fragments list and the sparse contact map, or a gaf file produced with long reads and GraphAligner."
-            )
-            sys.exit(1)
     
 
     print("Everything loaded, moving on to solve_ambiguities")
