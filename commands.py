@@ -33,12 +33,12 @@ class AbstractCommand:
         raise NotImplementedError
 
 
-class GFAtoFasta(AbstractCommand):
+class Gfatofasta(AbstractCommand):
     """ GFA to fasta command
     Convert GFA file to fasta file.
 
     usage:
-        gfa2fasta [--outfile=genome.fasta] <genome.gfa>
+        gfatofasta [--outfile=genome.fasta] <genome.gfa>
 
     arguments:
         genome.gfa            Draft assembly in GFA format.
@@ -52,13 +52,12 @@ class GFAtoFasta(AbstractCommand):
         gfa_to_fasta(self.args["<mapping.bam>"], self.args["--outfile"])
 
 
-class ProcessHiCData(AbstractCommand):
+class Hic(AbstractCommand):
     """ Processing Hi-C data command
     Process Hi-C sparse matrix for GraphUnzip.
 
     usage:
-        processHiCData [--outfile=hicMatrix.pickle] --gfa=FILE --frags=FILE 
-                       <sparse_matrix.txt>
+        hic [--outfile=hicMatrix.pickle] --gfa=FILE --frags=FILE <sparse_matrix.txt>
 
     arguments:
         sparse_matrix.txt     Sparse Hi-C matrix.
@@ -91,19 +90,20 @@ class ProcessHiCData(AbstractCommand):
             pickle.dump(hicInteractionMatrix, o)
 
 
-class ProcessLRData(AbstractCommand):
+class Lr(AbstractCommand):
     """ Processing long-read data command
     Process mapped long-read data for GraphUnzip.
 
     usage:
-        processLRData [--outfile=LRMatrix.pickle] [--outlinks=links.pickle] 
-                      [--min-match=0] [--whole-match] --gfa=FILE <mapping.gaf>
+        lr [--outfile=LRMatrix.pickle] [--outlinks=links.pickle] 
+           [--min-match=0] [--whole-match] --gfa=FILE <mapping.gaf>
 
     arguments:
         mapping.gaf             Long reads mapped to the GFA.
         
     options:
-        -o, --outfile=FILE      Processed long-read data output [default: LRMatrix.pickle].
+        -o, --outfile=FILE      Processed long-read data output 
+                                [default: LRMatrix.pickle].
         -l, --outlinks=FILE     Links output [default: links.pickle].
         -m, --min-match=INT     Minimum match threshold [default: 0].
         -w, --whole-match       Keep only alignments of full reads.
@@ -138,20 +138,21 @@ class Unzip(AbstractCommand):
     Unzip assembly graph.
 
     usage:
-        unzip [--hic=hicMatrix.pickle] [--lr=LRMatrix.pickle] [--lr-links=links.pickle] 
-              [--min-match=0] [--whole-match] --gfa=FILE <mapping.gaf>
-
-    arguments:
-        mapping.gaf            Long reads mapped to the GFA.
+        unzip --gfa=FILE [--hic=hicMatrix.pickle] [--lr=LRMatrix.pickle] 
+              [--lr-links=links.pickle] [--fasta=FILE] [--accept=0.30]
+              [--reject=0.15] [--steps=10] [--exhaustive]
         
     options:
-        -h, --hic=FILE         Processed Hi-C data [default: hicMatrix.pickle].
-        -l, --lr=FILE          Processed long-read data [default: LRMatrix.pickle].
-        -L, --lr-links=FILE    Links output [default: links.pickle].
         -g, --gfa=FILE         Draft assembly in GFA format.
-        -A, --accept           Threshold to accept links [default: 0.30].
-        -R, --reject           Threshold to reject links [default: 0.15].
-        -S, --steps            Number of cycles to get rid of bad links [default: 10].
+        -h, --hic=FILE         Processed Hi-C data [default: hicMatrix.pickle].
+        -l, --lr=FILE          Processed long-read data 
+                               [default: LRMatrix.pickle].
+        -L, --lr-links=FILE    Links output [default: links.pickle].
+        -f, --fasta=FILE       Fasta output.
+        -A, --accept=FLOAT     Threshold to accept links [default: 0.30].
+        -R, --reject=FLOAT     Threshold to reject links [default: 0.15].
+        -S, --steps=INT        Number of cycles to get rid of bad links 
+                               [default: 10].
         -e, --exhaustive       Remove all links not found in the GAF file.
     """
 
@@ -161,20 +162,25 @@ class Unzip(AbstractCommand):
         print("Loading GFA file.")
         segments, names = io.load_gfa(file=self.args["--gfa"])
 
-        print("Loading Hi-C interaction matrix.")
-        interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
+        print(self.args["--fasta"])
+        print(self.args["--exhaustive"])
 
-        if interactionMatrix.count_nonzero() > 0 or exhaustive:
-            segments, cn = solve_ambiguities(
-                segments,
-                interactionMatrix,
-                names,
-                self.args["--reject"],
-                self.args["--accept"],
-                steps,
-                SEGMENT_REPEAT=normalizationFactor * 10,
-                copiesNumber=cn,
-                debugDir=dbgDir,
-                lr_links=lrLinks,
-                check_links=exhaustive,
-            )
+        print("Loading Hi-C interaction matrix.")
+        interactionMatrix = io.load_interactionMatrix(
+            self.args["--hic"], segments, names
+        )
+
+        # if interactionMatrix.count_nonzero() > 0 or exhaustive:
+        #    segments, cn = solve_ambiguities(
+        #        segments,
+        #        interactionMatrix,
+        #        names,
+        #        self.args["--reject"],
+        #        self.args["--accept"],
+        #        steps,
+        #        SEGMENT_REPEAT=normalizationFactor * 10,
+        #        copiesNumber=cn,
+        #        debugDir=dbgDir,
+        #        lr_links=lrLinks,
+        #        check_links=exhaustive,
+        #    )
