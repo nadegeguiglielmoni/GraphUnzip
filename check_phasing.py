@@ -93,7 +93,7 @@ def assign_a_chromosome_to_each_contig(solutionFile, assemblyFile, queryfiles, f
             for alignment in blast_record.alignments:
                 nbhits = 0
                 for hsp in alignment.hsps:
-                    if hsp.identities > 0.99*chunks :
+                    if hsp.identities > 0.96*chunks :
                         nbhits += 1
                         if query not in assign[alignment.title.strip('No definition line')] :
                             assign[alignment.title.strip('No definition line')] += [query]
@@ -111,6 +111,7 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
     
     fi = open(fastaFile, 'r')
     
+    phasingErrors = 0
     for line in fi :
         
         if '>' in line[0] :
@@ -121,7 +122,6 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
             chromosomes = set()
             allchromosomes = set()
             first = True
-            phasingErrors = 0
             for contig in listOfContigs :
                 
                 if contig not in assigned :
@@ -134,13 +134,13 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
                             chromosomes = set(assigned[contig])
                             allchromosomes = set(assigned[contig])
                         else :
-                            chromosomes = chromosomes and set(assigned[contig])
-                            allchromosomes = allchromosomes or set(assigned[contig])
+                            chromosomes = chromosomes.intersection( set(assigned[contig]))
+                            allchromosomes = allchromosomes.union(set(assigned[contig]))
                             if len(chromosomes) == 0 :
                                 print ('Phasing error detected at contig ', listOfContigs, ', the contigs belong to ', [assigned[i] for i in listOfContigs])
                                 phasingErrors += 1
             
-            print('Contig ', listOfContigs, ' is in chromosome ', chromosomes)
+            #print('Contig ', listOfContigs, ' is in chromosome ', chromosomes)
     
     phasingSuccesses = 0
     for i in assigned.keys():
@@ -150,18 +150,23 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
     print('\n\nTo summarize ', phasingSuccesses, ' contigs contain no phasing errors and ', phasingErrors, ' contain phasing errors')
         
 #first cut each chromosome in chunks
-queryfiles = cut_chromosomes('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', chunks = 2000)
-print(queryfiles) #give the value outputted here to query files in the future
-print('Done cutting')
+# queryfiles = cut_chromosomes('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', chunks = 2000)
+# print(queryfiles) #give the value outputted here to query files in the future
+# print('Done cutting')
 
 #then assign to each contig of the original assembly which chromosome(s) it belongs to
+queryfiles = ['1_cut.fasta', '2_cut.fasta', '3_cut.fasta', '4_cut.fasta', '5_cut.fasta', '6_cut.fasta', '7_cut.fasta', '8_cut.fasta', '9_cut.fasta', '10_cut.fasta', '11_cut.fasta', '12_cut.fasta']
 assign_a_chromosome_to_each_contig('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', 'data_A_Vaga_PacBio/Assembly.fasta', queryfiles, 'data_A_Vaga_PacBio/assign.pickle', chunks = 2000)
 
 #if you have the queryfiles and the assign.pickle already you can skip the two above functions.
 
 #check if the new supercontigs are composed of contigs coming from only one chromosome
-# queryfiles = ['1_cut.fasta', '2_cut.fasta', '3_cut.fasta', '4_cut.fasta', '5_cut.fasta', '6_cut.fasta', '7_cut.fasta', '8_cut.fasta', '9_cut.fasta', '10_cut.fasta', '11_cut.fasta', '12_cut.fasta']
+
 f = open('data_A_Vaga_PacBio/assign.pickle', 'rb')
 assigned = pickle.load(f)
 
+print(assigned['521'],
+assigned['881'],
+assigned['854'],
+assigned['776'])
 check_phasing(assigned, 'data_A_Vaga_PacBio/unzipped_merged.fasta')
