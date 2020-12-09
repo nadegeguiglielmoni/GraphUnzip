@@ -395,7 +395,7 @@ def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig i
                     
             for n in range(len(segment.links[endOfSegment])-1) :
                     
-                if segment.links[endOfSegment][n].ID == segment.links[endOfSegment][n+1].ID : #the two links going toward the same contig are next to each other because links are sorted
+                if segment.links[endOfSegment][n].ID == segment.links[endOfSegment][n+1].ID and  segment.otherEndOfLinks[endOfSegment][n] == segment.otherEndOfLinks[endOfSegment][n+1]: #the two links going toward the same contig are next to each other because links are sorted
                     
                     #here we have a l-loop
                     neighbor = segment.links[endOfSegment][n]
@@ -559,6 +559,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesnumber,
 
 def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, SEGMENT_REPEAT = 0, lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = False, verbose = False):
         
+        
     if debugDir != '' :
         f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'w')
         f.close()
@@ -580,6 +581,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, names, stringenceReject
     for i in range(steps):
             
         get_rid_of_bad_links(listOfSegments, interactionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose)
+        
         
         if lr_links != [] :
             solve_small_loops(listOfSegments, interactionMatrix, names, SEGMENT_REPEAT, lr_links, check_links)

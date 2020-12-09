@@ -449,7 +449,7 @@ def compute_copiesNumber(listOfSegments):
     return cn
 
 #returns the position of the link pointing towards segment and its endOfSegment
-def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warning = True) :
+def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warning = False) :
 
     lo = 0
     hi = len(listOfLinks)
@@ -465,24 +465,30 @@ def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warnin
                 return mid
             elif endOfSegment == listOfEndsOfLinks[mid] :
                 return mid
-            elif mid < len(listOfLinks) - 1 and listOfLinks[mid+1].ID == segment.ID :
-                return mid +1
-            elif mid > 0 and listOfLinks[mid-1].ID == segment.ID :
-                return mid-1
-            else :
-                if warning :
-                    print('Slight problem in find_this_link...')
-                    return mid
-                else :
-                    return -1
+                
+            elif endOfSegment < listOfEndsOfLinks[mid] :
+                mid += 1
+                while mid < len(listOfLinks) and listOfLinks[mid].ID == segment.ID :
+                    if endOfSegment == listOfEndsOfLinks[mid] :
+                        return mid
+                    mid += 1
+                    
+                break
+                
+            elif endOfSegment > listOfEndsOfLinks[mid] :
+                mid -= 1
+                while mid >= 0 and listOfLinks[mid].ID == segment.ID :
+                    if endOfSegment == listOfEndsOfLinks[mid] :
+                        return mid
+                    mid -= 1
+                break
     
     if not warning :
         return -1
-    #print([[listOfLinks[se].names, listOfEndsOfLinks[se]] for se in range(len(listOfLinks))])
-    print(segment.names, endOfSegment, segment.ID)
-    print(listOfLinks[mid].names, listOfLinks[mid].ID, listOfEndsOfLinks[mid])
-    print(lo, mid, hi, len(listOfLinks))
+        
     print('In find_this_link : did not find the link')
+    #print([[listOfLinks[se].names, listOfEndsOfLinks[se]] for se in range(len(listOfLinks))])
+    print('Did not find ', segment.names, endOfSegment, ' among ', [i.names for i in listOfLinks], [i for i in listOfEndsOfLinks])
 
 #returns the index at which a segment should be inserted in a list sorted by ID : useful because links[0] and links[1] are kept sorted at all times
 def index_at_which_new_link_should_be_inserted(segment, listOfSegments) :

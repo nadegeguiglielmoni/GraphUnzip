@@ -107,7 +107,6 @@ def parse_args():
         help = "Filters out alignments that do not extend over the whole length of the read",
     )
     
-    
     # parser.add_argument(
     #     "-Alr",
     #     "--accepted-lr",
@@ -190,6 +189,7 @@ def main():
     segments, names = io.load_gfa(
         gfaFile
     )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
+
     interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
 
@@ -307,7 +307,7 @@ if __name__ == "__main__":
 # outFile = "bacteria_mix/output.gfa"
 
 # print('Loading the GFA file')
-# segments, names = io.load_gfa(gfaFile)
+#segments, names = io.load_gfa(gfaFile)
 
 #check_if_all_links_are_sorted(segments)
 
@@ -324,10 +324,12 @@ if __name__ == "__main__":
 # pickle.dump(interactionMatrix, file)
 
 #print(names)
-# hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
+#hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 # 
-# print(hicinteractionMatrix[names['edge_10'], names['edge_115_edge_189']])
-# print(hicinteractionMatrix[names['edge_10'], names['edge_175_edge_105_edge_353_edge_198']])
+
+
+
+
 # 
 # print(hicinteractionMatrix[names['edge_203'], names['edge_24']])
 # print(hicinteractionMatrix[names['edge_204'], names['edge_24']])
