@@ -165,7 +165,7 @@ def draw_distance_HiCcontacts_correlation(listOfSuperContigs, links, lengthOfCon
                     HiCcontacts.append (interactionMatrix[i][j]/lengthOfContigs[i]/lengthOfContigs[j])
                     shortestPaths.append(matrixOfShortestPaths[i][j])
       
-    print('coucou')
+    #print('coucou')
     plt.scatter(HiCcontacts, shortestPaths, alpha = 0.1)
     plt.xlabel('Intensity of contacts')
     plt.ylabel('Smallest distance between the two contigs')
