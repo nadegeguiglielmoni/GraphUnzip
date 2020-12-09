@@ -6,7 +6,7 @@ from Bio.Blast import NCBIXML
 
 
 # names containing underscores do not work well. Here is a function to get the '_' out of the gfa
-def take_edge_out_of_gfa_names(fileIn, fileOut) :
+def take_underscores_out_of_gfa_names(fileIn, fileOut) :
     
     fo = open(fileOut, 'w')
     fi = open(fileIn, 'r')
@@ -156,6 +156,8 @@ print('Done cutting')
 
 #then assign to each contig of the original assembly which chromosome(s) it belongs to
 assign_a_chromosome_to_each_contig('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', 'data_A_Vaga_PacBio/Assembly.fasta', queryfiles, 'data_A_Vaga_PacBio/assign.pickle', chunks = 2000)
+
+#if you have the queryfiles and the assign.pickle already you can skip the two above functions.
 
 #check if the new supercontigs are composed of contigs coming from only one chromosome
 # queryfiles = ['1_cut.fasta', '2_cut.fasta', '3_cut.fasta', '4_cut.fasta', '5_cut.fasta', '6_cut.fasta', '7_cut.fasta', '8_cut.fasta', '9_cut.fasta', '10_cut.fasta', '11_cut.fasta', '12_cut.fasta']
