@@ -82,9 +82,9 @@ def assign_a_chromosome_to_each_contig(solutionFile, assemblyFile, queryfiles, f
         
         contigsHere = []
         print('Looking at chromosome : ', query)
-        blastn_cline = NcbiblastnCommandline(query='cut/'+query, db='tmp/dtb', evalue=0.000000001, outfmt=5, out='tmp/blast_sol'+query.strip('.fasta') + '.xml', task="megablast", qcov_hsp_perc = 0.95)
-        print('Blast done')
+        blastn_cline = NcbiblastnCommandline(query='cut/'+query, db='tmp/dtb', evalue=0.000000001, outfmt=5, out='tmp/blast_sol'+query.strip('.fasta') + '.xml', task="megablast", qcov_hsp_perc = 0.95, num_alignments=5)
         out, err = blastn_cline()
+        print('Blast done')
         
         result_handle = open('tmp/blast_sol'+query.strip('.fasta') + '.xml')
         blast_records = NCBIXML.parse(result_handle)
@@ -93,12 +93,12 @@ def assign_a_chromosome_to_each_contig(solutionFile, assemblyFile, queryfiles, f
             for alignment in blast_record.alignments:
                 nbhits = 0
                 for hsp in alignment.hsps:
-                    if hsp.identities > 0.96*chunks :
+                    if hsp.identities > 0.98*chunks :
                         nbhits += 1
-                        if query not in assign[alignment.title.strip('No definition line')] :
-                            assign[alignment.title.strip('No definition line')] += [query]
+                        if query.strip('_cut.fasta') not in assign[alignment.title.strip('No definition line')] :
+                            assign[alignment.title.strip('No definition line')] += [query.strip('_cut.fasta')]
         
-    print(assign)
+    #print(assign)
 
     fo = open(fileOut, 'wb')
     pickle.dump(assign, fo)
@@ -133,11 +133,11 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
                             first = False
                             chromosomes = set(assigned[contig])
                             allchromosomes = set(assigned[contig])
-                        else :
+                        elif len(chromosomes) != 0 :
                             chromosomes = chromosomes.intersection( set(assigned[contig]))
                             allchromosomes = allchromosomes.union(set(assigned[contig]))
                             if len(chromosomes) == 0 :
-                                print ('Phasing error detected at contig ', listOfContigs, ', the contigs belong to ', [assigned[i] for i in listOfContigs])
+                                print ('\nPhasing error detected at contig ', listOfContigs, ', the contigs belong to ', [assigned[i] for i in listOfContigs])
                                 phasingErrors += 1
             
             #print('Contig ', listOfContigs, ' is in chromosome ', chromosomes)
@@ -150,13 +150,13 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
     print('\n\nTo summarize ', phasingSuccesses, ' contigs contain no phasing errors and ', phasingErrors, ' contain phasing errors')
         
 #first cut each chromosome in chunks
-# queryfiles = cut_chromosomes('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', chunks = 2000)
+#queryfiles = cut_chromosomes('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', chunks = 4000)
 # print(queryfiles) #give the value outputted here to query files in the future
 # print('Done cutting')
 
 #then assign to each contig of the original assembly which chromosome(s) it belongs to
 queryfiles = ['1_cut.fasta', '2_cut.fasta', '3_cut.fasta', '4_cut.fasta', '5_cut.fasta', '6_cut.fasta', '7_cut.fasta', '8_cut.fasta', '9_cut.fasta', '10_cut.fasta', '11_cut.fasta', '12_cut.fasta']
-assign_a_chromosome_to_each_contig('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', 'data_A_Vaga_PacBio/Assembly.fasta', queryfiles, 'data_A_Vaga_PacBio/assign.pickle', chunks = 2000)
+#assign_a_chromosome_to_each_contig('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', 'data_A_Vaga_PacBio/Assembly.fasta', queryfiles, 'data_A_Vaga_PacBio/assign.pickle', chunks = 4000)
 
 #if you have the queryfiles and the assign.pickle already you can skip the two above functions.
 
