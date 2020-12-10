@@ -93,7 +93,7 @@ def assign_a_chromosome_to_each_contig(solutionFile, assemblyFile, queryfiles, f
             for alignment in blast_record.alignments:
                 nbhits = 0
                 for hsp in alignment.hsps:
-                    if hsp.identities > 0.98*chunks :
+                    if hsp.identities > 0.97*chunks and nbhits == 0:
                         nbhits += 1
                         if query.strip('_cut.fasta') not in assign[alignment.title.strip('No definition line')] :
                             assign[alignment.title.strip('No definition line')] += [query.strip('_cut.fasta')]

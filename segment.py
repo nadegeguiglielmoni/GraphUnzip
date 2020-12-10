@@ -47,7 +47,7 @@ class Segment:
         self._otherEndOfLinks = [[i[1] for i in lists_keyed[0]], [i[1] for i in lists_keyed[1]]] #for each link, indicates the side of the other segment on which the link arrives
         self._CIGARs = [[i[2] for i in lists_keyed[0]], [i[2] for i in lists_keyed[1]]] #for each link, indicates the CIGAR string found in the GFA
         
-        self._freezed = [False, False]
+        self._freezed = [False, False] #do not duplicate from one end if frozen at this end
         self._locked = lock #That is to duplicate a contig only once in each merge_contigs
         
         
@@ -173,6 +173,7 @@ class Segment:
             orientation = 1
         else: #if the supercontigs are not touching, computing the partial area is useless, but harmless
             print('ERROR : trying to compute an interaction with supercontigsaretouching=True but actually not True')
+            print(self._namesOfContigs, segment.names)
             
         depth = 1
         #first compute interactions with self
