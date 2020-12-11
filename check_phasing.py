@@ -12,7 +12,7 @@ def take_underscores_out_of_gfa_names(fileIn, fileOut) :
     fi = open(fileIn, 'r')
     
     for line in fi :
-        ls = line.split['\t']
+        ls = line.split('\t')
         if 'S' in ls[0] :
             
             ls[1] = ''.join(ls[1].split('_'))
@@ -72,7 +72,6 @@ def assign_a_chromosome_to_each_contig(solutionFile, assemblyFile, queryfiles, f
     for line in aFile :
         if '>' in line[0] :
             assign[line.strip('>').strip('\n')] = []
-        
     
     #queryfiles = ['2_cut.fasta', '12_cut.fasta']
     
@@ -93,10 +92,10 @@ def assign_a_chromosome_to_each_contig(solutionFile, assemblyFile, queryfiles, f
             for alignment in blast_record.alignments:
                 nbhits = 0
                 for hsp in alignment.hsps:
-                    if hsp.identities > 0.97*chunks and nbhits == 0:
+                    if hsp.identities > 0.999*chunks and nbhits == 0:
                         nbhits += 1
-                        if query.strip('_cut.fasta') not in assign[alignment.title.strip('No definition line')] :
-                            assign[alignment.title.strip('No definition line')] += [query.strip('_cut.fasta')]
+                        if query.rstrip('_cut.fasta') not in assign[alignment.title.rstrip('No definition line')] :
+                            assign[alignment.title.rstrip('No definition line')] += [query.rstrip('_cut.fasta')]
         
     #print(assign)
 
@@ -115,8 +114,8 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
     for line in fi :
         
         if '>' in line[0] :
-            listOfContigs = line.strip('>').strip('\n').split('_')
-            listOfContigs = [i.split('-')[0] for i in listOfContigs]
+            listOfContigs = line.strip('>').strip('\n').split('-')
+            listOfContigs = [''.join(i.split('_')[1:]) for i in listOfContigs]
             #print(listOfContigs)
             
             chromosomes = set()
@@ -156,17 +155,19 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
 
 #then assign to each contig of the original assembly which chromosome(s) it belongs to
 queryfiles = ['1_cut.fasta', '2_cut.fasta', '3_cut.fasta', '4_cut.fasta', '5_cut.fasta', '6_cut.fasta', '7_cut.fasta', '8_cut.fasta', '9_cut.fasta', '10_cut.fasta', '11_cut.fasta', '12_cut.fasta']
-#assign_a_chromosome_to_each_contig('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', 'data_A_Vaga_PacBio/Assembly.fasta', queryfiles, 'data_A_Vaga_PacBio/assign.pickle', chunks = 4000)
+assign_a_chromosome_to_each_contig('data_A_vaga_HiFi/Flye/A_vaga_12_chr.fasta', 'data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.fasta', queryfiles, 'data_A_vaga_HiFi/Flye/assign.pickle', chunks = 4000)
 
 #if you have the queryfiles and the assign.pickle already you can skip the two above functions.
 
 #check if the new supercontigs are composed of contigs coming from only one chromosome
 
-f = open('data_A_Vaga_PacBio/assign.pickle', 'rb')
+f = open('data_A_vaga_HiFi/Flye/assign.pickle', 'rb')
 assigned = pickle.load(f)
 
-print(assigned['521'],
-assigned['881'],
-assigned['854'],
-assigned['776'])
-check_phasing(assigned, 'data_A_Vaga_PacBio/unzipped_merged.fasta')
+print(assigned)
+# print(assigned['521'],
+# assigned['881'],
+# assigned['854'],
+# assigned['776'])
+#check_phasing(assigned, 'data_A_Vaga_PacBio/unzipped_merged.fasta')
+

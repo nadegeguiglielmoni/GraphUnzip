@@ -114,6 +114,7 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
     f = open(gafFile, 'r')
     
     interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+    repeats = [0]*len(segments)
     
     allLinks = set()
     
@@ -134,13 +135,13 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
                         for c2 in range(c1+1, len(contigs)):
                             if contigs[c1] in names and contigs[c2] in names :
                                 if names[contigs[c1]] != names[contigs[c2]] :
-                                    interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = 10
+                                    interactionMatrix[names[contigs[c1]], names[contigs[c2]]] += 1
                                     if c2 == c1 +1 :
                                         allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
                                 else :
-                                    interactionMatrix[names[contigs[c1]], names[contigs[c2]]] = max(contigs.count(contigs[c1])*10, interactionMatrix[names[contigs[c1]], names[contigs[c2]]])
+                                    repeats[names[contigs[c1]]] = max(contigs.count(contigs[c1]), repeats[names[contigs[c1]]])
                     
-    return interactionMatrix, allLinks
+    return interactionMatrix, repeats, allLinks
 
 def load_interactionMatrix(file, listOfSegments, names) :
     f = open(file, 'rb')

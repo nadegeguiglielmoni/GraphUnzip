@@ -227,6 +227,7 @@ def main():
         sys.exit(1)
     
     lrLinks = []
+    lrInteractionMatrix  = sparse.dok_matrix((len(segments), len(segments)))
     normalizationFactor = 1
     if lrFile is not "Empty":
         
@@ -234,7 +235,7 @@ def main():
             print('Error: could not find the long-reads file.')
             sys.exit(1)
             
-        lrInteractionMatrix, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
+        lrInteractionMatrix, repeats, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
         lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
         hicSum = np.sum([np.sum(i) for i in interactionMatrix])
         # normalizationFactor = hicSum/lrSum * 0.1 + 1 #you can use a factor bigger than 1 to give more importance to long reads, smaller than 1 to give more importance to Hi-C
@@ -244,15 +245,15 @@ def main():
         #         lrInteractionMatrix[i] *= normalizationFactor
         #         print('a, ', i)
         
-        interactionMatrix += lrInteractionMatrix
+        #interactionMatrix += lrInteractionMatrix
     
 
     print("Everything loaded, moving on to solve_ambiguities")
     cn = {}
     
-    if interactionMatrix.count_nonzero() > 0 or exhaustive:
+    if interactionMatrix.count_nonzero() > 0 or lrInteractionMatrix.count_nonzero() >0 or exhaustive:
         segments, cn = solve_ambiguities(
-            segments, interactionMatrix, names, stringenceReject, stringenceAccept, steps, SEGMENT_REPEAT = normalizationFactor*10, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
+            segments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
         )
     if interactionMatrix.count_nonzero() == 0:
         print("WARNING: the interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")
