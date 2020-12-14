@@ -142,12 +142,12 @@ def parse_args():
         default = '',
         help="""Activate the debug mode. Parameter: directory to put the logs and the intermediary GFAs.""",
     )
-    # parser.add_argument(
-    #     "--merge",
-    #     required=False,
-    #     default="Empty",
-    #     help="""If you want the output to have all possible contigs merged (y/n) [default: n]""",
-    # )
+    parser.add_argument(
+        "--merge",
+        required=False,
+        action="store_true",
+        help="""If you want the output to have all possible contigs merged""",
+    )
     return parser.parse_args()
 
 
@@ -176,7 +176,7 @@ def main():
     
     dbgDir = args.debug
     
-    # merge = args.merge
+    merge = args.merge
 
     t = time.time()
 
@@ -260,12 +260,9 @@ def main():
 
     # now exporting the output
     print("Now exporting")
-    merge_adj = False
-    # if merge != "Empty" and merge != "n":
-    #     merge_adj = True
 
     io.export_to_GFA(
-        segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge_adj
+        segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge
     )
 
     if fastaFile != "None":
@@ -285,6 +282,7 @@ if __name__ == "__main__":
 # outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
 
 # gfaFile = "data_A_vaga_HiFi/Flye/assemblyFlyeHiFi+.gfa"
+# gafFile = "data_A_vaga_HiFi/Flye/graphaligner.hifi_all.flye_keep-haplotypes_hifi_all.gaf"
 #fragmentsFile = "data_A_vaga_HiFi/p/mapping/fragments_list.txt"
 #matrixFile = "data_A_vaga_HiFi/p/mapping/abs_fragments_contacts_weighted.txt"
 # interactionFile = "data_A_vaga_HiFi/Flye/interactionMatrix.pickle"
@@ -295,27 +293,23 @@ if __name__ == "__main__":
 # gafFile = "data_A_Vaga_PacBio/aln_Assembly.gaf"
 # interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
 # outFile = "data_A_Vaga_PacBio/PacBio_Shasta_hic2gfa_lr_twice.gfa"
-# 
-# gfaFile = "bactos/Flyeallreads_cleaning2merged.gfa"
-# gafFile = "bactos/Flyeallreads_cleaning2merged_readsabove5kb.gaf"
-# gafFile = "bactos/newaln.gaf"
-# outFile = "bactos/output.gfa"
 
-# gfaFile = "bacteria_mix/SPAdes_output/assembly_graph_after_simplification.gfa"
-# fragmentsFile = "bacteria_mix/HiCmapping/fragments_list.txt"
-# matrixFile = "bacteria_mix/HiCmapping/abs_fragments_contacts_weighted.txt"
-# interactionFile = "bacteria_mix/HiCmapping/interaction_matrix.pickle"
-# outFile = "bacteria_mix/output.gfa"
+
+# gfaFile = "A_vaga_article/HiFi/avaga.hifiasm_l0.hifi_default.all.p_utg.gfa"
+# interactionFile = "A_vaga_article/HiFi/hifiasm_l0_p_utg_hic_all_hicMatrix.pickle"
 
 # print('Loading the GFA file')
-#segments, names = io.load_gfa(gfaFile)
+# segments, names = io.load_gfa(gfaFile)
 
 #check_if_all_links_are_sorted(segments)
 
 #Now computing the interaction matrix
 
+# interactionMatrix, repeats, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments, 0.9, True)
+
+
 # fragmentList = io.read_fragment_list(fragmentsFile)
-# interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
+#interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
 # #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
 # #exporting it as to never have to do it again
@@ -325,29 +319,23 @@ if __name__ == "__main__":
 # pickle.dump(interactionMatrix, file)
 
 #print(names)
-#hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
-# 
+# hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 
-
-
-
-# 
-# print(hicinteractionMatrix[names['edge_203'], names['edge_24']])
-# print(hicinteractionMatrix[names['edge_204'], names['edge_24']])
 
 # lrinteractionMatrix, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments)
 
 # interactionMatrix = lrinteractionMatrix #+ hicinteractionMatrix
 
 # #print(allLinks)
-    
-# #print(interactionMatrix[names['utg000024l']])
-# # print(lrinteractionMatrix[names['edge_348'], names['edge_229']])
-# # print(lrinteractionMatrix[names['edge_218'], names['edge_229']])
-# #print(interactionMatrix[names['709'], names['229']])
-# for i in allLinks :
-#     if 'edge_498' in i :
-#         print(i)
+        
+
+# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_340_edge_234']])
+# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_235']])
+# 
+# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_246']])
+# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_158']])
+# print(hicinteractionMatrix[names['utg000028l'], names['utg000169l']])
+# print(hicinteractionMatrix[names['utg000028l'], names['utg000085l']])
 
 
 # print('Next')

@@ -117,6 +117,13 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
     repeats = [0]*len(segments)
     
     allLinks = set()
+    noNames = set() #list of names that are not found in names
+   
+    #these two values are in case some contigs of the gafs are just subnames of names
+    namesPlus = names.copy()
+    contigsPlus = {}
+    for i in names :
+        contigsPlus[i] = i
     
     for line in f :
         
@@ -133,13 +140,52 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
                     
                     for c1 in range(len(contigs)-1) :
                         for c2 in range(c1+1, len(contigs)):
-                            if contigs[c1] in names and contigs[c2] in names :
-                                if names[contigs[c1]] != names[contigs[c2]] :
-                                    interactionMatrix[names[contigs[c1]], names[contigs[c2]]] += 1
-                                    if c2 == c1 +1 :
-                                        allLinks.add((contigs[c1], orientations[c1] == '>', contigs[c2], orientations[c2] == '<'))
-                                else :
-                                    repeats[names[contigs[c1]]] = max(contigs.count(contigs[c1]), repeats[names[contigs[c1]]])
+                            
+                            if contigs[c1] not in noNames and contigs[c2] not in noNames :
+                            
+                                #try to look for the name if it is not in names
+                                if contigs[c1] not in namesPlus :
+                                    found = False
+                                    for i in names.keys() :
+                                        if contigs[c1] in i :
+                                            namesPlus[contigs[c1]] = names[i]
+                                            contigsPlus[contigs[c1]] = i
+                                            found = True
+                                    if not found :
+                                        noNames.add(contigs[c1]) #if you do not find it once, the cause is lost
+                                            
+                                if contigs[c2] not in namesPlus :
+                                    found = False
+                                    for i in names.keys() :
+                                        if contigs[c2] in i :
+                                            namesPlus[contigs[c2]] = names[i]
+                                            contigsPlus[contigs[c2]] = i
+                                            found = True
+                                    if not found :
+                                        noNames.add(contigs[c2])
+                                
+                                #if the two contigs exist, go ahead
+                                if contigs[c1] in namesPlus and contigs[c2] in namesPlus :
+                                    if namesPlus[contigs[c1]] != namesPlus[contigs[c2]] :
+                                        interactionMatrix[namesPlus[contigs[c1]], namesPlus[contigs[c2]]] += 1
+                                        if c2 == c1 +1 :
+                                            if contigsPlus[contigs[c1]] == contigs[c1] and contigsPlus[contigs[c2]] == contigs[c2] :
+                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], orientations[c2] == '<'))
+                                                
+                                            elif contigsPlus[contigs[c1]] == contigs[c1] :
+                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], True))
+                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], False))
+                                            elif  contigsPlus[contigs[c2]] == contigs[c2] :
+                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], orientations[c2] == '<'))
+                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], orientations[c2] == '<'))
+                                            else :
+                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], True))
+                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], True))
+                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], False))
+                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], False))
+                                    else :
+                                        repeats[namesPlus[contigs[c1]]] = max(contigs.count(contigs[c1]), repeats[namesPlus[contigs[c1]]])
+
                     
     return interactionMatrix, repeats, allLinks
 
@@ -172,7 +218,7 @@ def get_contig_FASTA(fastaFile, contig, firstline=0):
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
 #input : contig ID, gfa file and contigOffset, the position of the contig in the GFA file
-#output : sequence
+#output : sequence, and if it is present, the sequencing depth of the contig
 def get_contig_GFA(gfaFile, contig, contigOffset):
        
     with open(gfaFile) as f:
@@ -313,41 +359,54 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                                 +orientation2+'\t'+segment.CIGARs[endOfSegment][l]+'\n')
 
     # in the case the user prefers having merged contigs as an output
-    # else : #if merge_adjacent_contigs == True
+    else : #if merge_adjacent_contigs == True
         
-    #     for s, segment in enumerate(listOfSegments):
-    #         if  time.time() > t+1 :
-    #             t = time.time()
-    #             print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
+        for s, segment in enumerate(listOfSegments):
             
-    #         f.write("S\t" + segment.full_name() + "\t")
-    #         if gfaFile != "":
+            if  time.time() > t+1 :
+                t = time.time()
+                print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
+            
+            f.write("S\t" + segment.full_name() + "\t")
+            
+            fullDepth = 0
+            
+            if gfaFile != "":
                 
-    #             sequence = ''
-    #             for c, contig in enumerate(segment.names) :
-    #                 s = get_contig_GFA(gfaFile, contig, line_offset[contig])
-    #                 if segment.orientations[c] == 0 :
-    #                     s = s[::-1]
-    #                 if c > 0 :
-    #                     CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
-    #                     s = s[CIGARlength:]
-    #                 sequence += s
-    #             f.write(sequence + "\n")
+                sequence = ''
+                for c, contig in enumerate(segment.names) :
+                    s, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    if segment.orientations[c] == 0 :
+                        s = s[::-1]
+                    if c > 0 :
+                        CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
+                        
+                        s = s[CIGARlength:]
+                    if depth != '' :
+                        fullDepth += ( float(depth.split(':')[-1])/copies[contig] ) * len(s)
+                    
+                    sequence += s
+                    
+                if fullDepth == 0:
+                    f.write(sequence + "\n")
+                else :
+                    newdepth = str(fullDepth/len(sequence))
+                    f.write(sequence + '\tDP:f:'+newdepth + '\n')
                 
-    #         else:
-    #             f.write("*\n")
+            else:
+                f.write("*\n")
                 
-    #         for endOfSegment in range(2) :
-    #             for n, neighbor in enumerate(segment.links[endOfSegment]):
-    #                 if segment.ID < neighbor.ID : #to write each link just one
-    #                     orientation1, orientation2 = '+', '+'
-    #                     if endOfSegment == 0 :
-    #                         orientation1 = '-'
-    #                     if segment.otherEndOfLinks[endOfSegment][n] == 1 :
-    #                         orientation2 = '-'
+            for endOfSegment in range(2) :
+                for n, neighbor in enumerate(segment.links[endOfSegment]):
+                    if segment.ID < neighbor.ID : #to write each link just one
+                        orientation1, orientation2 = '+', '+'
+                        if endOfSegment == 0 :
+                            orientation1 = '-'
+                        if segment.otherEndOfLinks[endOfSegment][n] == 1 :
+                            orientation2 = '-'
                             
-    #                     f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
-    #                             '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+                        f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
+                                '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
 
 # Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
 # Also returns the list of the contig's names

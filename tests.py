@@ -21,6 +21,7 @@ from input_output import load_gfa
 from input_output import export_to_GFA
 from solve_ambiguities import solve_ambiguities
 from solve_ambiguities import intensity_of_interactions
+from solve_ambiguities import merge_adjacent_contigs
 
 from evaluate_solution import score_output
 from evaluate_solution import draw_distance_HiCcontacts_correlation
@@ -355,11 +356,11 @@ def scan_interactionMatrix(gfa, matrix, contigs):
     for i in contigs :
         print('scan_interactions : ', interactions[names[i[0]],names[i[1]]])
 
-gfaFile = 'data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa'
-matrix = 'data_A_vaga_HiFi/Flye/interactionMatrix.pickle'
-
-contigs = [['edge_267', 'edge_78'], ['edge_268', 'edge_78']]
-scan_interactionMatrix(gfaFile, matrix, contigs)
+# gfaFile = 'data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa'
+# matrix = 'data_A_vaga_HiFi/Flye/interactionMatrix.pickle'
+# 
+# contigs = [['edge_267', 'edge_78'], ['edge_268', 'edge_78']]
+# scan_interactionMatrix(gfaFile, matrix, contigs)
 
 def testRatios():
     file = open('ratio.txt', 'r')
@@ -580,4 +581,14 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 
 
 # print('Finished in ', time.time()-t, ' seconds')
+
+gfaFile = 'data_A_vaga_HiFi/Flye/tests/HiFi.Flye.graphUnzip.HiC.lr.curated.gfa'
+segments, names = io.load_gfa(gfaFile)
+segments = merge_adjacent_contigs(segments)
+io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = 'data_A_vaga_HiFi/Flye/tests/exportMerge.gfa', merge_adjacent_contigs = True)
+
+
+
+
+
     

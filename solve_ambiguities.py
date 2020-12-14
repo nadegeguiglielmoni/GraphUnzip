@@ -288,12 +288,9 @@ def merge_adjacent_contigs(listOfSegments):
         goOn = False
         for segment in listOfSegments:
 
-            alreadyDidThisOne = (
-                False
-            )  # if the segment is deleted when looking at its first end, you don't want it to look at its other end, since it does not exist anymore
+            alreadyDidThisOne = False # if the segment is deleted when looking at its first end, you don't want it to look at its other end, since it does not exist anymore
             for endOfSegment in range(2):
                 if not alreadyDidThisOne:
-                    alreadyDidThisOne = True
                     if (
                         len(segment.links[endOfSegment]) == 1
                         and len(
@@ -303,6 +300,7 @@ def merge_adjacent_contigs(listOfSegments):
                         )
                         == 1
                     ):  # then merge
+                        alreadyDidThisOne = True
                         if segment != segment.links[endOfSegment][0]:
                             goOn = True
                             listOfSegments = merge_simply_two_adjacent_contig(
@@ -458,7 +456,7 @@ def check_all_links(segments, lr_links) :
     
     
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
-def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, lr_links, debugDir = '', neighborsOfNeighbors = True, verbose = False):
+def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, lr_links, debugDir = '', neighborsOfNeighbors = True, verbose = False, exhaustive = True):
 
     HiCmatrix = (interactionMatrix.count_nonzero() > 0) #a boolean value to tell if there is need to use the Hi-C interaction matrix
 
@@ -489,13 +487,18 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
                             absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
                                                                                              [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                              listOfSegments, lrInteractionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
+                                
+                            tmpls = linksStrength.copy()    
                                           
                             #if it is not enough, use Hi-C
                                     
-                            if (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix :
+                            if not exhaustive or ( (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix ):
                                 absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
                                                                                                 [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                                 listOfSegments, interactionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
+                                
+                                if not exhaustive and linksStrength != [-1] and tmpls != [-1]:
+                                    linksStrength = [linksStrength[i] +tmpls[i] for i in range(len(linksStrength))]
                             
                             if debugDir != '' :
                                 f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
@@ -520,7 +523,6 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
                                 # if '262' in segment.names :
                                 #     print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
                                 #     print([i.names for i in segment.links[0]])
-                                        
                                 if linksStrength[0] > linksStrength[1]:
                                     if (linksStrength[1] <= linksStrength[0] * thresholdRejected) or (linksStrength[1] == 1 and linksStrength[0] > 2):  # then it means that the link does not exist
                                         if verbose :
@@ -580,7 +582,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
     
     for i in range(steps):
             
-        get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose)
+        get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose, exhaustive = check_links)
         
         
         if repeats != [] :
