@@ -576,22 +576,14 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
     if copiesNumber == {} :
         for segment in listOfSegments :
             copiesNumber['_'.join(segment.names)] = 1
-            
-    
-    print('Checking the links 1')
-    check_segments(listOfSegments)
     
     if check_links :
         check_all_links(listOfSegments, lr_links) # check if all links there are present in the long reads and delete those who are not
     
-    print('Checking the links 2')
-    check_segments(listOfSegments)
     
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     print('Merged adjacent contigs for the first time')            
 
-    print('Checking the links 3')
-    check_segments(listOfSegments)
    # s.check_if_all_links_are_sorted(listOfSegments)
     
     for i in range(steps):
