@@ -63,6 +63,7 @@ def intensity_of_interactions(
         for c in candidatesSegments:
     
             if depth == 2 :
+                    
                 absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature, neighborsOfNeighborsUsed)
         
                 if depthHere == 1 and depth == 2 :
@@ -441,7 +442,10 @@ def check_all_links(segments, lr_links) :
         
         for endOfSegment in range(2) :
             
+            toRemove = set()
+            
             for n, neighbor in enumerate(segment.links[endOfSegment]) :
+                
                 
                 endOfNeighbor = segment.otherEndOfLinks[endOfSegment][n]
                 
@@ -451,9 +455,11 @@ def check_all_links(segments, lr_links) :
                 
                 if not link in lr_links and not linkb in lr_links : #then the link is not confirmed by long reads
                     
-                    segment.remove_end_of_link(endOfSegment, neighbor, endOfNeighbor)
-                    neighbor.remove_end_of_link(endOfNeighbor, segment, endOfSegment)
-    
+                    toRemove.add((segment, endOfSegment, neighbor, endOfNeighbor))
+            
+            for i in toRemove :
+                i[0].remove_end_of_link(i[1], i[2], i[3])
+                i[2].remove_end_of_link(i[3], i[0], i[1])
     
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, lr_links, debugDir = '', neighborsOfNeighbors = True, verbose = False, exhaustive = True):
@@ -571,13 +577,21 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
         for segment in listOfSegments :
             copiesNumber['_'.join(segment.names)] = 1
             
-            
+    
+    print('Checking the links 1')
+    check_segments(listOfSegments)
+    
     if check_links :
         check_all_links(listOfSegments, lr_links) # check if all links there are present in the long reads and delete those who are not
-            
+    
+    print('Checking the links 2')
+    check_segments(listOfSegments)
+    
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     print('Merged adjacent contigs for the first time')            
 
+    print('Checking the links 3')
+    check_segments(listOfSegments)
    # s.check_if_all_links_are_sorted(listOfSegments)
     
     for i in range(steps):

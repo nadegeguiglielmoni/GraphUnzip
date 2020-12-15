@@ -69,13 +69,14 @@ def print_short():
 # a function to test that links are, as they should, represented once at each of their extremities
 def check_segments(listOfSegments):
     
+    problem = False
     for segment in listOfSegments :
         for endOfSegment in range(2) :
             for n, neighbor in enumerate(segment.links[endOfSegment]) :
-                if not segment in neighbor.links[segment.otherEndOfLinks[n]] :
-                    print("Problem in links, a one-end link going from: ", segment.names, ' to ', neighbor.names)
-                    return False
-    return True
+                if not segment in neighbor.links[segment.otherEndOfLinks[endOfSegment][n]] :
+                    print("Problem in links, a one-end link going from: ", segment.names, endOfSegment, ' to ', neighbor.names, segment.otherEndOfLinks[endOfSegment][n])
+                    problem = True
+    return problem
 
 #function if you want to strip the suffix containing the copiesNumber. Careful though, if contigs are duplicated they will be merged back since they will have the same name
 def strip_copiesNumber(gfaFileIn, gfaFileOut):
@@ -99,6 +100,4 @@ def strip_copiesNumber(gfaFileIn, gfaFileOut):
                 
        
 #strip_copiesNumber('Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa', 'Arabidopsis/Arabidopsis_hybrid/simplified_graph2.gfa')
-#gfa_to_fasta('Arabidopsis/Arabidopsis_hybrid/assembly_graph.gfa')
-#gfa_to_fasta("Escherichia_Coli/1a1k/assemblyGraph_k63_noOverlaps.gfa")
-#gfa_to_fasta('bacteria_mix/SPAdes_output/assembly_graph_after_simplification.gfa')
+#gfa_to_fasta('A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa')

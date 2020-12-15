@@ -171,9 +171,10 @@ class Segment:
             orientation = 0
         elif segment in self.links[1]:
             orientation = 1
-        else: #if the supercontigs are not touching, computing the partial area is useless, but harmless
-            print('ERROR : trying to compute an interaction with supercontigsaretouching=True but actually not True')
-            print(self._namesOfContigs, segment.names)
+        else: 
+            print('ERROR : trying to compute an interaction but the contigs do not touch each other')
+            print('Looking for ', self._namesOfContigs, ' from ', segment.names)
+            return 0, 0, 1
             
         depth = 1
         #first compute interactions with self
@@ -237,7 +238,7 @@ class Segment:
 
             
             if leftOrRight == 0 and o1 == 0:
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[0])
+                index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[0], 1-o2 ,self._otherEndOfLinks[0])
                 self._links[0].insert(index, segments[names[l[3]]])
                 self._otherEndOfLinks[0].insert(index, 1-o2)
                 if len(l) > 5 :
@@ -246,7 +247,7 @@ class Segment:
                     self._CIGARs[0].insert(index, '*')
                     
             elif leftOrRight == 0 and o1 == 1 :
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[1])
+                index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[1],  1-o2 ,self._otherEndOfLinks[1])
                 self._links[1].insert(index, segments[names[l[3]]])
                 self._otherEndOfLinks[1].insert(index, 1-o2)
                 if len(l) > 5 :
@@ -255,7 +256,7 @@ class Segment:
                     self._CIGARs[1].insert(index, '*')
                 
             elif leftOrRight == 1 and o2 == 1 :
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[0])
+                index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[0],  o1 ,self._otherEndOfLinks[0])
                 self._links[0].insert(index, segments[names[l[1]]])
                 self._otherEndOfLinks[0].insert(index, o1)
                 if len(l) > 5 :
@@ -264,7 +265,7 @@ class Segment:
                     self._CIGARs[0].insert(index, '*')
                     
             elif leftOrRight == 1 and o2 == 0 :
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[1])
+                index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[1],  o1 ,self._otherEndOfLinks[1])
                 self._links[1].insert(index, segments[names[l[1]]])
                 self._otherEndOfLinks[1].insert(index, o1)
                 if len(l) > 5 :
@@ -280,7 +281,7 @@ class Segment:
         
         #print('A', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
         #print(self._namesOfContigs, segment2.names)
-        index = index_at_which_new_link_should_be_inserted(segment2, self._links[endOfSegment])
+        index = index_at_which_new_link_should_be_inserted(segment2, self._links[endOfSegment], endOfSegment2, self._otherEndOfLinks[endOfSegment])
 
         self._links[endOfSegment].insert(index, segment2)
         #print('B', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
@@ -352,7 +353,7 @@ class Segment:
         #first determine the index of the segment to remove
         #print('Removing ', segmentToRemove.names, endOfSegmentToRemove, ' from ', self._namesOfContigs)
         #print('Among these links :', [i.names for i in self._links[endOfSegment]], self._otherEndOfLinks[endOfSegment])
-        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment])
+        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment], warning = True)
         #index = self._links[endOfSegment].index(segmentToRemove)
    
         #then remove the end of unwanted link in all attributes
@@ -360,6 +361,8 @@ class Segment:
             del self._links[endOfSegment][index]
             del self._otherEndOfLinks[endOfSegment][index]
             del self._CIGARs[endOfSegment][index]
+        # else :
+        #     print('Trying unsuccesfully to remove ', segmentToRemove.names, ' from ', self._namesOfContigs)
      
     #function to be used on small loops only
     def flatten(self, replicas) :
@@ -462,12 +465,14 @@ def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warnin
         elif segment.ID > listOfLinks[mid].ID:
             lo = mid+1
         else :
+            #print('Found : ', endOfSegment , listOfEndsOfLinks[mid])
             if endOfSegment == None :
                 return mid
+                
             elif endOfSegment == listOfEndsOfLinks[mid] :
                 return mid
                 
-            elif endOfSegment < listOfEndsOfLinks[mid] :
+            elif endOfSegment > listOfEndsOfLinks[mid] :
                 mid += 1
                 while mid < len(listOfLinks) and listOfLinks[mid].ID == segment.ID :
                     if endOfSegment == listOfEndsOfLinks[mid] :
@@ -476,7 +481,7 @@ def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warnin
                     
                 break
                 
-            elif endOfSegment > listOfEndsOfLinks[mid] :
+            elif endOfSegment < listOfEndsOfLinks[mid] :
                 mid -= 1
                 while mid >= 0 and listOfLinks[mid].ID == segment.ID :
                     if endOfSegment == listOfEndsOfLinks[mid] :
@@ -489,21 +494,21 @@ def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warnin
         
     print('In find_this_link : did not find the link')
     #print([[listOfLinks[se].names, listOfEndsOfLinks[se]] for se in range(len(listOfLinks))])
-    print('Did not find ', segment.names, endOfSegment, ' among ', [i.names for i in listOfLinks], [i for i in listOfEndsOfLinks])
+    print('Did not find ', segment.names , endOfSegment, ' among ', [i.names for i in listOfLinks], listOfEndsOfLinks)
 
 #returns the index at which a segment should be inserted in a list sorted by ID : useful because links[0] and links[1] are kept sorted at all times
-def index_at_which_new_link_should_be_inserted(segment, listOfSegments) :
+def index_at_which_new_link_should_be_inserted(segment, listOfSegments, endOfLink, listOfEndOfLinks) :
     lo = 0
     hi = len(listOfSegments)
 
     while lo < hi:
         mid = (lo+hi)//2
-        if segment.ID < listOfSegments[mid].ID:
+        if segment.ID < listOfSegments[mid].ID or (segment.ID == listOfSegments[mid].ID and endOfLink < listOfEndOfLinks[mid]):
             hi = mid
         else:
             lo = mid+1
             
-    while lo < len(listOfSegments) and listOfSegments[lo].ID == segment.ID :
+    while lo < len(listOfSegments) and listOfSegments[lo].ID == segment.ID and endOfLink == listOfEndOfLinks[lo] :
         lo += 1
     return lo
 
