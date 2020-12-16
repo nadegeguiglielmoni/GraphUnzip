@@ -227,6 +227,7 @@ def main():
         sys.exit(1)
     
     lrLinks = []
+    repeats = []
     lrInteractionMatrix  = sparse.dok_matrix((len(segments), len(segments)))
     normalizationFactor = 1
     if lrFile is not "Empty":
@@ -246,6 +247,8 @@ def main():
         #         print('a, ', i)
         
         #interactionMatrix += lrInteractionMatrix
+    else :
+        exhaustive = False # checking all links makes no sense if there are no links
     
 
     print("Everything loaded, moving on to solve_ambiguities")
@@ -285,7 +288,7 @@ if __name__ == "__main__":
 # gafFile = "data_A_vaga_HiFi/Flye/graphaligner.hifi_all.flye_keep-haplotypes_hifi_all.gaf"
 #fragmentsFile = "data_A_vaga_HiFi/p/mapping/fragments_list.txt"
 #matrixFile = "data_A_vaga_HiFi/p/mapping/abs_fragments_contacts_weighted.txt"
-# interactionFile = "data_A_vaga_HiFi/Flye/interactionMatrix.pickle"
+#interactionFile = "data_A_vaga_HiFi/Flye/interactionMatrix.pickle"
 # gafFile = "data_A_vaga_HiFi/Flye/aln_assemblyFlyeHiFi_nanopore1.gaf"
 # outFile = "data_A_vaga_HiFi/Flye/HiFi_Flye_hic2gfa_lr.gfa"
 
@@ -295,9 +298,9 @@ if __name__ == "__main__":
 # outFile = "data_A_Vaga_PacBio/PacBio_Shasta_hic2gfa_lr_twice.gfa"
 
 
-# gfaFile = "A_vaga_article/HiFi/avaga.hifiasm_l0.hifi_default.all.p_utg.gfa"
-# interactionFile = "A_vaga_article/HiFi/hifiasm_l0_p_utg_hic_all_hicMatrix.pickle"
-
+# gfaFile = "A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa"
+# interactionFile = "A_vaga_article/Nanopore_Ratatosk/ont_ratatosk_hicMatrix.pickle"
+# 
 # print('Loading the GFA file')
 # segments, names = io.load_gfa(gfaFile)
 
@@ -309,8 +312,8 @@ if __name__ == "__main__":
 
 
 # fragmentList = io.read_fragment_list(fragmentsFile)
-#interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
-# #interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+# interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
+#interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
 # #exporting it as to never have to do it again
 
@@ -329,8 +332,8 @@ if __name__ == "__main__":
 # #print(allLinks)
         
 
-# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_340_edge_234']])
-# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_235']])
+# print(hicinteractionMatrix[names['edge_323'], names['edge_51']])
+# print(hicinteractionMatrix[names['edge_323'], names['edge_17']])
 # 
 # print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_246']])
 # print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_158']])

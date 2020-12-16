@@ -353,7 +353,7 @@ class Segment:
         #first determine the index of the segment to remove
         #print('Removing ', segmentToRemove.names, endOfSegmentToRemove, ' from ', self._namesOfContigs)
         #print('Among these links :', [i.names for i in self._links[endOfSegment]], self._otherEndOfLinks[endOfSegment])
-        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment], warning = True)
+        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment], warning = False)
         #index = self._links[endOfSegment].index(segmentToRemove)
    
         #then remove the end of unwanted link in all attributes
@@ -363,6 +363,16 @@ class Segment:
             del self._CIGARs[endOfSegment][index]
         # else :
         #     print('Trying unsuccesfully to remove ', segmentToRemove.names, ' from ', self._namesOfContigs)
+     
+    #returns two contigs, equal to this contig but split at axis, corresponding to the number of contigs left of the junction
+    def break_contig(self, axis) :
+        
+        newSegment1 = Segment(self._namesOfContigs[:axis], self._orientationOfContigs[:axis], self._lengths[:axis], self._insideCIGARs[:axis-1], [self._links[0], []], [self._otherEndOfLinks[0], []], [self._CIGARs[0], []])
+        
+        newSegment2 = Segment(self._namesOfContigs[axis:], self._orientationOfContigs[axis:], self._lengths[axis:], self._insideCIGARs[axis:], [[], self._links[1]], [[], self._otherEndOfLinks[1]], [[], self._CIGARs[1]])
+        
+        return newSegment1, newSegment2
+    
      
     #function to be used on small loops only
     def flatten(self, replicas) :

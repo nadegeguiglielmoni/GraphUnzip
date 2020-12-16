@@ -9,6 +9,7 @@ In this file, test functions to test our algorithm
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+from scipy.signal import argrelextrema #to detect local extrema of arrays
 import time
 import pickle #reading and writing files
 import os #to run command lines from python (for blast especially)
@@ -547,6 +548,23 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
     for i in record :
         fileRecord.write(str(i)+'\n')
     print(int(record.count(False)*100/n), '% of incorrectly changed GFA')
+    
+            
+
+gfaFile = "A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa"
+gfaFilePhased = "A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.graphunzip_e_mm0.8_wm_e_A0.3_R0.2.gfa"
+interactionFile = "A_vaga_article/Nanopore_Ratatosk/ont_ratatosk_hicMatrix.pickle"
+
+print('Loading the GFA file')
+segments, names = io.load_gfa(gfaFile)
+hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
+
+segmentsPhased, namesPhased = io.load_gfa(gfaFilePhased)
+segmentsPhased = merge_adjacent_contigs(segmentsPhased)
+
+newSegments = break_up_chimeras(segmentsPhased, names,  hicinteractionMatrix, 100000)
+
+io.export_to_GFA(newSegments, 'A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa', 'pouet.gfa')
 
 # t = time.time()
 # # # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
@@ -582,10 +600,6 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
 
 # print('Finished in ', time.time()-t, ' seconds')
 
-gfaFile = 'data_A_vaga_HiFi/Flye/tests/HiFi.Flye.graphUnzip.HiC.lr.curated.gfa'
-segments, names = io.load_gfa(gfaFile)
-segments = merge_adjacent_contigs(segments)
-io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = 'data_A_vaga_HiFi/Flye/tests/exportMerge.gfa', merge_adjacent_contigs = True)
 
 
 

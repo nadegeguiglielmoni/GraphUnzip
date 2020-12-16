@@ -16,6 +16,71 @@ from transform_gfa import check_segments
 import segment as s
 from segment import Segment
 
+#this function detects and breaks up long (>length) chimeric contigs
+def break_up_chimeras(segments, names, interactionMatrix, length) :
+    
+    allsegments = []
+    allXs = []
+    for s, segment in enumerate(segments) :
+        
+        if segment.length > length :
+            
+            interactions = []
+            X = []
+            
+            for axis in range(1, len(segment.names)) :
+                
+                interaction = 0
+                
+                for nameLeft in segment.names[axis:] :
+                    for nameRight in segment.names[:axis] :
+                        
+                        nameLeft = nameLeft.split('-')[0]
+                        nameRight = nameRight.split('-')[0]
+                        
+                        interaction += interactionMatrix[names[nameLeft], names[nameRight]]
+                        
+                interactions += [interaction]
+                
+                if axis > 1 :
+                    X += [ X[-1] + segment.lengths[axis-1]/segment.length ]
+                else :
+                    X = [segment.lengths[0]/segment.length]
+                
+            allsegments += [interactions]
+            
+            #plt.plot (X, interactions)
+            
+            inSlump = False
+            localMinimums = []
+            for axis in range(1, len(interactions)-1) :
+                
+                if interactions[axis] < 0.7*np.max(interactions[:axis]) and interactions[axis] < 0.7*np.max(interactions[axis:]):
+                    if not inSlump :
+                        inSlump = True
+                        
+                    localMinimums += [axis]
+                        
+                
+                else :
+                    if inSlump :
+                        inSlump = False
+                        
+                        loin = [interactions[i] for i in localMinimums].index( np.min([interactions[i] for i in localMinimums]) )
+                        
+                        print('Breaking up contig ', segment.names, ' between ', segment.names[localMinimums[loin]-1], ' and ', segment.names[localMinimums[loin]], ' because it looks like a chimeric contig')
+                                
+                        #Now break the contig where it should
+                        newSegment1, newSegment2 = segment.break_contig(localMinimums[loin])
+                        segments[s] = newSegment1
+                        segments.append(newSegment2)
+                        
+                        localMinimums = []
+
+        
+    #plt.show()    
+    return segments
+
 # this function measures the intensity of interactions between one supercontig
 # and several candidate, including without taking account of the common parts
 # of the supercontigs
@@ -344,7 +409,7 @@ def merge_contigs(listOfSegments, copiesnumber, verbose = False):
     
     return listOfSegments, copiesnumber
              
-#function to solve small loops (works only if long reads are there)
+#function to freeze and sometimes solve small o-loops (works only if long reads are there)
 def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
     
     for se in range(len(listOfSegments)) :
@@ -353,21 +418,28 @@ def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
         if segment in segment.links[0] : #this is a small loop of length 0
             
             if segment.links[0].count(segment) == 1 : #this is a o-loop, let's flatten it
-                replications = 0
-                for contig in segment.names :
-                    replications = max(replications, repeats[names[contig]])
-                    
-                segment.flatten(replications)
-                #print('In solve_small_loops, flattening ', segment.names, segment.insideCIGARs)
+                
+                if repeats != [] :
+                    replications = 0
+                    for contig in segment.names :
+                        replications = max(replications, repeats[names[contig]])
+                        
+                    segment.flatten(replications)
+                    #print('In solve_small_loops, flattening ', segment.names, segment.insideCIGARs)
+                
+                else :
+                    segment.freeze(0)
+                    segment.freeze(1)
         
-        if check_links :
-            toRemove = []
-            for n, neighbor in enumerate(segment.links[0]) : #trying to detect o-loops of length 1
-                endOfLink = segment.otherEndOfLinks[0][n]
-                index = s.find_this_link(neighbor, 1-endOfLink, segment.links[1], segment.otherEndOfLinks[1], warning = False) #returns -1 if it does not find anything
-                
-                if index != -1 : # this is a o-loop of length 1
-                
+
+        toRemove = []
+        for n, neighbor in enumerate(segment.links[0]) : #trying to detect o-loops of length 1
+            endOfLink = segment.otherEndOfLinks[0][n]
+            index = s.find_this_link(neighbor, 1-endOfLink, segment.links[1], segment.otherEndOfLinks[1], warning = False) #returns -1 if it does not find anything
+            
+            if index != -1 : # then this is a o-loop of length 1
+                    
+                    if lr_links != [] :
                         cA0 = segment.names[0]
                         oA0 = (0 == segment.orientations[0])
                         cB0 = neighbor.names[-endOfLink]
@@ -382,11 +454,12 @@ def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
                         oB1 = (neighbor.orientations[-endOfLink2] == endOfLink2)
                         if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, not oB1, cA1, not oA1) in lr_links:
                             toRemove += [(segment, 1, neighbor, int(oB1))]
-                            
-            for i in toRemove :
-                #print('In o-loops : removing link from ', i[0].names, i[1], 'to ', i[2].names, i[3])
-                i[0].remove_end_of_link(i[1], i[2], i[3])
-                i[2].remove_end_of_link(i[3], i[0], i[1])
+                        
+                        
+        for i in toRemove :
+            #print('In o-loops : removing link from ', i[0].names, i[1], 'to ', i[2].names, i[3])
+            i[0].remove_end_of_link(i[1], i[2], i[3])
+            i[2].remove_end_of_link(i[3], i[0], i[1])
                 
             
 def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig is in contact with both end of another contig or when a contig is linked to itself at one end
@@ -591,8 +664,8 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
         get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose, exhaustive = check_links)
         
         
-        if repeats != [] :
-            solve_small_loops(listOfSegments, names, repeats, lr_links, check_links)
+        
+        solve_small_loops(listOfSegments, names, repeats, lr_links, check_links)
         solve_l_loops(listOfSegments, lr_links)
             
         print('Got rid of bad links')
@@ -617,6 +690,11 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
             f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
             f.write('Finished step '+ str(i)+ ' \n\n\n')
             f.close()
+            
+    #finish by breaking up long chimeras that can form sometimes
+    
+    if HiCmatrix :
+        listOfSegments =  break_up_chimeras(listOfSegments, names, interactionMatrix, 100000)
         
     return listOfSegments, copiesNumber #return copiesNumber in case you want to run solve_ambiguities several times in a row
 

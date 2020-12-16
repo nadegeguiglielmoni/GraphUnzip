@@ -101,3 +101,4 @@ def strip_copiesNumber(gfaFileIn, gfaFileOut):
        
 #strip_copiesNumber('Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa', 'Arabidopsis/Arabidopsis_hybrid/simplified_graph2.gfa')
 #gfa_to_fasta('A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa')
+# gfa_to_fasta('A_vaga_article/HiFi/avaga.hifiasm_l0.hifi_default.all.p_utg.gfa')
