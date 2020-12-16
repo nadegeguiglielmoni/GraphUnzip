@@ -693,7 +693,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
             
     #finish by breaking up long chimeras that can form sometimes
     
-    if HiCmatrix :
+    if interactionMatrix.count_nonzero() > 0 :
         listOfSegments =  break_up_chimeras(listOfSegments, names, interactionMatrix, 100000)
         
     return listOfSegments, copiesNumber #return copiesNumber in case you want to run solve_ambiguities several times in a row

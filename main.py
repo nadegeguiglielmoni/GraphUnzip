@@ -191,6 +191,8 @@ def main():
     )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
 
     interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+    useHiC = False
+    uselr = False
 
 
     if fragmentsFile is not "Empty" and matrixFile is not "Empty":
@@ -202,6 +204,7 @@ def main():
             interactionMatrix = io.interactionMatrix(
                 matrixFile, fragmentList, names, segments
             )
+            useHiC = True
 
             if interactionFile is "Empty":
                 interactionFile = "interactionMatrix.pickle"
@@ -219,6 +222,7 @@ def main():
     elif interactionFile is not "Empty":
         print("Loading the interaction matrix")
         interactionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
+        useHiC = True
         
     elif not os.path.exists(interactionFile) and not os.path.exists(lrFile):
         print(
@@ -237,8 +241,9 @@ def main():
             sys.exit(1)
             
         lrInteractionMatrix, repeats, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
-        lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
-        hicSum = np.sum([np.sum(i) for i in interactionMatrix])
+        uselr = True
+        # lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
+        # hicSum = np.sum([np.sum(i) for i in interactionMatrix])
         # normalizationFactor = hicSum/lrSum * 0.1 + 1 #you can use a factor bigger than 1 to give more importance to long reads, smaller than 1 to give more importance to Hi-C
         # 
         # for i in lrInteractionMatrix.keys() :
@@ -258,8 +263,8 @@ def main():
         segments, cn = solve_ambiguities(
             segments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
         )
-    if interactionMatrix.count_nonzero() == 0:
-        print("WARNING: the interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")
+    if lrInteractionMatrix.count_nonzero() == 0 and uselr:
+        print("WARNING: the long reads interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")
 
     # now exporting the output
     print("Now exporting")

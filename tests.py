@@ -549,22 +549,7 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
         fileRecord.write(str(i)+'\n')
     print(int(record.count(False)*100/n), '% of incorrectly changed GFA')
     
-            
 
-gfaFile = "A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa"
-gfaFilePhased = "A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.graphunzip_e_mm0.8_wm_e_A0.3_R0.2.gfa"
-interactionFile = "A_vaga_article/Nanopore_Ratatosk/ont_ratatosk_hicMatrix.pickle"
-
-print('Loading the GFA file')
-segments, names = io.load_gfa(gfaFile)
-hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
-
-segmentsPhased, namesPhased = io.load_gfa(gfaFilePhased)
-segmentsPhased = merge_adjacent_contigs(segmentsPhased)
-
-newSegments = break_up_chimeras(segmentsPhased, names,  hicinteractionMatrix, 100000)
-
-io.export_to_GFA(newSegments, 'A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa', 'pouet.gfa')
 
 # t = time.time()
 # # # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\
