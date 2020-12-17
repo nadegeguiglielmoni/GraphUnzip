@@ -356,22 +356,14 @@ def merge_adjacent_contigs(listOfSegments):
 
             alreadyDidThisOne = False # if the segment is deleted when looking at its first end, you don't want it to look at its other end, since it does not exist anymore
             for endOfSegment in range(2):
+                
                 if not alreadyDidThisOne:
-                    if (
-                        len(segment.links[endOfSegment]) == 1
-                        and len(
-                            segment.links[endOfSegment][0].links[
-                                segment.otherEndOfLinks[endOfSegment][0]
-                            ]
-                        )
-                        == 1
-                    ):  # then merge
+                    
+                    if len(segment.links[endOfSegment]) == 1and len(segment.links[endOfSegment][0].links[segment.otherEndOfLinks[endOfSegment][0]])== 1:  # then merge
                         alreadyDidThisOne = True
                         if segment != segment.links[endOfSegment][0]:
                             goOn = True
-                            listOfSegments = merge_simply_two_adjacent_contig(
-                                segment, endOfSegment, listOfSegments
-                            )
+                            listOfSegments = merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments)
 
     return listOfSegments
 
@@ -444,22 +436,26 @@ def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
                         oA0 = (0 == segment.orientations[0])
                         cB0 = neighbor.names[-endOfLink]
                         oB0 = (neighbor.orientations[-endOfLink] == endOfLink)
-                        if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, not oB0, cA0, not oA0) in lr_links :
-                            toRemove += [(segment, 0, neighbor, int(oB0))]
+                        
+                        if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, oB0, cA0, oA0) in lr_links :
+                            toRemove += [(segment, 0, neighbor, endOfLink)]
                         
                         endOfLink2 = segment.otherEndOfLinks[1][index]
                         cA1 = segment.names[-1]
                         oA1 = (1 == segment.orientations[-1])
                         cB1 = neighbor.names[-endOfLink2]
                         oB1 = (neighbor.orientations[-endOfLink2] == endOfLink2)
-                        if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, not oB1, cA1, not oA1) in lr_links:
-                            toRemove += [(segment, 1, neighbor, int(oB1))]
+                        if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, oB1, cA1, oA1) in lr_links:
+                            toRemove += [(segment, 1, neighbor, endOfLink2)]
                         
                         
         for i in toRemove :
-            #print('In o-loops : removing link from ', i[0].names, i[1], 'to ', i[2].names, i[3])
+            # print('In o-loops : removing link from ', i[0].names, i[1], 'to ', i[2].names, i[3])
+            # print('Links from ', i[0].names, i[1], ' : ', [j.names for j in i[0].links[i[1]]], i[0].otherEndOfLinks[i[1]])
+            # print('Links from ', i[2].names, i[3], ' : ', [j.names for j in i[2].links[i[3]]], i[2].otherEndOfLinks[i[3]])
             i[0].remove_end_of_link(i[1], i[2], i[3])
             i[2].remove_end_of_link(i[3], i[0], i[1])
+                
                 
             
 def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig is in contact with both end of another contig or when a contig is linked to itself at one end
@@ -511,6 +507,7 @@ def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig i
 #input : a graph. This function takes out all links that are not confirmed by long reads
 def check_all_links(segments, lr_links) :
     
+    
     for segment in segments :
         
         for endOfSegment in range(2) :
@@ -524,13 +521,15 @@ def check_all_links(segments, lr_links) :
                 
                 #define the link in the format of the lr_links
                 link = (segment.names[-endOfSegment], (segment.orientations[-endOfSegment] == endOfSegment), neighbor.names[-endOfNeighbor], (neighbor.orientations[-endOfNeighbor] == endOfNeighbor))
-                linkb = (link[2], not link[3], link[0], not link[1])
+                linkb = (link[2], link[3], link[0], link[1])
                 
+                                
                 if not link in lr_links and not linkb in lr_links : #then the link is not confirmed by long reads
                     
                     toRemove.add((segment, endOfSegment, neighbor, endOfNeighbor))
             
             for i in toRemove :
+                
                 i[0].remove_end_of_link(i[1], i[2], i[3])
                 i[2].remove_end_of_link(i[3], i[0], i[1])
     
@@ -641,7 +640,6 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
 
 def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = False, verbose = False):
         
-        
     if debugDir != '' :
         f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'w')
         f.close()
@@ -660,12 +658,11 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
    # s.check_if_all_links_are_sorted(listOfSegments)
     
     for i in range(steps):
-            
+        
         get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose, exhaustive = check_links)
         
-        
-        
         solve_small_loops(listOfSegments, names, repeats, lr_links, check_links)
+        
         solve_l_loops(listOfSegments, lr_links)
             
         print('Got rid of bad links')

@@ -241,6 +241,7 @@ def main():
             sys.exit(1)
             
         lrInteractionMatrix, repeats, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
+
         uselr = True
         # lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
         # hicSum = np.sum([np.sum(i) for i in interactionMatrix])

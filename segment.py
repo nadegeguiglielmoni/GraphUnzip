@@ -353,7 +353,7 @@ class Segment:
         #first determine the index of the segment to remove
         #print('Removing ', segmentToRemove.names, endOfSegmentToRemove, ' from ', self._namesOfContigs)
         #print('Among these links :', [i.names for i in self._links[endOfSegment]], self._otherEndOfLinks[endOfSegment])
-        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment], warning = False)
+        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment], warning = True)
         #index = self._links[endOfSegment].index(segmentToRemove)
    
         #then remove the end of unwanted link in all attributes
