@@ -29,7 +29,8 @@ or
 python3 main.py --help
 usage: main.py [-h] -g GFA [-o OUTPUT] [-fo FASTA_OUTPUT] [-A ACCEPTED]
                [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
-               [-i INTERACTIONS] [-lr LONGREADS]
+               [-i INTERACTIONS] [-lr LONGREADS] [-e] [-mm MINIMUM_MATCH]
+               [-wm] [-v] [-d DEBUG] [--merge]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -39,9 +40,16 @@ optional arguments:
   -fo FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
   -A ACCEPTED, --accepted ACCEPTED
-                        Threshold to accept Hi-C links. [default: 0.30]
+                        Two links that are compared are deemed both true if
+                        the weakest of the two, in term of Hi-C contacts, is
+                        stronger than this parameter times the strength of the
+                        strongest link [default: 0.30]
   -R REJECTED, --rejected REJECTED
-                        Threshold to reject Hi-C links. [default: 0.15]
+                        When two links are compared, the weakest of the two,
+                        in term of Hi-C contacts, is considered false and
+                        deleted if it is weaker than this parameter times the
+                        strength of the strongest links (always smaller than
+                        --accepted)[default: 0.15]
   -s STEPS, --steps STEPS
                         Number of cycles get rid of bad links - duplicate
                         contigs. [default: 10]
@@ -54,14 +62,18 @@ optional arguments:
   -lr LONGREADS, --longreads LONGREADS
                         Long reads mapped to the GFA with GraphAligner (GAF
                         format)
-  --exhaustive          Removes all links not found in the GAF file
+  -e, --exhaustive      Removes all links not found in the GAF file
   -mm MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
                         Filters out alignments with a minimum match identity <
                         minimum-match [default: 0]
   -wm, --whole_match    Filters out alignments that do not extend over the
                         whole length of the read
-  -dbg, --debug_mode    Debug mode
-
+  -v, --verbose
+  -d DEBUG, --debug DEBUG
+                        Activate the debug mode. Parameter: directory to put
+                        the logs and the intermediary GFAs.
+  --merge               If you want the output to have all possible contigs
+                        merged
 ```
 
 `GraphUnzip` produces an intermediary file, by default interactionMatrix.pickle. If it is the second time you run `GraphUnzip` on the same dataset, specify with -i the path to this file, it will make the program run much faster.
