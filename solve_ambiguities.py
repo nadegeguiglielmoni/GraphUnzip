@@ -11,6 +11,7 @@ import input_output as io
 from bisect import bisect_left #to look through sorted lists
 
 from copy import deepcopy
+import random
 
 from transform_gfa import check_segments
 import segment as s
@@ -603,10 +604,12 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
                                 #     print([i.names for i in segment.links[0]])
                                 if linksStrength[0] > linksStrength[1]:
                                     if (linksStrength[1] <= linksStrength[0] * thresholdRejected) or (linksStrength[1] == 1 and linksStrength[0] > 2):  # then it means that the link does not exist
-                                        if verbose :
-                                            print('\nRemoving link from ', segment.links[endOfSegment][n2].names, ' to ', segment.names, '\n')
-                                        if n2 not in toRemove :
-                                            toRemove += [n2]
+                                        if random.random() < 0.5 :
+                                            if n2 not in toRemove :
+                                                toRemove += [n2]
+                                        else :
+                                            if n1 not in toRemove :
+                                                toRemove += [n1]
                                         
                                     elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
                                         segment.freezeNode(endOfSegment)
@@ -615,8 +618,12 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
                                     if linksStrength[0] < linksStrength[1] * thresholdRejected or (linksStrength[0] == 1 and linksStrength[1] > 2):  # then decide that the link does not exist
                                         if verbose :
                                             print('\nRemoving link from ', segment.links[endOfSegment][n1].names, ' to ', segment.names, '\n')
-                                        if n1 not in toRemove :
-                                            toRemove += [n1]
+                                        if random.random() < 0.5 :
+                                            if n2 not in toRemove :
+                                                toRemove += [n2]
+                                        else :
+                                            if n1 not in toRemove :
+                                                toRemove += [n1]
                                         
                                         
                                     elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
