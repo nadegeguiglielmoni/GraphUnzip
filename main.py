@@ -228,7 +228,6 @@ def main():
         print(
             "Error: could not find the file(s) to build/load the interaction matrix. You should provide either a processed interaction file in pickle format or a fragment list and a hic contact sparse matrix in hicstuff format. You can check you spelled everything correctly."
         )
-        sys.exit(1)
     
     lrLinks = []
     repeats = []
@@ -238,7 +237,6 @@ def main():
         
         if not os.path.exists(lrFile):
             print('Error: could not find the long-reads file.')
-            sys.exit(1)
             
         lrInteractionMatrix, repeats, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
 
@@ -260,9 +258,9 @@ def main():
     print("Everything loaded, moving on to solve_ambiguities")
     cn = {}
     
-    if interactionMatrix.count_nonzero() > 0 or lrInteractionMatrix.count_nonzero() >0 or exhaustive:
-        segments, cn = solve_ambiguities(
-            segments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
+
+    segments, cn = solve_ambiguities(
+        segments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
         )
     if lrInteractionMatrix.count_nonzero() == 0 and uselr:
         print("WARNING: the long reads interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")
