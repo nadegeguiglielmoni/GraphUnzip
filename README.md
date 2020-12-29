@@ -39,9 +39,16 @@ optional arguments:
   -fo FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
   -A ACCEPTED, --accepted ACCEPTED
-                        Threshold to accept Hi-C links. [default: 0.30]
+                        Two links that are compared are deemed both true if
+                        the weakest of the two, in term of Hi-C contacts, is
+                        stronger than this parameter times the strength of the
+                        strongest link [default: 0.30]
   -R REJECTED, --rejected REJECTED
-                        Threshold to reject Hi-C links. [default: 0.15]
+                        When two links are compared, the weakest of the two,
+                        in term of Hi-C contacts, is considered false and
+                        deleted if it is weaker than this parameter times the
+                        strength of the strongest links (always smaller than
+                        --accepted)[default: 0.15]
   -s STEPS, --steps STEPS
                         Number of cycles get rid of bad links - duplicate
                         contigs. [default: 10]

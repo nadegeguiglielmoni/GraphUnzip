@@ -48,14 +48,21 @@ def parse_args():
         "--accepted",
         required=False,
         default=0.30,
-        help="""Threshold to accept Hi-C links. [default: 0.30]""",
+        help="""Two links that are compared are deemed both true if
+                        the weakest of the two, in term of Hi-C contacts, is
+                        stronger than this parameter times the strength of the
+                        strongest link [default: 0.30]""",
     )
     parser.add_argument(
         "-R",
         "--rejected",
         required=False,
         default=0.15,
-        help="""Threshold to reject Hi-C links. [default: 0.15]""",
+        help="""When two links are compared, the weakest of the two,
+                        in term of Hi-C contacts, is considered false and
+                        deleted if it is weaker than this parameter times the
+                        strength of the strongest links (always smaller than
+                        --accepted)[default: 0.15]""",
     )
     
     parser.add_argument(
