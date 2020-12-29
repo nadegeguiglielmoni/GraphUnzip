@@ -12,6 +12,7 @@ from bisect import bisect_left #to look through sorted lists
 
 from copy import deepcopy
 import random
+import os
 
 from transform_gfa import check_segments
 import segment as s
@@ -648,6 +649,8 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
 def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = False, verbose = False):
         
     if debugDir != '' :
+        if not os.path.isdir(debugDir) :
+            os.mkdir(debugDir)
         f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'w')
         f.close()
     
