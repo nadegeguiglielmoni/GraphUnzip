@@ -20,6 +20,7 @@ import subprocess #to run command lines from python
 import input_output as io
 from input_output import load_gfa
 from input_output import export_to_GFA
+from input_output import load_interactionMatrix
 from solve_ambiguities import solve_ambiguities
 from solve_ambiguities import intensity_of_interactions
 from solve_ambiguities import merge_adjacent_contigs
@@ -549,7 +550,46 @@ def stats_on_solve_ambiguities(n = 100, lengthOfChromosomes = 10, steps = 10) :
         fileRecord.write(str(i)+'\n')
     print(int(record.count(False)*100/n), '% of incorrectly changed GFA')
     
+def stats_on_thresholds(segments, names, interactionMatrix) :
+    
+    copiesNumber = {}
+    for segment in segments :
+        copiesNumber['_'.join(segment.names)] = 1
 
+    ratios = []
+    for segment in segments :
+        
+        for endOfSegment in range(2) :
+            
+            if len(segment.links[endOfSegment]) >= 2 : #then it means that there is a choice to be made at one end of the segment. Let's see how HiC contacts confirm those links
+                    
+                # comparison pairwise of the links, those that should be deleted are deleted
+                    for n1 in range(len(segment.links[endOfSegment]) - 1):
+                        n2 = n1 + 1
+                        while n2 < len(segment.links[endOfSegment]):
+                            
+                            d = 2
+                               
+                            absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
+                                                                                             [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
+                                                                                             segments, interactionMatrix, names, copiesNumber, depthOfCommonContigs = d)
+                                                                                             
+                            n2 += 1
+                            
+                            if len(linksStrength) == 2 :
+                                ratios += [ np.min(linksStrength)/np.max(linksStrength) ]
+                                
+    plt.hist(ratios)
+    plt.xlabel('i(X)/i(Y) ratio')
+    plt.ylabel('Number of ambiguities having this value')
+    plt.show()
+    
+    return ratios
+    
+        
+segments, names = load_gfa('data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa')
+interactionMatrix = load_interactionMatrix('data_A_vaga_HiFi/Flye/interactionMatrix.pickle', segments, names)
+stats_on_thresholds(segments, names, interactionMatrix)
 
 # t = time.time()
 # # # chromosomes = ['A0-A1-A2-A3-A4-A5-A6-A7-A8-A9'.split('-'), 'A0-A1-A2-A3*-A4-A5-A6-A7-A8-A9'.split('-'),\

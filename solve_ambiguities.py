@@ -7,6 +7,8 @@ File dedicated to the algorithm af making bigger contigs, including solving bubb
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 import input_output as io
 from bisect import bisect_left #to look through sorted lists
 
@@ -639,6 +641,38 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
         
     return listOfSegments                        
 
+def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
+
+    ratios = []
+    for segment in segments :
+        
+        for endOfSegment in range(2) :
+            
+            if len(segment.links[endOfSegment]) >= 2 : #then it means that there is a choice to be made at one end of the segment. Let's see how HiC contacts confirm those links
+                    
+                # comparison pairwise of the links, those that should be deleted are deleted
+                    for n1 in range(len(segment.links[endOfSegment]) - 1):
+                        n2 = n1 + 1
+                        while n2 < len(segment.links[endOfSegment]):
+                            
+                            d = 2
+                               
+                            absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
+                                                                                             [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
+                                                                                             segments, interactionMatrix, names, copiesNumber, depthOfCommonContigs = d)
+                                                                                             
+                            n2 += 1
+                            
+                            if len(linksStrength) == 2 :
+                                ratios += [ np.min(linksStrength)/np.max(linksStrength) ]
+                                
+    plt.hist(ratios)
+    plt.xlabel('i(X)/i(Y) ratio')
+    plt.ylabel('Number of ambiguities having this value')
+    plt.show()
+    
+    return ratios
+
 def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = False, verbose = False):
         
     if debugDir != '' :
@@ -675,8 +709,12 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
         #         print ('Here is two : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
 
         listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber, verbose = verbose)
-    
-
+        
+        #stats_on_thresholds(listOfSegments, names, interactionMatrix, copiesNumber)
+        #stats_on_thresholds(listOfSegments, names, lrInteractionMatrix, copiesNumber)
+        # while True:
+        #     r = 0
+        
         #print('end of merge_contigs : ', [i.names for i in listOfSegments[names['262']].links[0]])
 
         # once all the contigs have been duplicated and merged, unfreeze everything so the cycle can start again
