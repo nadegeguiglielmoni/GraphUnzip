@@ -576,7 +576,7 @@ def stats_on_thresholds(segments, names, interactionMatrix) :
                                                                                              
                             n2 += 1
                             
-                            if len(linksStrength) == 2 :
+                            if len(linksStrength) == 2 and  np.max(linksStrength) > 2:
                                 ratios += [ np.min(linksStrength)/np.max(linksStrength) ]
                                 
     plt.hist(ratios)
@@ -587,7 +587,7 @@ def stats_on_thresholds(segments, names, interactionMatrix) :
     return ratios
     
         
-segments, names = load_gfa('data_A_vaga_HiFi/Flye/assemblyFlyeHiFi.gfa')
+segments, names = load_gfa('data_A_vaga_HiFi/Flye/assemblyFlyeHiFi+.gfa')
 interactionMatrix = load_interactionMatrix('data_A_vaga_HiFi/Flye/interactionMatrix.pickle', segments, names)
 stats_on_thresholds(segments, names, interactionMatrix)
 
