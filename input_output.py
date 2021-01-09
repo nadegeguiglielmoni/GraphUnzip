@@ -409,6 +409,71 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                             
                         f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
                                 '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+                                
+def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fasta"): 
+    
+    #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
+
+    t = 0
+    noOffsets = True
+    offsetsFile = gfaFile.strip('.gfa') + '_offsets.pickle'
+        
+    if gfaFile != "" and noOffsets:
+        #print("coucou")
+        line_offset = {}
+        offset = 0
+        with open(gfaFile) as gfafile :
+            for line in gfafile:
+                sline = line.strip('\n').split('\t')
+                if sline[0] == 'S' :
+                    #print('In export_to_GFA : exporting ', sline[1])
+                    line_offset[sline[1]] = offset #adds pair sline[1]:offset to the dict
+                    
+                offset += len(line)
+            
+ 
+    print('Line_offsets computed, launching writing of the fasta')
+    #Now that the preliminary work is done, start writing the new fasta file    
+
+    f = open(exportFile, "w")
+    
+    #compute the copiesnumber
+    copies = compute_copiesNumber(listOfSegments)
+
+
+    # now sort the segments by length, to output at the beginning of the files the longests fragments
+    listOfSegments.sort(key = lambda x : x.length, reverse = True)
+    
+    
+    #Finally, write the sequences
+    for s, segment in enumerate(listOfSegments):
+        
+        if  time.time() > t+1 :
+            t = time.time()
+            print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
+        
+        f.write(">supercontig_" + str(s+1) + "\n")
+        
+        fullDepth = 0
+        
+
+        
+        sequence = ''
+        for c, contig in enumerate(segment.names) :
+            s, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+            if segment.orientations[c] == 0 :
+                s = s[::-1]
+            if c > 0 :
+                CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
+                
+                s = s[CIGARlength:]
+            if depth != '' :
+                fullDepth += ( float(depth.split(':')[-1])/copies[contig] ) * len(s)
+            
+            sequence += s
+            
+        f.write(sequence + "\n")
+
 
 # Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
 # Also returns the list of the contig's names

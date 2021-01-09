@@ -282,7 +282,7 @@ def main():
     )
 
     if fastaFile != "None":
-        gfa_to_fasta(outFile, fastaFile)
+        io.export_to_fasta(segments, gfaFile, fastaFile)
 
     print("Finished in ", time.time() - t, " seconds")
 
