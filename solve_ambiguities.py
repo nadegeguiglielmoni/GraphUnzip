@@ -87,9 +87,7 @@ def break_up_chimeras(segments, names, interactionMatrix, length) :
 # this function measures the intensity of interactions between one supercontig
 # and several candidate, including without taking account of the common parts
 # of the supercontigs
-# It also weighs the interaction with the length of a supercontig, so that a
-# very long candidate spercontig is not seen as having a lot of connexion just
-# because it is long
+
 def intensity_of_interactions(
     segment,
     candidatesSegments,
