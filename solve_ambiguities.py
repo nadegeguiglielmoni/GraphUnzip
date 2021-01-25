@@ -674,7 +674,7 @@ def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
 def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = False, verbose = False):
         
     if debugDir != '' :
-        if not os.isdir(debugDir) :
+        if not os.path.isdir(debugDir) :
             os.mkdir(debugDir)
         f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'w')
         f.close()
