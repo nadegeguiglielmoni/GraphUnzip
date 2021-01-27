@@ -248,6 +248,9 @@ def main():
             sys.exit(1)
             
         lrInteractionMatrix, repeats, lrLinks = io.longReads_interactionsMatrix(lrFile, names, segments , similarity_threshold = mm, whole_mapping = wm)
+        
+        if lrInteractionMatrix.count_nonzero() == 0 :
+             print('WARNING: Tried loading the gaf file, but it seems that nothing could be read. If using mm and wm parameters, try lowering the minimum_match parameter towards 0 and/or the whole_match parameter to False. You can try to check the format of the gaf file, check if the names there correspond to the names of the GFA. ')
 
         uselr = True
         # lrSum = np.sum([np.sum(i) for i in lrInteractionMatrix])
@@ -289,6 +292,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 # gfaFile = "Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa"
 # #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"

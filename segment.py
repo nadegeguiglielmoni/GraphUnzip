@@ -238,40 +238,50 @@ class Segment:
 
             
             if leftOrRight == 0 and o1 == 0:
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[0], 1-o2 ,self._otherEndOfLinks[0])
-                self._links[0].insert(index, segments[names[l[3]]])
-                self._otherEndOfLinks[0].insert(index, 1-o2)
-                if len(l) > 5 :
-                    self._CIGARs[0].insert(index, l[5])
-                else :
-                    self._CIGARs[0].insert(index, '*')
+
+                #then comes a little test to see if the link has already been added (for example if their are several lines)
+                if find_this_link(segments[names[l[3]]], 1-o2, self._links[0], self._otherEndOfLinks[0]) == -1 :
+
+                    index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[0], 1-o2 ,self._otherEndOfLinks[0])
+                    self._links[0].insert(index, segments[names[l[3]]])
+                    self._otherEndOfLinks[0].insert(index, 1-o2)
+                    if len(l) > 5 :
+                        self._CIGARs[0].insert(index, l[5])
+                    else :
+                        self._CIGARs[0].insert(index, '*')
                     
             elif leftOrRight == 0 and o1 == 1 :
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[1],  1-o2 ,self._otherEndOfLinks[1])
-                self._links[1].insert(index, segments[names[l[3]]])
-                self._otherEndOfLinks[1].insert(index, 1-o2)
-                if len(l) > 5 :
-                    self._CIGARs[1].insert(index, l[5])
-                else :
-                    self._CIGARs[1].insert(index, '*')
+                if find_this_link(segments[names[l[3]]], 1-o2, self._links[1], self._otherEndOfLinks[1]) == -1 :
+                    
+                    index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[1],  1-o2 ,self._otherEndOfLinks[1])
+                    
+                    self._links[1].insert(index, segments[names[l[3]]])
+                    self._otherEndOfLinks[1].insert(index, 1-o2)
+                    if len(l) > 5 :
+                        self._CIGARs[1].insert(index, l[5])
+                    else :
+                        self._CIGARs[1].insert(index, '*')
                 
             elif leftOrRight == 1 and o2 == 1 :
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[0],  o1 ,self._otherEndOfLinks[0])
-                self._links[0].insert(index, segments[names[l[1]]])
-                self._otherEndOfLinks[0].insert(index, o1)
-                if len(l) > 5 :
-                    self._CIGARs[0].insert(index, l[5])
-                else :
-                    self._CIGARs[0].insert(index, '*')
+                if find_this_link(segments[names[l[1]]], o1, self._links[0], self._otherEndOfLinks[0]) == -1 :
+                    
+                    index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[0],  o1 ,self._otherEndOfLinks[0])
+                    self._links[0].insert(index, segments[names[l[1]]])
+                    self._otherEndOfLinks[0].insert(index, o1)
+                    if len(l) > 5 :
+                        self._CIGARs[0].insert(index, l[5])
+                    else :
+                        self._CIGARs[0].insert(index, '*')
                     
             elif leftOrRight == 1 and o2 == 0 :
-                index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[1],  o1 ,self._otherEndOfLinks[1])
-                self._links[1].insert(index, segments[names[l[1]]])
-                self._otherEndOfLinks[1].insert(index, o1)
-                if len(l) > 5 :
-                    self._CIGARs[1].insert(index, l[5])
-                else :
-                    self._CIGARs[1].insert(index, '*')
+                if find_this_link(segments[names[l[1]]], o1, self._links[1], self._otherEndOfLinks[1]) == -1 :
+                    index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[1],  o1 ,self._otherEndOfLinks[1])
+                    self._links[1].insert(index, segments[names[l[1]]])
+                    self._otherEndOfLinks[1].insert(index, o1)
+                    if len(l) > 5 :
+                        self._CIGARs[1].insert(index, l[5])
+                    else :
+                        self._CIGARs[1].insert(index, '*')
             
             else :
                 print('ERROR while trying to add a new link from the gfa : could not locate a correct name')
@@ -357,12 +367,12 @@ class Segment:
         #index = self._links[endOfSegment].index(segmentToRemove)
    
         #then remove the end of unwanted link in all attributes
-        if index != None :
+        if index != -1 :
             del self._links[endOfSegment][index]
             del self._otherEndOfLinks[endOfSegment][index]
             del self._CIGARs[endOfSegment][index]
-        # else :
-        #     print('Trying unsuccesfully to remove ', segmentToRemove.names, ' from ', self._namesOfContigs)
+        elif index == -1 :
+             print('Trying unsuccesfully to remove ', segmentToRemove.names, ' from ', self._namesOfContigs)
      
     #returns two contigs, equal to this contig but split at axis, corresponding to the number of contigs left of the junction
     def break_contig(self, axis) :
@@ -505,6 +515,8 @@ def find_this_link(segment, endOfSegment, listOfLinks, listOfEndsOfLinks, warnin
     print('In find_this_link : did not find the link')
     #print([[listOfLinks[se].names, listOfEndsOfLinks[se]] for se in range(len(listOfLinks))])
     print('Did not find ', segment.names , endOfSegment, ' among ', [i.names for i in listOfLinks], listOfEndsOfLinks)
+    
+    return -1
 
 #returns the index at which a segment should be inserted in a list sorted by ID : useful because links[0] and links[1] are kept sorted at all times
 def index_at_which_new_link_should_be_inserted(segment, listOfSegments, endOfLink, listOfEndOfLinks) :
