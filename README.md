@@ -79,6 +79,7 @@ The rejected threshold is the threshold below which a link is considered non-exi
 
 ## Citation
 
-Please cite `GraphUnzip` using the official DOI as follows:
+Please cite `GraphUnzip` using the preprint:
 
-Roland Faure, Nadège Guiglielmoni, & Jean-François Flot. (2020, November 25). GraphUnzip: First release (Version v1.0). Zenodo. http://doi.org/10.5281/zenodo.4291093
+[GraphUnzip: unzipping assembly graphs with long reads and Hi-C](https://www.biorxiv.org/content/10.1101/2021.01.29.428779v1) Roland Faure, Nadège Guiglielmoni and Jean-François Flot, bioRxiv (2020).
+doi: https://doi.org/10.1101/2021.01.29.428779
