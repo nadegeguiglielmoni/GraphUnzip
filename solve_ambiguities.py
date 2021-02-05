@@ -7,7 +7,7 @@ File dedicated to the algorithm af making bigger contigs, including solving bubb
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 import input_output as io
 from bisect import bisect_left #to look through sorted lists
@@ -664,10 +664,10 @@ def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
                             if len(linksStrength) == 2 :
                                 ratios += [ np.min(linksStrength)/np.max(linksStrength) ]
                                 
-    plt.hist(ratios)
-    plt.xlabel('i(X)/i(Y) ratio')
-    plt.ylabel('Number of ambiguities having this value')
-    plt.show()
+    # plt.hist(ratios)
+    # plt.xlabel('i(X)/i(Y) ratio')
+    # plt.ylabel('Number of ambiguities having this value')
+    # plt.show()
     
     return ratios
 
