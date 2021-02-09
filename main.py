@@ -96,7 +96,7 @@ def parse_args():
         "-e",
         "--exhaustive",
         action="store_true",
-        help = "Removes all links not found in the GAF file",
+        help = "Removes all links not found in the GAF file (recommended if you have enough reads)",
     )
     
     parser.add_argument(
@@ -111,7 +111,7 @@ def parse_args():
         "-wm",
         "--whole_match",
         action="store_true",
-        help = "Filters out alignments that do not extend over the whole length of the read",
+        help = "Filters out alignments that do not extend over the whole length of the read (recommended if you have enough reads)",
     )
     
     # parser.add_argument(
@@ -294,29 +294,13 @@ if __name__ == "__main__":
     main()
 
 
-# gfaFile = "Arabidopsis/Arabidopsis_hybrid/simplified_graph.gfa"
-# #gfaFile = "Arabidopsis/Arabidopsis_hybrid/small2.gfa"
-# fragmentsFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/fragments_list.txt"
-# matrixFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_weighted.txt"
-# interactionFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/interaction_matrix.pickle"
-# outFile = "Arabidopsis/Arabidopsis_hybrid/unzip_out/unzipped.gfa"
-
-# gfaFile = "data_A_vaga_HiFi/Flye/assemblyFlyeHiFi+.gfa"
-# gafFile = "data_A_vaga_HiFi/Flye/graphaligner.hifi_all.flye_keep-haplotypes_hifi_all.gaf"
-#fragmentsFile = "data_A_vaga_HiFi/p/mapping/fragments_list.txt"
-#matrixFile = "data_A_vaga_HiFi/p/mapping/abs_fragments_contacts_weighted.txt"
-#interactionFile = "data_A_vaga_HiFi/Flye/interactionMatrix.pickle"
-# gafFile = "data_A_vaga_HiFi/Flye/aln_assemblyFlyeHiFi_nanopore1.gaf"
-# outFile = "data_A_vaga_HiFi/Flye/HiFi_Flye_hic2gfa_lr.gfa"
-
-# gfaFile = "data_A_Vaga_PacBio/Assembly.gfa"
-# gafFile = "data_A_Vaga_PacBio/aln_Assembly.gaf"
-# interactionFile = "data_A_Vaga_PacBio/mapping/interaction_matrix.pickle"
-# outFile = "data_A_Vaga_PacBio/PacBio_Shasta_hic2gfa_lr_twice.gfa"
-
-
 # gfaFile = "A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.gfa"
 # interactionFile = "A_vaga_article/Nanopore_Ratatosk/ont_ratatosk_hicMatrix.pickle"
+
+# gafFile = '../users/Cyril_Matthey-Doret/ont_to_gfa.gaf'
+# gfaFile = '../users/Cyril_Matthey-Doret/assembly_graph.gfa'
+# outFile =  '../users/Cyril_Matthey-Doret/output.gfa'
+# 
 # 
 # print('Loading the GFA file')
 # segments, names = io.load_gfa(gfaFile)
@@ -325,8 +309,8 @@ if __name__ == "__main__":
 
 #Now computing the interaction matrix
 
-# interactionMatrix, repeats, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments, 0.9, True)
-
+# lrinteractionMatrix, repeats, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments, 0.9, True)
+# interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
 
 # fragmentList = io.read_fragment_list(fragmentsFile)
 # interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
@@ -341,36 +325,17 @@ if __name__ == "__main__":
 #print(names)
 # hicinteractionMatrix = io.load_interactionMatrix(interactionFile, segments, names)
 
-
-# lrinteractionMatrix, allLinks = io.longReads_interactionsMatrix(gafFile, names, segments)
-
 # interactionMatrix = lrinteractionMatrix #+ hicinteractionMatrix
 
 # #print(allLinks)
-        
 
-# print(hicinteractionMatrix[names['edge_323'], names['edge_51']])
-# print(hicinteractionMatrix[names['edge_323'], names['edge_17']])
+#print("Solving ambiguities")
+
+# segments, cn = solve_ambiguities(segments, interactionMatrix, lrinteractionMatrix, names, stringenceReject = 0.15, stringenceAccept = 0.3, steps = 5, lr_links = allLinks, useNeighborOfNeighbor = False, debugDir = '../users/Cyril_Matthey-Doret/debug', check_links = True)
 # 
-# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_246']])
-# print(hicinteractionMatrix[names['edge_345_edge_132'], names['edge_158']])
-# print(hicinteractionMatrix[names['utg000028l'], names['utg000169l']])
-# print(hicinteractionMatrix[names['utg000028l'], names['utg000085l']])
-
-
-# print('Next')
-
-# #time.sleep(100)
-
-# #print("Solving ambiguities")
-
-# segments = solve_ambiguities(segments, interactionMatrix, names, stringenceReject = 0.01, stringenceAccept = 0.4, steps = 5, SEGMENT_REPEAT = 10, lr_links = allLinks, useNeighborOfNeighbor = False, debug_mode = True)
-# #io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile+'.temp', merge_adjacent_contigs = False)
+# io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile+'.temp', merge_adjacent_contigs = False)
 
 # # segments = solve_ambiguities(segments, lrinteractionMatrix, names, stringenceReject = 0.2, stringenceAccept = 0.4, steps = 7, SEGMENT_REPEAT = 10)
 
-# print('Now exporting')
-
-# io.export_to_GFA(segments, gfaFile = gfaFile, exportFile = outFile, merge_adjacent_contigs = False)
 
 # print('Done!')

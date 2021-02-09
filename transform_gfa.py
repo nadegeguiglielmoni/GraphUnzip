@@ -76,6 +76,18 @@ def check_segments(listOfSegments):
                 if not segment in neighbor.links[segment.otherEndOfLinks[endOfSegment][n]] :
                     print("Problem in links, a one-end link going from: ", segment.names, endOfSegment, ' to ', neighbor.names, segment.otherEndOfLinks[endOfSegment][n])
                     problem = True
+                    
+                if segment.ID == neighbor.ID and endOfSegment == segment.otherEndOfLinks[endOfSegment][n] :
+                    
+                    count = 0
+                    for t in range(len(segment.links[endOfSegment])) :
+                        if segment.links[endOfSegment][t].ID == segment.ID and segment.otherEndOfLinks[endOfSegment][t] == endOfSegment :
+                            count += 1
+                        
+                    if count != 2 :
+                        print("Problem in links, a one-end link going from: ", segment.names, endOfSegment, ' to ', neighbor.names, segment.otherEndOfLinks[endOfSegment][n], '. The total lists are : ', [i.names for i in segment.links[endOfSegment]], segment.otherEndOfLinks[endOfSegment])
+                        problem = True
+                
     return problem
 
 #function if you want to strip the suffix containing the copiesNumber. Careful though, if contigs are duplicated they will be merged back since they will have the same name

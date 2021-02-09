@@ -491,7 +491,7 @@ def load_gfa(file):
             l = line.strip('\n').split("\t")
             s = Segment([l[1]], [1], [len(l[2])])
             segments.append(s)
-            names[s.names[0]] = index #that is the (strange) way of adding a key to a dict in python
+            names[s.names[0]] = index #that is the (strange) way of adding a new key to a dict in python
             index += 1
             
 

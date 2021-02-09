@@ -423,7 +423,6 @@ def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
                 else :
                     segment.freeze(0)
                     segment.freeze(1)
-        
 
         toRemove = []
         for n, neighbor in enumerate(segment.links[0]) : #trying to detect o-loops of length 1
@@ -439,7 +438,8 @@ def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
                         oB0 = (neighbor.orientations[-endOfLink] == endOfLink)
                         
                         if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, oB0, cA0, oA0) in lr_links :
-                            toRemove += [(segment, 0, neighbor, endOfLink)]
+                            if (segment, 0, neighbor, endOfLink) not in toRemove and (neighbor, endOfLink, segment, 0) not in toRemove :
+                                toRemove += [(segment, 0, neighbor, endOfLink)]
                         
                         endOfLink2 = segment.otherEndOfLinks[1][index]
                         cA1 = segment.names[-1]
@@ -447,15 +447,21 @@ def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
                         cB1 = neighbor.names[-endOfLink2]
                         oB1 = (neighbor.orientations[-endOfLink2] == endOfLink2)
                         if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, oB1, cA1, oA1) in lr_links:
-                            toRemove += [(segment, 1, neighbor, endOfLink2)]
+                            if (segment, 1, neighbor, endOfLink2) not in toRemove and  (neighbor, endOfLink2, segment, 1) not in toRemove:
+                                toRemove += [(segment, 1, neighbor, endOfLink2)]
                         
-                        
+        # print('3')
+        # check_segments(listOfSegments)          
+        
         for i in toRemove :
             # print('In o-loops : removing link from ', i[0].names, i[1], 'to ', i[2].names, i[3])
             # print('Links from ', i[0].names, i[1], ' : ', [j.names for j in i[0].links[i[1]]], i[0].otherEndOfLinks[i[1]])
             # print('Links from ', i[2].names, i[3], ' : ', [j.names for j in i[2].links[i[3]]], i[2].otherEndOfLinks[i[3]])
             i[0].remove_end_of_link(i[1], i[2], i[3])
             i[2].remove_end_of_link(i[3], i[0], i[1])
+            
+        # print('4')
+        # check_segments(listOfSegments) 
                 
                 
             
@@ -671,7 +677,7 @@ def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
     
     return ratios
 
-def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = False, verbose = False):
+def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = True, verbose = False):
         
     if debugDir != '' :
         if not os.path.isdir(debugDir) :
@@ -687,13 +693,12 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
         check_all_links(listOfSegments, lr_links) # check if all links there are present in the long reads and delete those who are not
     
     listOfSegments = merge_adjacent_contigs(listOfSegments)
-    print('Merged adjacent contigs for the first time')            
+    print('Merged adjacent contigs for the first time')           
 
    # s.check_if_all_links_are_sorted(listOfSegments)
     
     for i in range(steps):
         get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose, exhaustive = check_links)
-        
                 
         solve_small_loops(listOfSegments, names, repeats, lr_links, check_links)
         
@@ -703,8 +708,8 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, na
 
         # for se in listOfSegments :
         #     if 'edge_357' in se.names :
-        #         print ('Here is two : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n')
-
+        #         print ('Here is two : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n') 
+        
         listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber, verbose = verbose)
         
         #stats_on_thresholds(listOfSegments, names, interactionMatrix, copiesNumber)

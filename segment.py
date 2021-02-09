@@ -239,8 +239,8 @@ class Segment:
             
             if leftOrRight == 0 and o1 == 0:
 
-                #then comes a little test to see if the link has already been added (for example if their are several lines)
-                if find_this_link(segments[names[l[3]]], 1-o2, self._links[0], self._otherEndOfLinks[0]) == -1 :
+                #then comes a little test to see if the link has already been added (for example if their are several lines in the GFA describing the same link). An 'or' condition to allow it when an end of link is linked with itself
+                if find_this_link(segments[names[l[3]]], 1-o2, self._links[0], self._otherEndOfLinks[0]) == -1 or (segments[names[l[3]]].ID == self._id and 1-o2 == 0):
 
                     index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[0], 1-o2 ,self._otherEndOfLinks[0])
                     self._links[0].insert(index, segments[names[l[3]]])
@@ -251,7 +251,7 @@ class Segment:
                         self._CIGARs[0].insert(index, '*')
                     
             elif leftOrRight == 0 and o1 == 1 :
-                if find_this_link(segments[names[l[3]]], 1-o2, self._links[1], self._otherEndOfLinks[1]) == -1 :
+                if find_this_link(segments[names[l[3]]], 1-o2, self._links[1], self._otherEndOfLinks[1]) == -1 or (segments[names[l[3]]].ID == self._id and 1-o2 == 1):
                     
                     index = index_at_which_new_link_should_be_inserted(segments[names[l[3]]], self._links[1],  1-o2 ,self._otherEndOfLinks[1])
                     
@@ -263,7 +263,7 @@ class Segment:
                         self._CIGARs[1].insert(index, '*')
                 
             elif leftOrRight == 1 and o2 == 1 :
-                if find_this_link(segments[names[l[1]]], o1, self._links[0], self._otherEndOfLinks[0]) == -1 :
+                if find_this_link(segments[names[l[1]]], o1, self._links[0], self._otherEndOfLinks[0]) == -1 or (segments[names[l[1]]].ID == self._id and o1 == 0) :
                     
                     index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[0],  o1 ,self._otherEndOfLinks[0])
                     self._links[0].insert(index, segments[names[l[1]]])
@@ -274,7 +274,7 @@ class Segment:
                         self._CIGARs[0].insert(index, '*')
                     
             elif leftOrRight == 1 and o2 == 0 :
-                if find_this_link(segments[names[l[1]]], o1, self._links[1], self._otherEndOfLinks[1]) == -1 :
+                if find_this_link(segments[names[l[1]]], o1, self._links[1], self._otherEndOfLinks[1]) == -1 or (segments[names[l[1]]].ID == self._id and o1 == 1):
                     index = index_at_which_new_link_should_be_inserted(segments[names[l[1]]], self._links[1],  o1 ,self._otherEndOfLinks[1])
                     self._links[1].insert(index, segments[names[l[1]]])
                     self._otherEndOfLinks[1].insert(index, o1)
