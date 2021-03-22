@@ -38,6 +38,7 @@ optional arguments:
                         Output GFA [default: output.gfa]
   -f FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
+  --merge MERGE		If you want to merge in the output file the contigs creating a supercontig into one long contig.
   -A ACCEPTED, --accepted ACCEPTED
                         Two links that are compared are deemed both true if
                         the weakest of the two, in term of Hi-C contacts, is
@@ -73,7 +74,7 @@ optional arguments:
 
 `GraphUnzip` produces an intermediary file, by default interactionMatrix.pickle. If it is the second time you run `GraphUnzip` on the same dataset, specify with -i the path to this file, it will make the program run much faster.
 
-
+Recommended options are using -w, --exhaustive and -M with a value corresponding to the precision of the reads (roughly 1-error rate): when using highly precise/corrected reads with an expected error rate of 1% you might want to use -M 0.98, while you might want to use -M 0.7 for high-error rate long reads. The default values of -A and -R should be acceptable for a first run, but you might consider tweaking them:
 
 The accepted threshold is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
 
