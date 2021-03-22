@@ -36,7 +36,7 @@ def parse_args():
         help="""Output GFA [default: output.gfa]""",
     )
     parser.add_argument(
-        "-fo",
+        "-f",
         "--fasta_output",
         required=False,
         default="None",
@@ -89,7 +89,7 @@ def parse_args():
     )
     
     parser.add_argument(
-        "-lr", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format)"""
+        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format)"""
     )
     
     parser.add_argument(
@@ -100,7 +100,7 @@ def parse_args():
     )
     
     parser.add_argument(
-        "-mm",
+        "-m",
         "--minimum_match",
         required = False,
         default = 0,
@@ -108,7 +108,7 @@ def parse_args():
     )
     
     parser.add_argument(
-        "-wm",
+        "-w",
         "--whole_match",
         action="store_true",
         help = "Filters out alignments that do not extend over the whole length of the read (recommended if you have enough reads)",

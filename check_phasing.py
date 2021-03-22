@@ -64,7 +64,7 @@ def assign_a_chromosome_to_each_contig(assemblyFile, queryfiles, fileOut = 'assi
     #here the reference will be the assemblyFile
     os.system('mkdir tmp')
     os.system('makeblastdb -dbtype nucl -parse_seqids -in ' + assemblyFile + ' -out tmp/dtb')
-    
+    print('Done building the database')
     
     assign = {}
     aFile = open(assemblyFile, 'r')
@@ -72,6 +72,8 @@ def assign_a_chromosome_to_each_contig(assemblyFile, queryfiles, fileOut = 'assi
     for line in aFile :
         if '>' in line[0] :
             assign[line.strip('>').strip('\n')] = []
+    
+    print(assign.keys())
     
     #queryfiles = ['2_cut.fasta', '12_cut.fasta']
     
@@ -81,9 +83,43 @@ def assign_a_chromosome_to_each_contig(assemblyFile, queryfiles, fileOut = 'assi
         
         contigsHere = []
         print('Looking at chromosome : ', query)
-        blastn_cline = NcbiblastnCommandline(query='cut/'+query, db='tmp/dtb', evalue=0.000000001, outfmt=5, out='tmp/blast_sol'+query.strip('.fasta') + '.xml', task="megablast", qcov_hsp_perc = 0.95, num_alignments=5)
+        blastn_cline = NcbiblastnCommandline(query='cut/'+query, db='tmp/dtb', evalue=0.000001, outfmt=5, out='tmp/blast_sol'+query.strip('.fasta') + '.xml', task="megablast", num_alignments=5, qcov_hsp_perc = 90, num_threads = 3)
         out, err = blastn_cline()
         print('Blast done')
+        
+        # result_handle = open('tmp/blast_sol'+query.strip('.fasta') + '.xml')
+        # blast_records = NCBIXML.parse(result_handle)
+        # 
+        # nowhere = 0
+        # total = 0
+        # 
+        # for blast_record in blast_records :
+        #     for alignment in blast_record.alignments:
+        #         nbhits = 0
+        #         for hsp in alignment.hsps:
+        #             #print("identities ", hsp.identities)
+        #             if hsp.identities > 0.9*chunks and nbhits == 0:
+        #                 nbhits += 1
+        #                 #if query.rstrip('_cut.fasta') not in assign[alignment.title[:-19]] :
+        #                 assign[alignment.title[:-19]] += [query.rstrip('_cut.fasta')]
+        #                 print(alignment.title[:-19], " matches to ", query.rstrip('_cut.fasta'))
+        #         
+        #         if nbhits == 0 :
+        #             nowhere += 1
+        #         total += 1
+
+        
+        #print('In assign_a_chromosome_to_each_contig, haven\'t managed to map', nowhere/total*100, ' % of the chunks')
+    
+    fo = open(fileOut, 'wb')
+    pickle.dump(assign, fo)
+    
+    #os.system('rm -r tmp')
+    
+def manual_check(queryfiles, chunks, fileOut):
+    
+    assign = {}
+    for query in queryfiles :
         
         result_handle = open('tmp/blast_sol'+query.strip('.fasta') + '.xml')
         blast_records = NCBIXML.parse(result_handle)
@@ -92,28 +128,45 @@ def assign_a_chromosome_to_each_contig(assemblyFile, queryfiles, fileOut = 'assi
         total = 0
         
         for blast_record in blast_records :
-            total += 1
             for alignment in blast_record.alignments:
                 nbhits = 0
                 for hsp in alignment.hsps:
+                    #print("identities ", hsp.identities)
                     if hsp.identities > 0.9*chunks and nbhits == 0:
                         nbhits += 1
-                        if query.rstrip('_cut.fasta') not in assign[alignment.title.rstrip('No definition line')] :
-                            assign[alignment.title.rstrip('No definition line')] += [query.rstrip('_cut.fasta')]
+                        #if query.rstrip('_cut.fasta') not in assign[alignment.title[:-19]] :
+                        if alignment.title[:-19] not in assign :
+                            assign[alignment.title[:-19]] = []
+                        assign[alignment.title[:-19]] += [query.rstrip('_cut.fasta')]
+                        # print(alignment.title[:-19], " matches to ", query.rstrip('_cut.fasta'))
                 
                 if nbhits == 0 :
                     nowhere += 1
-        
-        print('In assign_a_chromosome_to_each_contig, haven\'t managed to map', nowhere/total, ' % of the chunks')
-
+                total += 1
+    
+    todelete = []
+    for i in assign.keys() :
+        if len(assign[i]) == 1 :
+            todelete += [i]
+            
+    for i in todelete:
+        del assign[i]
+    
     fo = open(fileOut, 'wb')
     pickle.dump(assign, fo)
-    
-    os.system('rm -r tmp')
-    
-    
+    #print(assign)
 
-def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should be merged with '_' between the names
+
+def check_phasing(assigned, fastaFile, fileOut) : # the contigs of the fasta file should be merged with '_' between the names
+    
+    fo = open(fileOut, 'w')
+    
+    ass = {}
+    for i in assigned.keys():
+        
+        ass[i] = []
+        for c in set(assigned[i]) :
+            ass[i] += [(c, assigned[i].count(c))]
     
     fi = open(fastaFile, 'r')
     
@@ -127,11 +180,13 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
             
             chromosomes = set()
             allchromosomes = set()
-            first = True
+            first = True            
             for contig in listOfContigs :
                 
+                
                 if contig not in assigned :
-                    print('There is a problem in the way the contigs are named, possibly if they contain _ or - in their names')
+                    #print('There is a problem in the way the contigs are named, possibly if they contain _ or - in their names')
+                    r = 0
                 else :
                     if assigned[contig] != [] :
                         
@@ -139,12 +194,16 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
                             first = False
                             chromosomes = set(assigned[contig])
                             allchromosomes = set(assigned[contig])
+                            print('\nIn contig ', line)
+                            fo.write('\nIn contig '+ line)
                         elif len(chromosomes) != 0 :
-                            chromosomes = chromosomes.intersection( set(assigned[contig]))
+                            chromosomes = chromosomes.intersection(set(assigned[contig]))
                             allchromosomes = allchromosomes.union(set(assigned[contig]))
                             if len(chromosomes) == 0 :
-                                print ('\nPhasing error detected at contig ', listOfContigs, ', the contigs belong to ', [assigned[i] for i in listOfContigs])
+                                #print ('\nPhasing error detected at contig ', listOfContigs)
                                 phasingErrors += 1
+                        print(contig, ' ', ass[contig])
+                        fo.write(contig+ ' '+str( ass[contig])+'\n')
             
             #print('Contig ', listOfContigs, ' is in chromosome ', chromosomes)
     
@@ -156,25 +215,26 @@ def check_phasing(assigned, fastaFile) : # the contigs of the fasta file should 
     print('\n\nTo summarize ', phasingSuccesses, ' contigs contain no phasing errors and ', phasingErrors, ' contain phasing errors')
         
 #first cut each chromosome in chunks
-# queryfiles = cut_chromosomes('data_A_vaga_HiFi/Flye/tests/A_vaga_12_chromosomes.fasta', chunks = 4000)
-# print(queryfiles) #give the value outputted here to query files in the future
+# queryfiles = cut_chromosomes('potato/solution_article/RH89-039-16_potato_genome_assembly.v3.fa', chunks = 1000)
+#print(queryfiles) #give the value outputted here to query files in the future
 # print('Done cutting')
 
 #then assign to each contig of the original assembly which chromosome(s) it belongs to
-queryfiles = ['1_cut.fasta', '2_cut.fasta', '3_cut.fasta', '4_cut.fasta', '5_cut.fasta', '6_cut.fasta', '7_cut.fasta', '8_cut.fasta', '9_cut.fasta', '10_cut.fasta', '11_cut.fasta', '12_cut.fasta']
-# assign_a_chromosome_to_each_contig('A_vaga_article/Nanopore_Ratatosk/avaga.flye_keep-haplotypes_hifi.ont_ratatosk_all.fasta', queryfiles, 'A_vaga_article/Nanopore_Ratatosk/assign.pickle', chunks = 4000)
+queryfiles = ['chr11_1_cut.fasta', 'chr11_2_cut.fasta', 'chr12_1_cut.fasta', 'chr12_2_cut.fasta']
+#manual_check(['chr10_1_cut.fasta', 'chr10_2_cut.fasta'], 10000, 'tmp/chr10a-chr10b.assign.pickle')
+assign_a_chromosome_to_each_contig('potato/stuberosum.hifiasm_l0.p_utg.fasta', queryfiles, 'potato/assign.pickle', chunks = 10000)
 
 #if you have the queryfiles and the assign.pickle already you can skip the two above functions.
 
 #check if the new supercontigs are composed of contigs coming from only one chromosome
-
-f = open('A_vaga_article/Nanopore_Ratatosk/assign.pickle', 'rb')
-assigned = pickle.load(f)
-
-print(assigned)
-# print(assigned['521'],
+# 
+# f = open('tmp/chr10a-chr10b.assign.pickle', 'rb')
+# assigned = pickle.load(f)
+# 
+# print(assigned)
+#print(assigned['utg000030l'])
 # assigned['881'],
 # assigned['854'],
 # assigned['776'])
-#check_phasing(assigned, 'data_A_Vaga_PacBio/unzipped_merged.fasta')
+# check_phasing(assigned, 'potato/stuberosum.hifiasm_l0.p_utg.graphunzip_hic_accept0.40_reject0.10.merged.fasta', 'potato/manual_check_chr10a-chr10b.txt')
 

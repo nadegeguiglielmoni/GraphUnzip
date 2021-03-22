@@ -36,7 +36,7 @@ optional arguments:
   -g GFA, --gfa GFA     GFA file to phase
   -o OUTPUT, --output OUTPUT
                         Output GFA [default: output.gfa]
-  -fo FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
+  -f FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
   -A ACCEPTED, --accepted ACCEPTED
                         Two links that are compared are deemed both true if
@@ -58,16 +58,16 @@ optional arguments:
                         Fragments list
   -i INTERACTIONS, --interactions INTERACTIONS
                         File with interactions [default: None]
-  -lr LONGREADS, --longreads LONGREADS
+  -l LONGREADS, --longreads LONGREADS
                         Long reads mapped to the GFA with GraphAligner (GAF
                         format)
   --exhaustive          Removes all links not found in the GAF file
-  -mm MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
+  -m MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
                         Filters out alignments with a minimum match identity <
                         minimum-match [default: 0]
-  -wm, --whole_match    Filters out alignments that do not extend over the
+  -w, --whole_match 	Filters out alignments that do not extend over the
                         whole length of the read
-  -dbg, --debug_mode    Debug mode
+  -d, --debug		Debug mode
 
 ```
 
