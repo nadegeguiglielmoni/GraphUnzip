@@ -62,7 +62,7 @@ optional arguments:
                         Long reads mapped to the GFA with GraphAligner (GAF
                         format)
   --exhaustive          Removes all links not found in the GAF file
-  -m MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
+  -M MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
                         Filters out alignments with a minimum match identity <
                         minimum-match [default: 0]
   -w, --whole_match 	Filters out alignments that do not extend over the
@@ -72,6 +72,8 @@ optional arguments:
 ```
 
 `GraphUnzip` produces an intermediary file, by default interactionMatrix.pickle. If it is the second time you run `GraphUnzip` on the same dataset, specify with -i the path to this file, it will make the program run much faster.
+
+
 
 The accepted threshold is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
 

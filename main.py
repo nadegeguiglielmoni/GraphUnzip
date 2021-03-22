@@ -100,7 +100,7 @@ def parse_args():
     )
     
     parser.add_argument(
-        "-m",
+        "-M",
         "--minimum_match",
         required = False,
         default = 0,
