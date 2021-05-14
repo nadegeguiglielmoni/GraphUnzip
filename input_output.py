@@ -242,6 +242,7 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
 
     return "In get_contig : the contig you are seeking is not in the gfa file"
 
+
 # Input :
 #   offset file is for speeding up exportation
 #   merge_adjacent_contig is to produce a GFA with contigs merged
@@ -279,11 +280,13 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     print('Line_offsets computed, launching proper writing of the new GFA')
     #Now that the preliminary work is done, start writing the new gfa file    
 
-    # for s in listOfSegments :
+    # now sort the segments by length, to output at the beginning of the files the longests fragments
+    listOfSegments.sort(key = lambda x : x.length, reverse = True)
 
 
     f = open(exportFile, "w")
     
+
     #compute the copiesnumber
     copies = compute_copiesNumber(listOfSegments)
 
@@ -363,13 +366,20 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     # in the case the user prefers having merged contigs as an output
     else : #if merge_adjacent_contigs == True
         
+        #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C)
+
+        fcontigs = open('/'.join(exportFile.split('/')[:-1])+'supercontigs.txt', 'w') 
+
+        
         for s, segment in enumerate(listOfSegments):
             
             if  time.time() > t+1 :
                 t = time.time()
                 print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
             
-            f.write("S\t" + segment.full_name() + "\t")
+            f.write("S\tsupercontig_" + str(s) + "\t") #the name of the contigs are supercontig_i
+            fcontigs.write("supercontig_"+ str(s) + "\t"+segment.full_name()+"\n")
+            
             
             fullDepth = 0
             

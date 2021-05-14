@@ -62,12 +62,12 @@ optional arguments:
   -l LONGREADS, --longreads LONGREADS
                         Long reads mapped to the GFA with GraphAligner (GAF
                         format)
-  --exhaustive          Removes all links not found in the GAF file
+  --exhaustive          Removes all links not found in the GAF file (if GAF file provided)
   -M MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
                         Filters out alignments with a minimum match identity <
-                        minimum-match [default: 0]
+                        minimum-match [default: 0] (if GAF file provided)
   -w, --whole_match 	Filters out alignments that do not extend over the
-                        whole length of the read
+                        whole length of the read (if GAF file provided)
   -d, --debug		Debug mode
 
 ```
