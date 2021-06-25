@@ -194,6 +194,10 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
 def load_interactionMatrix(file, listOfSegments, names) :
     f = open(file, 'rb')
     interactionMatrix  = pickle.load(f)
+    
+    if interactionMatrix.shape != (len(listOfSegments), len(listOfSegments)) :
+        print("ERROR: the interaction matrix provided does not seem to match with the GFA file (different number of contigs). Exiting")
+    
     for segment in listOfSegments :
         for contig in segment.names :
             segment.HiCcoverage += np.sum(interactionMatrix[names[contig]])
@@ -307,8 +311,8 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     if depth == '':
                         f.write(sequence + "\n")
                     else :
-                        newdepth = str(float(depth.split(':')[-1])/copies[contig])
-                        f.write(sequence + '\tDP:f:'+newdepth + '\n')
+                        #newdepth = str(float(depth.split(':')[-1])/copies[contig])
+                        f.write(sequence + '\tDP:f:'+ str(segment.depths[c]) + '\n')
                 else:
                     f.write("*\n")
     
@@ -499,7 +503,16 @@ def load_gfa(file):
     for line in gfa_read:
         if line[0] == "S":
             l = line.strip('\n').split("\t")
-            s = Segment([l[1]], [1], [len(l[2])])
+            cov = 0
+            
+            for element in l :
+                if 'dp' in element[:2] or 'DP' in element[:2] :
+                    try :
+                       cov = float(element[5:])
+                    except:
+                        nothing = 0
+            
+            s = Segment([l[1]], [1], [len(l[2])], readCoverage = [cov])
             segments.append(s)
             names[s.names[0]] = index #that is the (strange) way of adding a new key to a dict in python
             index += 1
@@ -508,10 +521,12 @@ def load_gfa(file):
     print('Loading links')
     gfa_read = open(file, "r")
         
+    cov = 1
     for line in gfa_read:
         if line[0] == "L":
 
             l = line.strip('\n').split("\t")
+            
             segments[names[l[1]]].add_link_from_GFA(line, names, segments, 0)
             segments[names[l[3]]].add_link_from_GFA(line, names, segments, 1)
 

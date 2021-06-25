@@ -243,6 +243,7 @@ def duplicate_around_this_end_of_contig(
         copiesnumber[i] += len(segment.links[endOfSegment]) - 1
 
     # add all the new supercontigs
+    segment.divide_depths(len(segment.links[endOfSegment]))
     for neighbor in segment.links[endOfSegment]:
         s.merge_two_segments(
             segment, endOfSegment, neighbor, listOfSuperContigs
@@ -388,7 +389,10 @@ def merge_contigs(listOfSegments, copiesnumber, verbose = False):
                     
                    
                 if startMerging:  # if nothing is locked for now
-                    duplicate_around_this_end_of_contig(segment,endOfSegment,listOfSegments,copiesnumber)
+                    
+                    #check that the read coverage is adequate with duplication of the contig
+                    if  segment.depths[-endOfSegment] >= max([segment.links[endOfSegment][n].depths[-segment.otherEndOfLinks[endOfSegment][n]] for n in range(len(segment.links[endOfSegment]))]) :
+                        duplicate_around_this_end_of_contig(segment,endOfSegment,listOfSegments,copiesnumber)
                     
                     if verbose :
                         print('Duplicating contig ', segment.names, ' around its end touching ', [i.names for i in listOfSegments])
@@ -540,7 +544,7 @@ def check_all_links(segments, lr_links) :
                 i[0].remove_end_of_link(i[1], i[2], i[3])
                 i[2].remove_end_of_link(i[3], i[0], i[1])
     
-#get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by HiC evidence
+#get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by long-range evidence
 def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, lr_links, debugDir = '', neighborsOfNeighbors = True, verbose = False, exhaustive = True):
 
     HiCmatrix = (interactionMatrix.count_nonzero() > 0) #a boolean value to tell if there is need to use the Hi-C interaction matrix
@@ -556,92 +560,103 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
         for endOfSegment in range(2):
                 
             if len(segment.links[endOfSegment]) >= 2 : #then it means that there is a choice to be made at one end of the segment. Let's see how HiC contacts confirm those links
-                
+                    
                     
                 # comparison pairwise of the links, those that should be deleted are deleted
-                    toRemove = []
-                    for n1 in range(len(segment.links[endOfSegment]) - 1):
-                        n2 = n1 + 1
-                        while n2 < len(segment.links[endOfSegment]):
+                toRemove = []
+                for n1 in range(len(segment.links[endOfSegment]) - 1):
+                    n2 = n1 + 1
+                    while n2 < len(segment.links[endOfSegment]):
+                        
+                        d = 2
+                        if not neighborsOfNeighbors :
+                            d = 1                            
+                        
+                        #first compute using long reads    
+                        absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
+                                                                                        [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
+                                                                                        listOfSegments, lrInteractionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
                             
-                            d = 2
-                            if not neighborsOfNeighbors :
-                                d = 1
-                            
-                            #first compute using long reads    
+                        tmpls = linksStrength.copy()    
+                                    
+                        #if it is not enough, use Hi-C
+                        
+                        if (not exhaustive and HiCmatrix) or ( (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix ):
                             absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
-                                                                                             [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
-                                                                                             listOfSegments, lrInteractionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
-                                
-                            tmpls = linksStrength.copy()    
-                                          
-                            #if it is not enough, use Hi-C
+                                                                                            [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
+                                                                                            listOfSegments, interactionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
                             
-                            if (not exhaustive and HiCmatrix) or ( (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix ):
-                                absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
-                                                                                                [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
-                                                                                                listOfSegments, interactionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
-                                
-                                if not exhaustive and linksStrength != [-1] and tmpls != [-1]:
-                                    linksStrength = [linksStrength[i] +tmpls[i] for i in range(len(linksStrength))]
+                            if not exhaustive and linksStrength != [-1] and tmpls != [-1]:
+                                linksStrength = [linksStrength[i] +tmpls[i] for i in range(len(linksStrength))]
+                        
+                        if debugDir != '' :
+                            f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
+                            f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength)+'\n')
+                            f.close()
                             
-                            if debugDir != '' :
-                                f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
-                                f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength)+'\n')
-                                f.close()
-                                
-                            if verbose :
-                                print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength))
-                            # if 'edge_229' in segment.names : 
+                        if verbose :
+                            print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength))
+                        # if 'edge_229' in segment.names : 
+                        
+                        #     print('At 229, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)
                             
-                            #     print('At 229, choosing between ', segment.links[endOfSegment][n1].names, segment.links[endOfSegment][n2].names, ' with these values : ', linksStrength, absoluteLinksStrength, neighborsOfNeighborsUsed)
-                                
-                            if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot
-                                segment.freeze(endOfSegment)
-                                #print('get_rid_of_bad_links, ...  freeznoding : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
-                            
-                            if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
-                                segment.freezeNode(endOfSegment)                         
+                        if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot
+                            segment.freeze(endOfSegment)
+                            #print('get_rid_of_bad_links, ...  freeznoding : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
+                        
+                        if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
+                            segment.freezeNode(endOfSegment) 
+                        
 
-                            elif any([i>1 for i in linksStrength]): #the condition is to prevent too much duplicating if there is no mapping or almost  
+
+                        elif any([i>1 for i in linksStrength]): #the condition is to prevent too much duplicating if there is no mapping or almost  
+                            
+                            # if '262' in segment.names :
+                            #     print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
+                            #     print([i.names for i in segment.links[0]])
+                            if linksStrength[0] > linksStrength[1]:
+                                if (linksStrength[1] <= linksStrength[0] * thresholdRejected) or (linksStrength[1] == 1 and linksStrength[0] > 2):  # then it means that probably link does not exist
                                 
-                                # if '262' in segment.names :
-                                #     print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
-                                #     print([i.names for i in segment.links[0]])
-                                if linksStrength[0] > linksStrength[1]:
-                                    if (linksStrength[1] <= linksStrength[0] * thresholdRejected) or (linksStrength[1] == 1 and linksStrength[0] > 2):  # then it means that the link does not exist
+                                    #however, we'd like not to create any dead end, hence a little precaution:
+                                    if len(segment.links[endOfSegment][n2].links[segment.otherEndOfLinks[endOfSegment][n2]]) == 1:
+                                        segment.freezeNode(endOfSegment) #n2 is weak, but this edge is the only outgoing edge from the contig at the other end
+                                    else:
                                         if verbose :
                                             print('\nRemoving link from ', segment.links[endOfSegment][n2].names, ' to ', segment.names, '\n')
                                         if n2 not in toRemove :
                                             toRemove += [n2]
-                                        
-                                    elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
-                                        segment.freezeNode(endOfSegment)
+                                    
+                                elif (linksStrength[1] < linksStrength[0] * thresholdAccepted):  # then it's not clear, the link is freezed
+                                    segment.freezeNode(endOfSegment)
 
-                                else:
-                                    if linksStrength[0] < linksStrength[1] * thresholdRejected or (linksStrength[0] == 1 and linksStrength[1] > 2):  # then decide that the link does not exist
+                            else:
+                                if linksStrength[0] < linksStrength[1] * thresholdRejected or (linksStrength[0] == 1 and linksStrength[1] > 2):  # then decide that the link does not exist
+                                    #however, we'd like not to create any dead end, hence a little precaution:
+                                    if len(segment.links[endOfSegment][n1].links[segment.otherEndOfLinks[endOfSegment][n1]]) == 1:
+                                        segment.freezeNode(endOfSegment) #n2 is weak, but this edge is the only outgoing edge from the contig at the other end
+                                    else:
                                         if verbose :
                                             print('\nRemoving link from ', segment.links[endOfSegment][n1].names, ' to ', segment.names, '\n')
                                         if n1 not in toRemove :
                                             toRemove += [n1]
-                                        
-                                        
-                                    elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
-                                        segment.freezeNode(endOfSegment)
-                            else : #linksStrength <= [1,1]
-                                segment.freezeNode(endOfSegment)
-                                # print('get_rid_of_bad_links, ...  freeznoding2 : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
+                                    
+                                    
+                                elif linksStrength[0] < linksStrength[1] * thresholdAccepted:  # then it's not clear, the link is freezed
+                                    segment.freezeNode(endOfSegment)
+                        else : #linksStrength <= [1,1]
+                            segment.freezeNode(endOfSegment)
+                            # print('get_rid_of_bad_links, ...  freeznoding2 : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
 
-                            n2+=1
-                            
-                    #Remove all links that have been marked as removable
-                    toRemove.sort()
-                    toRemove.reverse()
-                    
-                    for n in toRemove :
-                        segment._links[endOfSegment][n].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
-                        segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n], segment._otherEndOfLinks[endOfSegment][n])
+                        n2+=1
                         
+                #Remove all links that have been marked as removable
+                toRemove.sort()
+                toRemove.reverse()
+                
+                for n in toRemove :
+                    segment._links[endOfSegment][n].remove_end_of_link(segment._otherEndOfLinks[endOfSegment][n], segment, endOfSegment)
+                    segment.remove_end_of_link(endOfSegment, segment._links[endOfSegment][n], segment._otherEndOfLinks[endOfSegment][n])
+                    
         
     return listOfSegments                        
 

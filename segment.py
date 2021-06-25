@@ -7,7 +7,7 @@ import random
 #a segment is a supercontig
 class Segment:
 
-    def __init__(self, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], segCIGARs = [[],[]], lock = False, HiCcoverage = 0):
+    def __init__(self, segNamesOfContig, segOrientationOfContigs, segLengths, segInsideCIGARs = None, segLinks = [[],[]], segOtherEndOfLinks = [[],[]], segCIGARs = [[],[]], lock = False, HiCcoverage = 0, readCoverage = []):
         
         if len(segLinks[0]) != len(segOtherEndOfLinks[0]) or len(segLinks[1]) != len(segOtherEndOfLinks[1]) :
             print('ERROR in the links while initializing a segment')
@@ -35,6 +35,10 @@ class Segment:
         self._orientationOfContigs = segOrientationOfContigs.copy() #1 being '+' orientation, 0 the '-' orientation
         self._lengths = segLengths.copy()
         self._insideCIGARs = segInsideCIGARs.copy()
+        if readCoverage != [] :
+            self._depths = readCoverage.copy() #to keep in mind the read coverage of the contigs
+        else :
+            self._depths = [0 for i in range(len(self._lengths))]
         
         self._copiesOfContigs = [-1]*len(segNamesOfContig) #this is used exclusively while exporting, to indicate which copy of which contig is in the segment (copy 0/ copy 1 / copy 2 ...)
         
@@ -91,6 +95,11 @@ class Segment:
     
     def get_coverage(self):
         return self._HiCcoverage
+        
+    def get_depth(self):
+        if len(self._depths) != len(self._lengths) :
+            print( len(self._depths), len(self._lengths), " error" )
+        return self._depths
     
     def full_name(self) :
         return '_'.join([self._namesOfContigs[i]+'-'+str(self._copiesOfContigs[i]) for i in range(len(self._namesOfContigs))])
@@ -134,10 +143,15 @@ class Segment:
     def set_id(self, newID) : #few cases where that is useful
         self._id = newID 
         
+    def divide_depths(self, n) : #when duplicating a segment, you need to lower the coverage of all replicas
+        for i in range (len(self._depths)) :
+            self._depths[i] /= n
+        
     # properties
     
     ID = property(get_id, set_id)
     HiCcoverage = property(get_coverage, set_coverage)
+    depths = property(get_depth)
     length = property(get_length)
     
     names = property(get_namesOfContigs)
@@ -377,9 +391,9 @@ class Segment:
     #returns two contigs, equal to this contig but split at axis, corresponding to the number of contigs left of the junction
     def break_contig(self, axis) :
         
-        newSegment1 = Segment(self._namesOfContigs[:axis], self._orientationOfContigs[:axis], self._lengths[:axis], self._insideCIGARs[:axis-1], [self._links[0], []], [self._otherEndOfLinks[0], []], [self._CIGARs[0], []])
+        newSegment1 = Segment(self._namesOfContigs[:axis], self._orientationOfContigs[:axis], self._lengths[:axis], self._insideCIGARs[:axis-1], [self._links[0], []], [self._otherEndOfLinks[0], []], [self._CIGARs[0], []], readCoverage = self._depths[:axis])
         
-        newSegment2 = Segment(self._namesOfContigs[axis:], self._orientationOfContigs[axis:], self._lengths[axis:], self._insideCIGARs[axis:], [[], self._links[1]], [[], self._otherEndOfLinks[1]], [[], self._CIGARs[1]])
+        newSegment2 = Segment(self._namesOfContigs[axis:], self._orientationOfContigs[axis:], self._lengths[axis:], self._insideCIGARs[axis:], [[], self._links[1]], [[], self._otherEndOfLinks[1]], [[], self._CIGARs[1]], readCoverage = self._depths[axis:])
         
         return newSegment1, newSegment2
     
@@ -392,23 +406,29 @@ class Segment:
             
         else :
             
+            for i in range(len(self._depths)) :
+                self._depths[i] /= replicas+1
+            
             newName = self._namesOfContigs.copy()
             newOrientations = self._orientationOfContigs.copy()
             newLengths = self._lengths.copy()
             newinsideCIGARs = self._insideCIGARs.copy()
             newCopies = self._copiesOfContigs.copy()
+            newDepths = self._depths.copy()
             for i in range(replicas) :
                 newName += self._namesOfContigs
                 newOrientations += self._orientationOfContigs
                 newLengths += self._lengths
                 newCopies += self._copiesOfContigs
                 newinsideCIGARs += [self._CIGARs[0][self._links[0].index(self)]] + self._insideCIGARs
+                newDepths += self._depths
             
             self._namesOfContigs = newName
             self._orientationOfContigs = newOrientations
             self._lengths = newLengths
             self._copiesOfContigs = newCopies
             self._insideCIGARs = newinsideCIGARs
+            self._depths = newDepths
             
            # print('In segment.flatten : ', self._namesOfContigs, self._insideCIGARs, [self._CIGARs[0][self._links[0].index(self)]])
             #print('Links before any removal, ', [i.names for i in self._links[0]], '\n')
@@ -447,7 +467,8 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
                                 segCIGARs = [segment1.CIGARs[1-endOfSegment1], \
                                 segment2.CIGARs[1-endOfSegment2]],
                                 lock = True,
-                                HiCcoverage = segment1.HiCcoverage + segment2.HiCcoverage)
+                                HiCcoverage = segment1.HiCcoverage + segment2.HiCcoverage,
+                                readCoverage = segment1.depths[::orientation1] + segment2.depths[::orientation2])
             
     listOfSegments.append(newSegment)
     
