@@ -191,16 +191,18 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
                     
     return interactionMatrix, repeats, allLinks
 
-def load_interactionMatrix(file, listOfSegments, names) :
+def load_interactionMatrix(file, listOfSegments, names, HiC = False) :
     f = open(file, 'rb')
     interactionMatrix  = pickle.load(f)
     
     if interactionMatrix.shape != (len(listOfSegments), len(listOfSegments)) :
-        print("ERROR: the interaction matrix provided does not seem to match with the GFA file (different number of contigs). Exiting")
+        print("ERROR: the interaction matrix provided ( ",file," ) does not seem to match with the GFA file (different number of contigs). Exiting")
+        sys.exit(1)
     
-    for segment in listOfSegments :
-        for contig in segment.names :
-            segment.HiCcoverage += np.sum(interactionMatrix[names[contig]])
+    if HiC :
+        for segment in listOfSegments :
+            for contig in segment.names :
+                segment.HiCcoverage += np.sum(interactionMatrix[names[contig]])
     
     return interactionMatrix
 
