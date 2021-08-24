@@ -2,11 +2,11 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4291093.svg)](https://doi.org/10.5281/zenodo.4291093)
 
-Unzips an assembly graph using Hi-C data and/or long reads. 
+Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads. 
 
 ## Why use GraphUnzip ?
 
-`GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes.
+`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. 
 
 ## Installation
 
@@ -22,29 +22,32 @@ Unzips an assembly graph using Hi-C data and/or long reads.
 and
 2. Hi-C data : GraphUnzip needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats)
 or 
-3. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
+2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
+or
+2. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get those files from raw sequencing using BWA would be to: a) convert the assembly from gfa to fasta format ; b) create a bwa index from the fasta file ; c) align the barcoded reads using BWA with option -C to keep the long reads.
 
 
 To use `GraphUnzip`, you need to proceed in two steps :
 
-1. Build interaction matrix(ces) (a matrix quantifying the pairwise interaction between all contigs): for that use the `HiC-IM` or `long-reads-IM` command, depending on which type of data you dispose. You will have to specify the files to which these interaction matrices will be written.
+1. Build interaction matrix(ces) (a matrix quantifying the pairwise interaction between all contigs): for that use the `HiC-IM`, `long-reads-IM` or `linked-reads-IM` command, depending on which type of data you dispose. You will have to specify the files to which these interaction matrices will be written.
 2. Use the command `unzip` to unzip the graph using the interaction matrices built beforehand. This step is usually extremely quick.
 
 
 ### Options
 ```bash
 python3 main.py --help
-python main.py -h
+
 usage: main.py [-h] -g GFA [-o OUTPUT] [-f FASTA_OUTPUT] [-A ACCEPTED]
                [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
                [--HiC_IM HIC_IM] [-i HICINTERACTIONS]
-               [-j LONGREADSINTERACTIONS] [-l LONGREADS]
-               [--long_reads_IM LONG_READS_IM] [-e] [-M MINIMUM_MATCH] [-w]
-               [-v] [-d DEBUG] [--merge]
+               [-j LONGREADSINTERACTIONS] [-k LINKEDREADSINTERACTIONS]
+               [-l LONGREADS] [--long_reads_IM LONG_READS_IM] [-e]
+               [-M MINIMUM_MATCH] [-w] [--linked_reads_IM LINKED_READS_IM]
+               [--barcoded_SAM BARCODED_SAM] [-v] [-d DEBUG] [--merge]
                command
 
 positional arguments:
-  command               Either unzip, HiC-IM or long-reads-IM
+  command               Either unzip, HiC-IM, long-reads-IM or linked-reads-IM
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -75,40 +78,47 @@ unzip options:
   -j LONGREADSINTERACTIONS, --longReadsInteractions LONGREADSINTERACTIONS
                         File containing the long-reads interaction matrix from
                         long-reads-IM [default: None]
-  -e, --exhaustive      
-			Removes all links not found in the GAF file
+  -k LINKEDREADSINTERACTIONS, --linkedReadsInteractions LINKEDREADSINTERACTIONS
+                        File containing the linked-reads interaction matrix
+                        from linked-reads-IM [default: None]
+  -e, --exhaustive      Removes all links not found in the GAF file
                         (recommended if you have enough reads)
   -v, --verbose
   -d DEBUG, --debug DEBUG
                         Activate the debug mode. Parameter: directory to put
                         the logs and the intermediary GFAs.
-  --merge               
-			If you want the output to have all possible contigs
-                        merged [default: no]
+  --merge               If you want the output to have all possible contigs
+                        merged
 
 HiC-IM options:
   -m MATRIX, --matrix MATRIX
-                        Sparse Hi-C contact map (required)
+                        Sparse Hi-C contact map
   -F FRAGMENTS, --fragments FRAGMENTS
-                        Fragments list (required)
-  --HiC_IM HIC_IM       
-			Output file for the Hi-C interaction matrix (required)
+                        Fragments list
+  --HiC_IM HIC_IM       Output file for the Hi-C interaction matrix (required)
 
 long-reads-IM options:
   -l LONGREADS, --longreads LONGREADS
-                        Long reads mapped to the GFA with GraphAligner in the GAF
-                        format (required)
+                        Long reads mapped to the GFA with GraphAligner (GAF
+                        format)
   --long_reads_IM LONG_READS_IM
                         Output file for the long-read interaction matrix
                         (required)
   -M MINIMUM_MATCH, --minimum_match MINIMUM_MATCH
                         Filters out alignments with a minimum match identity <
                         minimum-match [default: 0]
-  -w, --whole_match     
-			Filters out alignments that do not extend over the
+  -w, --whole_match     Filters out alignments that do not extend over the
                         whole length of the read (recommended if you have
-                        enough reads)[default: no]
+                        enough reads)
 
+linked-reads-IM options:
+  --linked_reads_IM LINKED_READS_IM
+                        Output file for the linked-read interaction matrix
+                        (required)
+  --barcoded_SAM BARCODED_SAM
+                        SAM file of the barcoded reads aligned to the
+                        assembly. Barcodes must still be there (use option -C
+                        if aligning with BWA) (required)
 
 ```
 

@@ -28,11 +28,12 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("command", help="Either unzip, HiC-IM or long-reads-IM")
+    parser.add_argument("command", help="Either unzip, HiC-IM, long-reads-IM or linked-reads-IM")
     
     groupUnzip = parser.add_argument_group("unzip options")
     groupHiC = parser.add_argument_group("HiC-IM options")
     grouplr = parser.add_argument_group("long-reads-IM options")
+    grouplinked = parser.add_argument_group("linked-reads-IM options")
     
     parser.add_argument("-g", "--gfa", required = True, help="""GFA file to phase""")
     
@@ -108,6 +109,14 @@ def parse_args():
         help="""File containing the long-reads interaction matrix from long-reads-IM [default: None]""",
     )
     
+    groupUnzip.add_argument(
+        "-k",
+        "--linkedReadsInteractions",
+        required=False,
+        default="Empty",
+        help="""File containing the linked-reads interaction matrix from linked-reads-IM [default: None]""",
+    )
+    
     grouplr.add_argument(
         "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format)"""
     )
@@ -137,6 +146,12 @@ def parse_args():
         help = "Filters out alignments that do not extend over the whole length of the read (recommended if you have enough reads)",
     )
     
+    grouplinked.add_argument(
+        "--linked_reads_IM", required=False, default = "Empty", help = """Output file for the linked-read interaction matrix (required)""")
+    
+    grouplinked.add_argument(
+        "--barcoded_SAM", required=False, default = "Empty", help = """SAM file of the barcoded reads aligned to the assembly. Barcodes must still be there (use option -C if aligning with BWA) (required)""")
+    
     # parser.add_argument(
     #     "-Alr",
     #     "--accepted-lr",
@@ -151,13 +166,7 @@ def parse_args():
     #     default=0.15,
     #     help="""Threshold to reject long-reads links. [default: 0.15]""",
     # )
-    # parser.add_argument(
-    #     "-c",
-    #     "--combine-matrices",
-    #     required=False,
-    #     default=0,
-    #     help="""Define how Hi-C and long reads interaction matrices are combined. Values are 0 (add the two matrices), 1 (run first long-reads), 2 (run first Hi-C). [default: 0]""",
-    # )
+
     
     groupUnzip.add_argument(
         "-v",
@@ -186,19 +195,23 @@ def main():
     args = parse_args()
     
     command = args.command
-    
     gfaFile = args.gfa
+    
     outFile = args.output
     fastaFile = args.fasta_output
+    
     matrixFile = args.matrix
     lrFile = args.longreads
     fragmentsFile = args.fragments
+    barcodedSAM = args.barcoded_SAM
     
     outputIMH = args.HiC_IM
     outputIML = args.long_reads_IM
+    outputIMT = args.linked_reads_IM
     
     interactionFileH = args.HiCinteractions
     interactionFileL = args.longReadsInteractions
+    interactionFileT = args.linkedReadsInteractions
     
     stringenceReject = float(args.rejected)
     stringenceAccept = float(args.accepted)
@@ -228,10 +241,12 @@ def main():
 
     interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
     lrInteractionMatrix  = sparse.dok_matrix((len(segments), len(segments)))
+    tagInteractionMatrix = sparse.dok_matrix((len(segments), len(segments)))
     lrLinks = []
     repeats = [] #this array will be uselful to flatten small loops based on long reads
     useHiC = False
     uselr = False
+    useTag = False
 
     if command == 'HiC-IM' :
         
@@ -285,6 +300,22 @@ def main():
             
             print('ERROR: Providing a file with the long reads on the GFA (e.g. with GraphAligner) is mandatory to use the long-reads-IM, using option --longreads')
             
+    elif command == 'linked-reads-IM' :
+        
+        if barcodedSAM is not "Empty" :
+        
+            if not os.path.exists(barcodedSAM):
+                print('Error: could not find the SAM file.')
+                sys.exit(1)
+            
+            tagInteractionMatrix = io.linkedReads_interactionMatrix(barcodedSAM, names)
+            
+            print("Exporting barcoded interaction matrix as ", outputIMT)
+            with open(outputIMT, "wb") as o:
+                pickle.dump(tagInteractionMatrix, o)
+        
+        else :
+            print("ERROR: Providing the SAM of the barcoded reads aligned on the assembly is mandatory to use the linked-reads-IM command")
             
     elif command == 'unzip' :
         
@@ -321,21 +352,35 @@ def main():
             else :
                 fi = open(interactionFileL+'-l', 'rb')
                 lrLinks = pickle.load(fi)
+                
+        if interactionFileT is not "Empty":
             
-        if not( useHiC or uselr) :
+            if not os.path.exists(interactionFileT) :
+                print("ERROR: could not access ", interactionFileT)
+                sys.exit(1)
             
-            print("ERROR: You should provide to unzip interaction matrices, using either --HiCinteractions (-i) or --longReadsInteractions (-j). If you do not have them, you can create them using the HiC-IM and long-reads-IM commands")
+            print("Loading the linked-reads interaction matrix")
+            tagInteractionMatrix = io.load_interactionMatrix(interactionFileT, segments, names, HiC = False)
+            useTag = True
+            
+        if not( useHiC or uselr or useTag) :
+            
+            print("ERROR: You should provide to unzip interaction matrices, using either --HiCinteractions (-i), --longReadsInteractions (-j) or --linkedReadsInteractions (-k). If you do not have them, you can create them using the HiC-IM, long-reads-IM or linked-reads-IM commands")
 
-    
 
         print("Everything loaded, moving on to unzipping")
         cn = {}
         
-        if interactionMatrix.count_nonzero() > 0 or lrInteractionMatrix.count_nonzero() >0 or exhaustive:
+        if interactionMatrix.count_nonzero() > 0 or lrInteractionMatrix.count_nonzero() >0 or tagInteractionMatrix.count_nonzero() > 0 or exhaustive:
                     
             segments, cn = solve_ambiguities(
-                segments, interactionMatrix, lrInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
+                segments, interactionMatrix, lrInteractionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
             )
+        
+        else :
+            
+            print("WARNING: all interaction matrices are empty, GraphUnzip does not do anything")
+            
         if lrInteractionMatrix.count_nonzero() == 0 and uselr:
             print("WARNING: the long reads interaction matrix between contigs is empty. This could be due to having filtered out all information from long reads. If you used --exhaustive I remove all edges, I do nothing elsewhise.")
     

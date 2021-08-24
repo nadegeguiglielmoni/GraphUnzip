@@ -11,6 +11,7 @@ import time #to inform the user on what the programm is doing on a regular basis
 import os.path #to check the existence of files
 import pickle #for writing files and reading them
 import re #to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
+import shutil #to remove directories
 
 from segment import Segment
 from segment import compute_copiesNumber
@@ -190,6 +191,62 @@ def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold 
                                         repeats[namesPlus[contigs[c1]]] = max(contigs.count(contigs[c1]), repeats[namesPlus[contigs[c1]]])
                     
     return interactionMatrix, repeats, allLinks
+    
+def linkedReads_interactionMatrix(sam, names):
+    
+    interactionMatrix = sparse.dok_matrix((len(names), len(names)))
+    
+    contigsInTag = []
+    tags = {}
+    numbertag = 0
+    
+    f = open(sam)
+    l = 0
+        
+    for line in f :
+        
+        if '@' not in line[0] : #we check that the line is not a part of a header but actual alignment
+        
+            ls = line.split('\t')
+            if ls[2] in names : #that means it matched to a contig in the graph
+                contig = names[ls[2]]
+                
+                ls = line.strip('\n').split('BX:Z:')
+                if len(ls) > 1 :
+                    tag = ls[1].split('\t')[0]
+                    
+                    if tag in tags :
+                        contigsInTag[tags[tag]].append(contig)
+                        
+                    else :
+                        tags[tag] = numbertag
+                        contigsInTag += [[contig]]
+                        
+                        numbertag += 1
+                    
+                else:
+                    if l < 10 :
+                        print("Barcode could not be extracted from line ", line, ", ignoring the line, are you sure the BX:Z: tags are there ?")
+                        l += 1 #just print 10 such lines, the user has understood
+    
+    #now convert contigsInTag into an interaction Matrix
+    print(contigsInTag)
+    for t in contigsInTag :
+        for i in range(len(t)) :
+            
+            for j in range(len(t)) :
+                
+                interactionMatrix[t[i],t[j]] += 1
+
+    # for i in range (len(names)) :
+    #     
+    #     for j in range(len(names)) :
+    #         
+    #         print(interactionMatrix[i,j])
+    #     print()
+    
+    return interactionMatrix
+
 
 def load_interactionMatrix(file, listOfSegments, names, HiC = False) :
     f = open(file, 'rb')

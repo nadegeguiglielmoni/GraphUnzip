@@ -202,7 +202,7 @@ class Segment:
                     relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
                 else:
                     absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-                    
+                                        
         #now compute the interaction with neighbors of self
         
         if neighborOfNeigborUsed :
