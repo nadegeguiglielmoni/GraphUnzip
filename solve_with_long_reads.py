@@ -316,9 +316,9 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                     
                     haploidCoverage = (segments[names[contigs[0]]].depths[0]+segments[names[contigs[-1]]].depths[0])/2 #computation of the haploid coverage at this point in the assembly
 
-                    #if '176' in contigs :
+                    #if '24' in contigs :
                     
-                    #print("\nlet's duplicate ", contigs, " ", orientations)
+                    #print("let's duplicate ", contigs, " ", orientations)
                     nextEnd = 0
                     if orientations[1] == '<' :
                         nextEnd = 1
@@ -372,29 +372,25 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                         else :
                             
                             # if the contig has multiple incoming reads left, get rid of all of them except (the good one is reestablished later). Do the same at the other end of the contig
+                            supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] -= 1
                             if len(contig.links[end1]) > 0 :
                                 for n, neighbor in enumerate(contig.links[end1]) :
                                     if neighbor.ID != segments[newContigsIndices[c-1]].ID:
+                                        if supported_links[names[contigs[c]]*2+end1 , names[neighbor.names[0]]*2+contig.otherEndOfLinks[end1][n]] == 0 :
                                         #print("deleting links left of ", contig.names, " : ", neighbor.names, " :: ", [i.names for i in contig.links[end1]])
-                                        segment.delete_link(contig, end1, neighbor, contig.otherEndOfLinks[end1][n])
+                                            segment.delete_link(contig, end1, neighbor, contig.otherEndOfLinks[end1][n])
                                         
                             # print("RIght of 138 there is ", [i.ID for i in segments[names['138']].links[1]], " ", [i for i in segments[names['119']].otherEndOfLinks[1]], " ", segments[names['119']].ID)
                             # print("RIght of 119 there is ", [i.ID for i in segments[names['119']].links[1]], " ", [i for i in segments[names['138']].otherEndOfLinks[1]], " ", segments[names['138']].ID)
-                            
-                            if contigs[c] == '142' : 
-                                print("problem is here ", [i.names for i in contig.links[1-end1]])
                                 
                             if len(contig.links[1-end1]) > 0 and c < len(contigs)-1: #delete all the links right of the contig, the only good one will be reestablished later
                                 while len(contig.links[1-end1]) > 0 :
                                     neighbor = contig.links[1-end1][0]
                                     segment.delete_link(contig, 1-end1, neighbor, contig.otherEndOfLinks[1-end1][0])
-                                    
-                            if contigs[c] == '142' : 
-                                print("problem is still here ", [i.names for i in contig.links[1-end1]])
+
                             
                             #now the link the contig to the contig right at its left
-                            segment.add_link(contig, end1, segments[newContigsIndices[c-1]], end0, CIGAR)
-                            
+                            segment.add_link(contig, end1, segments[newContigsIndices[c-1]], end0, CIGAR)                                
                         
                             newContigsIndices += [oldContigsIndices[c]]
                             

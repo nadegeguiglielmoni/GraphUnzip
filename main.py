@@ -136,7 +136,7 @@ def parse_args():
     #     help="""Threshold to accept long-reads links. [default: 0.30]""",
     # )
     # parser.add_argument(
-    #     "-Rlr",
+    #     "-Rlr",git c
     #     "--rejected-lr",
     #     required=False,
     #     default=0.15,
@@ -308,7 +308,7 @@ def main():
             segments, cn = bridge_with_long_reads(segments, names, cn, lrFile)
         
         #As a second step, use Hi-C and/or linked reads 
-        if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 or exhaustive:
+        if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
             segments, cn = solve_ambiguities(
                 segments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
