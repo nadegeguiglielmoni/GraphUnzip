@@ -545,7 +545,7 @@ def check_all_links(segments, lr_links) :
                 i[2].remove_end_of_link(i[3], i[0], i[1])
     
 #get_rid_of_bad_links compare links using HiC contact informations when there is a choice and delete links that are not supported by long-range evidence
-def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, tagInteractionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, lr_links, debugDir = '', neighborsOfNeighbors = True, verbose = False, exhaustive = True):
+def get_rid_of_bad_links(listOfSegments, interactionMatrix, tagInteractionMatrix, names, copiesnumber,thresholdRejected,thresholdAccepted, debugDir = '', neighborsOfNeighbors = True, verbose = False):
 
     HiCmatrix = (interactionMatrix.count_nonzero() > 0) #a boolean value to tell if there is need to use the Hi-C interaction matrix
 
@@ -573,24 +573,16 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix,
                         if not neighborsOfNeighbors :
                             d = 1      
                                                     
-                        #first compute using long reads    
-                        absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],[segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],listOfSegments, lrInteractionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
-                            
-                        tmpls = linksStrength.copy()  
-                        
-                        #if it is not enough, use linked-reads
+                        #first compute using linked reads    
                         if tagInteractionMatrix.count_nonzero()>0 and (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) :
                             absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],[segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],listOfSegments, tagInteractionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
                                     
                         #if it is not enough, use Hi-C
                         
-                        if (not exhaustive and HiCmatrix) or ( (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix ):
+                        if (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix:
                             absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
                                                                                             [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
                                                                                             listOfSegments, interactionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
-                            
-                            if not exhaustive and linksStrength != [-1] and tmpls != [-1]:
-                                linksStrength = [linksStrength[i] +tmpls[i] for i in range(len(linksStrength))]
                         
                         if debugDir != '' :
                             f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
@@ -691,7 +683,7 @@ def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
     
     return ratios
 
-def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], lr_links = [], useNeighborOfNeighbor = True, debugDir = '', check_links = True, verbose = False):
+def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], useNeighborOfNeighbor = True, debugDir = '', verbose = False):
         
         
     if debugDir != '' :
@@ -702,22 +694,20 @@ def solve_ambiguities(listOfSegments, interactionMatrix, lrInteractionMatrix, ta
     
     if copiesNumber == {} :
         for segment in listOfSegments :
-            copiesNumber['_'.join(segment.names)] = 1
-    
-    if check_links :
-        check_all_links(listOfSegments, lr_links) # check if all links there are present in the long reads and delete those who are not
+            for name in segment.names :
+                cn[name] = 1
     
     listOfSegments = merge_adjacent_contigs(listOfSegments)
-    print('Merged adjacent contigs for the first time')           
+    print('Merged adjacent contigs for the first time')
 
    # s.check_if_all_links_are_sorted(listOfSegments)
 
     for i in range(steps):
-        get_rid_of_bad_links(listOfSegments, interactionMatrix, lrInteractionMatrix, tagInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept,  lr_links, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose, exhaustive = check_links)
+        get_rid_of_bad_links(listOfSegments, interactionMatrix, tagInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose, exhaustive = check_links)
                 
-        solve_small_loops(listOfSegments, names, repeats, lr_links, check_links)
+        #solve_small_loops(listOfSegments, names, repeats, lr_links, check_links)
         
-        solve_l_loops(listOfSegments, lr_links)
+        #solve_l_loops(listOfSegments, lr_links)
             
         print('Got rid of bad links')
 

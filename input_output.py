@@ -558,7 +558,8 @@ def load_gfa(file):
     segments = []
     
     index = 0
-    names = {}
+    names = {} # names is a dictionary that associates the name of each contig in the gfa with an index (which will correspond later to the one in interactionMatrix and copiesnumber)
+    
     for line in gfa_read:
         if line[0] == "S":
             l = line.strip('\n').split("\t")
@@ -573,7 +574,7 @@ def load_gfa(file):
             
             s = Segment([l[1]], [1], [len(l[2])], readCoverage = [cov])
             segments.append(s)
-            names[s.names[0]] = index #that is the (strange) way of adding a new key to a dict in python
+            names[s.names[0]] = index #now this contig (identified by its name) is attached to index
             index += 1
             
 
