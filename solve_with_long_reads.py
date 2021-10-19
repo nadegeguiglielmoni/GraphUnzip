@@ -58,7 +58,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile):
     non_overlapping_bridges = [['',''] for i in range(len(haploidContigs))] 
     reliable_haploid_contigs, reliable_haploid_contigsNames = merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsNames, haploidContigs)
 
-    # print(reliable_haploid_contigsNames)
+    print(reliable_haploid_contigsNames)
     # print("Phase 1 over...\n\n")
     #the first phase is over, now we have the reliable_haploid_contigs : let's re-do everything with these more reliable haploid contigs
     bridges = [[[],[]] for i in range(len(reliable_haploid_contigs))] #bridges is a list inventoring at index haploidCOntigsNames[seg.names[0]] all the links left and right of the contig, supported by the gaf
@@ -70,7 +70,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile):
 
     non_overlapping_bridges = [['',''] for i in range(len(reliable_haploid_contigs))] 
     merge_bridges(non_overlapping_bridges, consensus_bridges, reliable_haploid_contigsNames, reliable_haploid_contigs)
-    #print(non_overlapping_bridges[reliable_haploid_contigsNames['134']])
+    print(consensus_bridges[reliable_haploid_contigsNames['75']])
     
     #second phase is over
     
@@ -316,15 +316,23 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                     
                     haploidCoverage = (segments[names[contigs[0]]].depths[0]+segments[names[contigs[-1]]].depths[0])/2 #computation of the haploid coverage at this point in the assembly
 
-                    #if '24' in contigs :
+                    #if '33' in contigs :
                     
-                    #print("let's duplicate ", contigs, " ", orientations)
+                        #print("let's duplicate ", contigs, " ", orientations)
                     nextEnd = 0
                     if orientations[1] == '<' :
                         nextEnd = 1
                     CIGAR = segments[names[contigs[0]]].CIGARs[end][segment.find_this_link(segments[oldContigsIndices[1]], nextEnd, segments[names[contigs[0]]].links[end], segments[names[contigs[0]]].otherEndOfLinks[end])]
                     nextCIGAR = '';
                     
+                    #take care of the first contig, nobody is goind to do it elsewhise
+                    contig = segments[names[contigs[0]]]
+                    if len(contig.links[end]) > 0 : #delete all the links right of the contig, the only good one will be reestablished later
+                        while len(contig.links[end]) > 0 :
+                            neighbor = contig.links[end][0]
+                            segment.delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][0])
+                    
+                    #then take care of all other contigs
                     for c in range(1, len(contigs)) :
                         
                         contig = segments[names[contigs[c]]]
