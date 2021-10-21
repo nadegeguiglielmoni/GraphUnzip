@@ -578,7 +578,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, tagInteractionMatrix
                             absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],[segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],listOfSegments, tagInteractionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
                                     
                         #if it is not enough, use Hi-C
-                        
+                        linksStrength = [-1]
                         if (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix:
                             absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
                                                                                             [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
@@ -683,9 +683,12 @@ def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
     
     return ratios
 
-def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, repeats = [], useNeighborOfNeighbor = True, debugDir = '', verbose = False):
+def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, useNeighborOfNeighbor = True, debugDir = '', verbose = False):
         
-        
+    
+    print(interactionMatrix[names['edge_82'], names['edge_144']])
+    print(interactionMatrix[names['edge_82'], names['edge_143']])
+
     if debugDir != '' :
         if not os.path.isdir(debugDir) :
             os.mkdir(debugDir)
@@ -703,7 +706,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, n
    # s.check_if_all_links_are_sorted(listOfSegments)
 
     for i in range(steps):
-        get_rid_of_bad_links(listOfSegments, interactionMatrix, tagInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose, exhaustive = check_links)
+        get_rid_of_bad_links(listOfSegments, interactionMatrix, tagInteractionMatrix, names, copiesNumber, stringenceReject, stringenceAccept, debugDir = debugDir, neighborsOfNeighbors = useNeighborOfNeighbor, verbose = verbose)
                 
         #solve_small_loops(listOfSegments, names, repeats, lr_links, check_links)
         

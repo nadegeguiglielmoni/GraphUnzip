@@ -311,7 +311,7 @@ def main():
         if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
             segments, cn = solve_ambiguities(
-                segments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, repeats = repeats, copiesNumber = cn, debugDir = dbgDir, lr_links = lrLinks, check_links = exhaustive, verbose = verbose,
+                segments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose,
             )
         
         elif not uselr :
