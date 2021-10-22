@@ -31,11 +31,11 @@ def determine_multiplicity(segments, names) :
     for s in segments :
         
         links = s.get_links()
-        if len(links[0]) <= 1 and len(links[1]) <= 1 and round(s.depths[0] / refCoverage) == 1 : #if the contig has strictly 1 neighbor at each end we can suppose it is haploid
+        if len(links[0]) <= 1 and len(links[1]) <= 1 and round(s.depths[0] / refCoverage) <= 1 : #if the contig has strictly 1 neighbor at each end we can suppose it is haploid
         
             computed_multiplicity[names[s.names[0]]] = 1
             
-    #print("multiplicity of 188 : ", computed_multiplicity[names['edge_188']])
+    #print("multiplicity of 94, 93: ", computed_multiplicity[names['edge_94']], " ", computed_multiplicity[names['edge_93']])
             
        
     #now infer greedily the coverage of contigs next to haploid ones

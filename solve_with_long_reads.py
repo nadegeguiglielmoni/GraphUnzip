@@ -23,6 +23,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile):
     #first phase : determine all contigs that have strictly one link at each end (they are approximately haploid), and sort them by length
     
     refHaploidy, multiplicities = determine_multiplicity(segments, names) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
+    #print("multiplicity of 95 : ", multiplicities[names['edge_95']])
     #print(multiplicities)
     haploidContigs = []
     for se, s in enumerate(segments) :
@@ -50,9 +51,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile):
     #inventoriate all bridges in the list bridges : sequence of contigs found in the GAF containing at least one contig of multiplicity 1
     bridges = [[[],[]] for i in range(len(haploidContigs))] #bridges is a list inventoring at index haploidCOntigsNames[seg.names[0]] all the links left and right of the contig, supported by the gaf
     inventoriate_bridges(bridges, haploidContigsNames, gafFile, 0.7, 0.5)
-    
-    #print(bridges[names['edge_3']])
-    
+        
     #now, from all the bridges, build consensus bridges
     consensus_bridges = [['',''] for i in range(len(haploidContigs))] #consensus bridge is essentially the same as bridges, except there is only one bridge left at each side for each contig
     supported_links = sparse.dok_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file
@@ -79,10 +78,10 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile):
     supported_links = sparse.dok_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file
     consensus_bridges = [['',''] for i in range(len(reliable_haploid_contigs))] #consensus bridge is essentially the same as bridges, except there is only one bridge left at each side for each contig
     build_consensus_bridges(consensus_bridges, bridges, names, supported_links, reliable_haploid_contigs)
+    #print(bridges[reliable_haploid_contigsNames['edge_270']])
 
     non_overlapping_bridges = [['',''] for i in range(len(reliable_haploid_contigs))] 
     merge_bridges(non_overlapping_bridges, consensus_bridges, reliable_haploid_contigsNames, reliable_haploid_contigs)
-    
     
     #second phase is over
     
@@ -306,6 +305,8 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
         
         minimum_multiplicity[names[seg.names[0]]] = max([minLeft, minRight, multiplicities[s]])
         
+    #print("minimum multiplicity of 343 :" , minimum_multiplicity[names['edge_343']])
+        
     l = len(segments)
     for se in range(l) :
         
@@ -386,7 +387,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                             #delete the old link if and only if it was only supported by one path
                             supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] -= 1
                             supported_links[names[contigs[c-1]]*2+end0, names[contigs[c]]*2+end1] -= 1
-                            if supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] == 0 and segment.find_this_link(segments[oldContigsIndices[c]], end1, segments[oldContigsIndices[c-1]].links[end0], segments[oldContigsIndices[c-1]].otherEndOfLinks[end0], warning=False) != -1:
+                            if supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] == 0 and len(segments[oldContigsIndices[c-1]].links[end0])>1 and segment.find_this_link(segments[oldContigsIndices[c]], end1, segments[oldContigsIndices[c-1]].links[end0], segments[oldContigsIndices[c-1]].otherEndOfLinks[end0], warning=False) != -1:
                                 #print("remove links left of ", segments[oldContigsIndices[c]].names, " : ", segments[oldContigsIndices[c-1]].names)
                                 segment.delete_link(segments[oldContigsIndices[c]], end1, segments[oldContigsIndices[c-1]], end0, warning = True) #though it is very hard to be sure, it is not impossible at that point that we actually delete a link that is present in another bridge, so don't warn
                             #since contig has been duplicated, lower its depth
