@@ -303,16 +303,17 @@ def main():
         
         ##Moving to the actual unzipping of the graph
         
+        supported_links2 = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links considering the topography of the graph
+        refHaploidy, multiplicities = determine_multiplicity(segments, names, supported_links2) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
+        
         #As a first step, use only the long reads, if available
         if uselr :
-            segments, cn = bridge_with_long_reads(segments, names, cn, lrFile)
+            bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, refHaploidy, multiplicities)
         
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
-            segments, cn = solve_ambiguities(
-                segments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose,
-            )
+            segments, cn = solve_ambiguities(segments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose)
         
         elif not uselr :
             

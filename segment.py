@@ -169,7 +169,7 @@ class Segment:
     #other functions that handle segments
     
     #function which goals is to return the intensity of HiC contacts between another segment and this one
-    def interaction_with_contigs(self, segment, interactionMatrix, names, copiesnumber = None, commonContigs = [], bestSignature = 1000, neighborOfNeigborUsed = True):
+    def interaction_with_contigs(self, segment, interactionMatrix, names, copiesnumber = None, commonContigs = set(), bestSignature = 1000):
         
         if copiesnumber == None :
             copiesnumber = [1 for i in interactionMatrix]
@@ -203,20 +203,19 @@ class Segment:
                                         
         #now compute the interaction with neighbors of self
         
-        if neighborOfNeigborUsed :
-            endOfSegment = 1-orientation
-            for neighbor in self.links[endOfSegment] :
-                for co, contig in enumerate(neighbor.names) :
-                    for c, contigInSegment in enumerate(segment.names):
-                    
-                        if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
-                            
-                            depth = 2
-                            
-                            absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-                            relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
-                        else:
-                            absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+        endOfSegment = 1-orientation
+        for neighbor in self.links[endOfSegment] :
+            for co, contig in enumerate(neighbor.names) :
+                for c, contigInSegment in enumerate(segment.names):
+                
+                    if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+                        
+                        depth = 2
+                        
+                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+                        relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
+                    else:
+                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                 
             
         return absoluteScore, relativeScore, depth

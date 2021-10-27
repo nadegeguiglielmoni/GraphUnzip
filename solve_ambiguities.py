@@ -90,26 +90,31 @@ def break_up_chimeras(segments, names, interactionMatrix, length) :
 
 def intensity_of_interactions(
     segment,
-    candidatesSegments,
-    listOfTouchingEnds,
+    endOfSegment,
+    listOfNeighborIndices,
     listOfSegments,
     interactionMatrix,
     names, 
     copiesnumber,
-    depthOfCommonContigs = 2, #meaning by default you take neighbors of neighbors in common contigs. (value 0,1,2)
     debugDir = '',
 ):
+    
+    candidatesSegments = [segment.links[endOfSegment][i] for i in listOfNeighborIndices]
+    listOfTouchingEnds = [segment.otherEndOfLinks[endOfSegment][i] for i in listOfNeighborIndices]
+    
     for candidate in candidatesSegments :
         if candidate == segment : #small loop, don't solve that !
-            return [-1], [-1], True #the True value does not matter here
+            return [-1]
     
     ##first compute all contigs common to all candidates, to take them out
-    if depthOfCommonContigs > 0 :
-            commonContigs, neighborsOfNeighborsUsed = compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds, depthOfCommonContigs)
-            if debugDir != '':
-                f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
-                f.write('common contigs: ' + str(commonContigs)+'\n')
-                f.close()
+
+    #commonContigs, neighborsOfNeighborsUsed = compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds, depthOfCommonContigs)
+    commonContigs = compute_commonContigs2(segment, endOfSegment, listOfNeighborIndices, 2000000)
+    
+    if debugDir != '':
+        f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
+        f.write('common contigs: ' + str(commonContigs)+'\n')
+        f.close()
     
 
     ##Now compute the score of each candidates    
@@ -118,45 +123,60 @@ def intensity_of_interactions(
     bestSignature = np.min([copiesnumber[x] for x in segment.names])
     # return for each supercontig its absolute score and its relative score (wihtout the common parts)
     
-    depthFound = True
-    depth = 2
-    while depthFound == True : #do the process again without neighborOfneighbor if neighbors of neighbors are only used sometimes but not always
-        absoluteScores = []
-        relativeScores = []
-        returnRelativeScore = True
-        depthFound = False
+    relativeScores = []
+    returnRelativeScore = True
 
-        for c in candidatesSegments:
-    
-            if depth == 2 :
-                    
-                absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature, neighborsOfNeighborsUsed)
-        
-                if depthHere == 1 and depth == 2 :
-                    depth = 1
-                    depthFound = True
-                    
-            else :
-                absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature, False)
+    for c in candidatesSegments:
                 
-            if all([i in commonContigs for i in c.names]) :
-                returnRelativeScore = False #if a contig is entirely contained in commonContigs, don't say that his score is 0, that would lead to errors
-    
-            absoluteScores.append(absoluteScore)
-            relativeScores.append(relativeScore)
+        absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature)
             
-    if all([i==0 for i in relativeScores]) :
-        returnRelativeScore = False # if all elements of candidate are in commoncontigs, relative intensity cannot be determined, you have to do with absolute intensity
+        if all([i in commonContigs for i in c.names]) :
+            returnRelativeScore = False #if a contig is entirely contained in commonContigs, don't say that his score is 0, that would lead to errors
     
+        relativeScores.append(relativeScore)
+
     # if 'edge_229' in segment.names:    
         # print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores, absoluteScores)
         # #print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
         # print('Common contigs : ', commonContigs, '\n')
     
     if returnRelativeScore :
-        return absoluteScores, relativeScores, neighborsOfNeighborsUsed
+        return relativeScores
     else :
-        return absoluteScores, [-1], neighborsOfNeighborsUsed
+        return [-1]
+
+#input : a segment, a end of segment a list of neighboring contig, a depth (length in nucleotides) beyond which we do not need to look
+#output : a list of contig's names that are present in the prolongation of only one of the neighbor
+def compute_commonContigs2(segment, endOfSegment, listOfNeighborIndices, depth) :
+    
+    listOfTouchedContig = []
+    
+    for n in listOfNeighborIndices :
+        vicinityContigs = set()
+        propagate_vicinity(segment.links[endOfSegment][n], segment.otherEndOfLinks[endOfSegment][n], vicinityContigs, 0, depth)
+        listOfTouchedContig += [set()]
+        for comm in vicinityContigs :
+            listOfTouchedContig[-1].add(comm.split('$:')[0])
+        
+    commonContigs = set.intersection(*listOfTouchedContig)
+    
+    for name in segment.names :
+        commonContigs.add(name) #to ensure no interaction is computed with itself
+    
+    return commonContigs
+
+#a recursive function to find all contigs within the limitDepth of the end of a contig
+def propagate_vicinity(segment, endOfSegment, vicinityContigs, depth, limitDepth) :
+    
+    if depth > limitDepth :
+        return 0
+    else :
+        for name in segment.names :
+            vicinityContigs.add(name+"$:"+str(endOfSegment)+"$:"+str(segment.ID))
+        for n, neighbor in enumerate(segment.links[1-endOfSegment]):
+            if neighbor.names[0]+"$:"+str(segment.otherEndOfLinks[1-endOfSegment][n])+"$:"+str(neighbor.ID) not in vicinityContigs :
+                propagate_vicinity(neighbor, segment.otherEndOfLinks[1-endOfSegment][n], vicinityContigs, depth+segment.length , limitDepth)
+        return 0
 
 def compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds, depth) :
 
@@ -290,13 +310,7 @@ def duplicate_around_this_end_of_contig(
                     segment.otherEndOfLinks[endOfSegment][m], segment, endOfSegment
                 )
             except ValueError:  # that means we're in a small loop which whe can't solve
-                print(
-                    "There is merging difficulty around the near end of "
-                    + str(merged.names)
-                    + " from "
-                    + str(segment.names)
-                    + " . Please check that there is indeed a loop there."
-                )
+                print("There is merging difficulty around the near end of "+ str(merged.names)+ " from "+ str(segment.names)+ " . Please check that there is indeed a loop there.")
                 return 0
 
     # delete all segments that should be
@@ -370,7 +384,7 @@ def merge_adjacent_contigs(listOfSegments):
     return listOfSegments
 
 #merge_contigs looks at choices endofsegment by endofsegment, and duplicates all the necessary contigs
-def merge_contigs(listOfSegments, copiesnumber, verbose = False):
+def merge_contigs(listOfSegments, copiesnumber, multiplicities, names, verbose = False):
     # each contig can be multiplied only once in this function (to ensure it is not multiplied by both ends) : once it is duplicated, it gets locked
 
     #look at both ends of each segment sequentially
@@ -391,7 +405,8 @@ def merge_contigs(listOfSegments, copiesnumber, verbose = False):
                 if startMerging:  # if nothing is locked for now
                     
                     #check that the read coverage is adequate with duplication of the contig
-                    if  segment.depths[-endOfSegment] >= max([segment.links[endOfSegment][n].depths[-segment.otherEndOfLinks[endOfSegment][n]] for n in range(len(segment.links[endOfSegment]))]) :
+                    #if  segment.depths[-endOfSegment] >= max([segment.links[endOfSegment][n].depths[-segment.otherEndOfLinks[endOfSegment][n]] for n in range(len(segment.links[endOfSegment]))]) :
+                    if multiplicities[names[segment.names[-endOfSegment]]] >= len(segment.links[endOfSegment])* copiesnumber[segment.names[-endOfSegment]]:
                         duplicate_around_this_end_of_contig(segment,endOfSegment,listOfSegments,copiesnumber)
                     
                     if verbose :
@@ -405,116 +420,7 @@ def merge_contigs(listOfSegments, copiesnumber, verbose = False):
     listOfSegments = merge_adjacent_contigs(listOfSegments)
     
     return listOfSegments, copiesnumber
-             
-#function to freeze and sometimes solve small o-loops (works only if long reads are there)
-def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
-    
-    for se in range(len(listOfSegments)) :
-        
-        segment = listOfSegments[se]
-        if segment in segment.links[0] : #this is a small loop of length 0
-            
-            if segment.links[0].count(segment) == 1 : #this is a o-loop, let's flatten it
-                
-                if repeats != [] :
-                    replications = 0
-                    for contig in segment.names :
-                        replications = max(replications, repeats[names[contig]])
-                        
-                    segment.flatten(replications)
-                    #print('In solve_small_loops, flattening ', segment.names, segment.insideCIGARs)
-                
-                else :
-                    segment.freeze(0)
-                    segment.freeze(1)
-
-        toRemove = []
-        for n, neighbor in enumerate(segment.links[0]) : #trying to detect o-loops of length 1
-            endOfLink = segment.otherEndOfLinks[0][n]
-            index = s.find_this_link(neighbor, 1-endOfLink, segment.links[1], segment.otherEndOfLinks[1], warning = False) #returns -1 if it does not find anything
-            
-            if index != -1 : # then this is a o-loop of length 1
-                    
-                    if lr_links != [] :
-                        cA0 = segment.names[0]
-                        oA0 = (0 == segment.orientations[0])
-                        cB0 = neighbor.names[-endOfLink]
-                        oB0 = (neighbor.orientations[-endOfLink] == endOfLink)
-                        
-                        if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, oB0, cA0, oA0) in lr_links :
-                            if (segment, 0, neighbor, endOfLink) not in toRemove and (neighbor, endOfLink, segment, 0) not in toRemove :
-                                toRemove += [(segment, 0, neighbor, endOfLink)]
-                        
-                        endOfLink2 = segment.otherEndOfLinks[1][index]
-                        cA1 = segment.names[-1]
-                        oA1 = (1 == segment.orientations[-1])
-                        cB1 = neighbor.names[-endOfLink2]
-                        oB1 = (neighbor.orientations[-endOfLink2] == endOfLink2)
-                        if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, oB1, cA1, oA1) in lr_links:
-                            if (segment, 1, neighbor, endOfLink2) not in toRemove and  (neighbor, endOfLink2, segment, 1) not in toRemove:
-                                toRemove += [(segment, 1, neighbor, endOfLink2)]
-                        
-        # print('3')
-        # check_segments(listOfSegments)          
-        
-        for i in toRemove :
-            # print('In o-loops : removing link from ', i[0].names, i[1], 'to ', i[2].names, i[3])
-            # print('Links from ', i[0].names, i[1], ' : ', [j.names for j in i[0].links[i[1]]], i[0].otherEndOfLinks[i[1]])
-            # print('Links from ', i[2].names, i[3], ' : ', [j.names for j in i[2].links[i[3]]], i[2].otherEndOfLinks[i[3]])
-            i[0].remove_end_of_link(i[1], i[2], i[3])
-            i[2].remove_end_of_link(i[3], i[0], i[1])
-            
-        # print('4')
-        # check_segments(listOfSegments) 
-                
-                
-            
-def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig is in contact with both end of another contig or when a contig is linked to itself at one end
-    
-    for segment in segments :
-        for endOfSegment in range(2) :
-            toRemove = []
-                    
-            for n in range(len(segment.links[endOfSegment])-1) :
-                    
-                if segment.links[endOfSegment][n].ID == segment.links[endOfSegment][n+1].ID and  segment.otherEndOfLinks[endOfSegment][n] == segment.otherEndOfLinks[endOfSegment][n+1]: #the two links going toward the same contig are next to each other because links are sorted
-                    
-                    #here we have a l-loop
-                    neighbor = segment.links[endOfSegment][n]
-                    lenToRemove = len(toRemove)
-                    
-                    if lr_links != [] :
-                        #let's check if the two links of the l-loop are confirmed by long reads
-                        
-                        if neighbor.ID == segment.ID : #here we have a l-loop of length 0
-                            cA = segment.names[-endOfSegment]
-                            oA = (endOfSegment == segment.orientations[-endOfSegment])
-                            if not (cA, oA, cA, not oA) in lr_links :
-                                toRemove += [(segment, endOfSegment, segment, endOfSegment)]
-                            
-                        else : #l-loop of length 1
-                        
-                            cA0 = segment.names[-endOfSegment]
-                            oA0 = (endOfSegment == segment.orientations[-endOfSegment])
-                            cB0 = neighbor.names[-segment.otherEndOfLinks[endOfSegment][n]]
-                            oB0 = (neighbor.orientations[-segment.otherEndOfLinks[endOfSegment][n]] == segment.otherEndOfLinks[endOfSegment][n])
-                            if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, not oB0, cA0, not oA0) in lr_links :
-                                toRemove += [(segment, endOfSegment, neighbor, int(oB0))]
-                                    
-                            cA1 = segment.names[-endOfSegment]
-                            oA1 = (endOfSegment == segment.orientations[-endOfSegment])
-                            cB1 = neighbor.names[-segment.otherEndOfLinks[endOfSegment][n+1]]
-                            oB1 = (neighbor.orientations[-segment.otherEndOfLinks[endOfSegment][n+1]] == segment.otherEndOfLinks[endOfSegment][n+1])
-                            if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, not oB1, cA1, not oA1) in lr_links:
-                                toRemove += [(segment, endOfSegment, neighbor, int(oB1))]
-                    
-                    if len(toRemove) == lenToRemove : #means that no links could be taken out
-                        segment.freeze(endOfSegment)
-                        
-            for i in toRemove :
-                i[0].remove_end_of_link(i[1], i[2], i[3])
-                i[2].remove_end_of_link(i[3], i[0], i[1])
-        
+                 
 #input : a graph. This function takes out all links that are not confirmed by long reads
 def check_all_links(segments, lr_links) :
     
@@ -568,35 +474,24 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, tagInteractionMatrix
                 for n1 in range(len(segment.links[endOfSegment]) - 1):
                     n2 = n1 + 1
                     while n2 < len(segment.links[endOfSegment]):
-                        
-                        d = 2
-                        if not neighborsOfNeighbors :
-                            d = 1      
-                                                    
+                                                     
                         #first compute using linked reads    
                         if tagInteractionMatrix.count_nonzero()>0 and (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) :
-                            absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],[segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],listOfSegments, tagInteractionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
+                            linksStrength = intensity_of_interactions(segment, endOfSegment, [n1,n2],listOfSegments, tagInteractionMatrix, names, copiesnumber, debugDir = debugDir)
                                     
                         #if it is not enough, use Hi-C
                         linksStrength = [-1]
                         if (linksStrength == [-1] or (all([i>1 for i in linksStrength]) or all([i<=1 for i in linksStrength]))) and HiCmatrix:
-                            absoluteLinksStrength, linksStrength, neighborsOfNeighborsUsed = intensity_of_interactions(segment, [segment.links[endOfSegment][n1], segment.links[endOfSegment][n2]],\
-                                                                                            [segment.otherEndOfLinks[endOfSegment][n1], segment.otherEndOfLinks[endOfSegment][n2]],\
-                                                                                            listOfSegments, interactionMatrix, names, copiesnumber, depthOfCommonContigs = d, debugDir = debugDir)
+                            linksStrength = intensity_of_interactions(segment, endOfSegment, [n1,n2], listOfSegments, interactionMatrix, names, copiesnumber, debugDir = debugDir)
                         
-                        if debugDir != '' :
+                        if debugDir != '':
                             f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
-                            f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength)+'\n')
+                            f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
                             f.close()
                             
-                        if verbose :
-                            print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+ '\t'+str(absoluteLinksStrength))
+                        if verbose or 'edge_289' in segment.names :
+                            print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength))
 
-                            
-                        if not neighborsOfNeighborsUsed : #means that there are a lot of common contigs, a sort of knot
-                            segment.freeze(endOfSegment)
-
-                        
                         if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions
                             segment.freezeNode(endOfSegment) 
 
@@ -683,11 +578,13 @@ def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
     
     return ratios
 
-def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, useNeighborOfNeighbor = True, debugDir = '', verbose = False):
+def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, useNeighborOfNeighbor = True, debugDir = '', verbose = False):
         
     
-    print(interactionMatrix[names['edge_82'], names['edge_144']])
-    print(interactionMatrix[names['edge_82'], names['edge_143']])
+    print(interactionMatrix[names['edge_82'], names['edge_307']])
+    print(interactionMatrix[names['edge_82'], names['edge_306']])
+    print(interactionMatrix[names['edge_162'], names['edge_307']])
+    print(interactionMatrix[names['edge_162'], names['edge_306']])
 
     if debugDir != '' :
         if not os.path.isdir(debugDir) :
@@ -718,7 +615,7 @@ def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, n
         #     if 'edge_357' in se.names :
         #         print ('Here is two : ', se.names, [i.names for i in se.links[0]], [i.names for i in se.links[1]], '\n') 
         
-        listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber, verbose = verbose)
+        listOfSegments, copiesNumber = merge_contigs(listOfSegments, copiesNumber, multiplicities, names, verbose = verbose)
         
         #stats_on_thresholds(listOfSegments, names, interactionMatrix, copiesNumber)
         #stats_on_thresholds(listOfSegments, names, lrInteractionMatrix, copiesNumber)
