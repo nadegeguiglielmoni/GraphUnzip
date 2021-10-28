@@ -83,7 +83,6 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     
     # print(bridges[reliable_haploid_contigsNames['edge_284']])
     # print(consensus_bridges[reliable_haploid_contigsNames['edge_211']])
-    # print(supported_links2[names['edge_210']*2+1, names['edge_211']*2])
     # print(multiplicities[names["edge_211"]])
 
     non_overlapping_bridges = [['',''] for i in range(len(reliable_haploid_contigs))] 
@@ -92,10 +91,10 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     # print(non_overlapping_bridges[reliable_haploid_contigsNames['edge_48_edge_223']])
             
     #second phase is over
-    for i in range(len(names)) :
-        for j in range(len(names)) :
+    for i in range(len(names)*2) :
+        for j in range(len(names)*2) :
             supported_links[i,j] = max([supported_links[i,j], supported_links[j,i], supported_links2[i,j]])
-    
+                
     #now actually unzip the graph using the instructions in non_overlapping_bridges
     unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, reliable_haploid_contigs, reliable_haploid_contigsNames, names, supported_links, multiplicities, longContigs)
         
@@ -393,7 +392,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                             if segment.find_this_link(segments[oldContigsIndices[c+1]], nextEnd, contig.links[1-end1], contig.otherEndOfLinks[1-end1]) != -1 :
                                 nextCIGAR = contig.CIGARs[1-end1][segment.find_this_link(segments[oldContigsIndices[c+1]], nextEnd, contig.links[1-end1], contig.otherEndOfLinks[1-end1])]
                             else :
-                                print("Debug WARNING")
+                                print("Debug WARNING, ", contigs, " ", segments[oldContigsIndices[c+1]].names, " ", nextEnd, " ", [i.names for i in contig.links[1-end1]], " ", contig.otherEndOfLinks[1-end1], " ", non_overlapping_bridges[haploidContigsNames[s.names[0]]][end])
                             
                         #print("Link supported with strength ", supported_links[names[contigs[c]*2+end1 , names[contigs[c-1]]*2+end0])
                                                     

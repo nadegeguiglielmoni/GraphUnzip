@@ -579,12 +579,7 @@ def stats_on_thresholds(segments, names, interactionMatrix, copiesNumber) :
     return ratios
 
 def solve_ambiguities(listOfSegments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = {}, useNeighborOfNeighbor = True, debugDir = '', verbose = False):
-        
     
-    print(interactionMatrix[names['edge_82'], names['edge_307']])
-    print(interactionMatrix[names['edge_82'], names['edge_306']])
-    print(interactionMatrix[names['edge_162'], names['edge_307']])
-    print(interactionMatrix[names['edge_162'], names['edge_306']])
 
     if debugDir != '' :
         if not os.path.isdir(debugDir) :
