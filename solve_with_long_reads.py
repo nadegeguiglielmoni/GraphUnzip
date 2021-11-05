@@ -116,66 +116,66 @@ def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigs
     
     for line in lines :      
                     
-    contigs = re.split('[><]' , line)
-    orientations = "".join(re.findall("[<>]", line))
-    del contigs[0] #because the first element is always ''
-
-    for c, contig in enumerate(contigs) :
-        
-        if c>0 :
-            minimum_supported_links[2*names[contigs[c-1]] + '<>'.index(orientations[c-1]) , 2*names[contigs[c]] + '><'.index(orientations[c])] = 1
-            minimum_supported_links[2*names[contigs[c]] + '><'.index(orientations[c]), 2*names[contigs[c-1]] + '<>'.index(orientations[c-1])] = 1
-
-        if c > 0 and c < len(contigs) - 1 :
-            longContigs[names[contig]] = False
-                                    
-        if contig in haploidContigsNames :
+        contigs = re.split('[><]' , line)
+        orientations = "".join(re.findall("[<>]", line))
+        del contigs[0] #because the first element is always ''
+    
+        for c, contig in enumerate(contigs) :
             
-            
-            if orientations[c] == ">" :
-                r = 0
-                #first look at what contigs are left of the contig of interest
-                bridges[haploidContigsNames[contig]][1] +=  [""]
-                for c2 in range(c+1, len(contigs)) :
-                    
-                    bridges[haploidContigsNames[contig]][1][-1] += orientations[c2] + contigs[c2]
-                    
-                    if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
-                        break
-                    
-                #then look at what's left of the contig of interest (so mirror the orientations)
-                bridges[haploidContigsNames[contig]][0] +=  [""]
-                for c2 in range(c-1 , -1, -1) :
-                    
-                    if orientations[c2] == '>' :
-                        bridges[haploidContigsNames[contig]][0][-1] += '<' + contigs[c2]
-                    else :
-                        bridges[haploidContigsNames[contig]][0][-1] += '>' + contigs[c2]
-                        
-                    if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
-                        break
-                        
-            else :
+            if c>0 :
+                minimum_supported_links[2*names[contigs[c-1]] + '<>'.index(orientations[c-1]) , 2*names[contigs[c]] + '><'.index(orientations[c])] = 1
+                minimum_supported_links[2*names[contigs[c]] + '><'.index(orientations[c]), 2*names[contigs[c-1]] + '<>'.index(orientations[c-1])] = 1
+    
+            if c > 0 and c < len(contigs) - 1 :
+                longContigs[names[contig]] = False
+                                        
+            if contig in haploidContigsNames :
                 
-                #first look at what contigs are left of the contig of interest
-                bridges[haploidContigsNames[contig]][0] +=  [""]
-                for c2 in range(c+1, len(contigs)) :
-                    bridges[haploidContigsNames[contig]][0][-1] += orientations[c2] + contigs[c2]
-                    if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
-                        break
-                    
-                #then look at what's left of the contig of interest (so mirror the orientations)
-                bridges[haploidContigsNames[contig]][1] +=  [""]
-                for c2 in range(c-1 , -1, -1 ) :
-                    
-                    if orientations[c2] == '>' :
-                        bridges[haploidContigsNames[contig]][1][-1] += '<' + contigs[c2]
-                    else :
-                        bridges[haploidContigsNames[contig]][1][-1] += '>' + contigs[c2]
+                
+                if orientations[c] == ">" :
+                    r = 0
+                    #first look at what contigs are left of the contig of interest
+                    bridges[haploidContigsNames[contig]][1] +=  [""]
+                    for c2 in range(c+1, len(contigs)) :
                         
-                    if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
-                        break
-                                             
+                        bridges[haploidContigsNames[contig]][1][-1] += orientations[c2] + contigs[c2]
+                        
+                        if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
+                            break
+                        
+                    #then look at what's left of the contig of interest (so mirror the orientations)
+                    bridges[haploidContigsNames[contig]][0] +=  [""]
+                    for c2 in range(c-1 , -1, -1) :
+                        
+                        if orientations[c2] == '>' :
+                            bridges[haploidContigsNames[contig]][0][-1] += '<' + contigs[c2]
+                        else :
+                            bridges[haploidContigsNames[contig]][0][-1] += '>' + contigs[c2]
+                            
+                        if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
+                            break
+                            
+                else :
+                    
+                    #first look at what contigs are left of the contig of interest
+                    bridges[haploidContigsNames[contig]][0] +=  [""]
+                    for c2 in range(c+1, len(contigs)) :
+                        bridges[haploidContigsNames[contig]][0][-1] += orientations[c2] + contigs[c2]
+                        if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
+                            break
+                        
+                    #then look at what's left of the contig of interest (so mirror the orientations)
+                    bridges[haploidContigsNames[contig]][1] +=  [""]
+                    for c2 in range(c-1 , -1, -1 ) :
+                        
+                        if orientations[c2] == '>' :
+                            bridges[haploidContigsNames[contig]][1][-1] += '<' + contigs[c2]
+                        else :
+                            bridges[haploidContigsNames[contig]][1][-1] += '>' + contigs[c2]
+                            
+                        if contigs[c2] in haploidContigsNames : #you can stop the bridge, you've reached the other side
+                            break
+                                                 
 #input : list of bridges for each haploid contig
 #output : completed consensus_bridges, where there is max one bridge at each end of contig
 def build_consensus_bridges(consensus_bridges, bridges, names, supported_links, haploidContigs):

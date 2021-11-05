@@ -38,7 +38,7 @@ class Segment:
         if readCoverage != [] :
             self._depths = readCoverage.copy() #to keep in mind the read coverage of the contigs
         else :
-            self._depths = [0 for i in range(len(self._lengths))]
+            self._depths = [1 for i in range(len(self._lengths))]
             
         self._copiesOfContigs = [-1]*len(segNamesOfContig) #this is used exclusively while exporting, to indicate which copy of which contig is in the segment (copy 0/ copy 1 / copy 2 ...)
         

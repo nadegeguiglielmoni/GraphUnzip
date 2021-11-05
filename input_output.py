@@ -563,7 +563,7 @@ def load_gfa(file):
     for line in gfa_read:
         if line[0] == "S":
             l = line.strip('\n').split("\t")
-            cov = 0
+            cov = 1
             
             for element in l :
                 if 'dp' in element[:2] or 'DP' in element[:2] :
