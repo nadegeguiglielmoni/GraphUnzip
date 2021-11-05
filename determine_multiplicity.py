@@ -107,9 +107,7 @@ def determine_multiplicity(segments, names, supported_links) :
         s = (s+1)%len(segments)
         unchanged += 1
             
-    # print("Propagation finished")
-    print("Multiplicities of 75 : ", computed_multiplicity[names['75']])
-    
+    # print("Propagation finished")    
     
     #now the propagation has stopped, try to see if some multiplicities can be inferred from contig with known multiplicty
     found = False
@@ -157,8 +155,6 @@ def determine_multiplicity(segments, names, supported_links) :
             
         sortedContigidx -= 1
     
-    print("Multiplicities of 75 : ", computed_multiplicity[names['75']])
-
 
     return refCoverage, computed_multiplicity
 
@@ -183,8 +179,6 @@ def propagate_multiplicity(multiplicities, segments, names, contigIdx, supported
                         supported_links[2*names[neighbor.names[0]]+neighborEnd, 2*names[neighbor2.names[0]]+neighbor.otherEndOfLinks[neighborEnd][n2]] = multiplicities[names[neighbor2.names[0]]]
                         supported_links[2*names[neighbor2.names[0]]+neighbor.otherEndOfLinks[neighborEnd][n2], 2*names[neighbor.names[0]]+neighborEnd] = multiplicities[names[neighbor2.names[0]]]
                       
-                    if '75' in neighbor.names :
-                        print("propagated multiplicity: found the multiplicity of contig ", neighbor.names, " : ", multiplicities[names[neighbor.names[0]]], ", from the multiplicity of ", multiplicities[contigIdx], " of its neighbor ", segments[contigIdx].names)
                     propagate_multiplicity(multiplicities, segments, names, names[neighbor.names[0]], supported_links, refCoverage) #recursive call : found a multiplicity, move on
                     
             elif multiplicities[names[neighbor.names[0]]] > 0 :
@@ -202,8 +196,8 @@ def propagate_multiplicity(multiplicities, segments, names, contigIdx, supported
                          
                         if new_multiplicity > 0 and (neighbor.links[neighborEnd][index0].depths[0]/refCoverage >= new_multiplicity/1.5  or refCoverage==1):
                             multiplicities[names[neighbor.links[neighborEnd][index0].names[0]]] = new_multiplicity
-                            if '75' in neighbor.links[neighborEnd][index0].names :
-                                print("propagated multiplicity2: found the multiplicity of contig ", neighbor.links[neighborEnd][index0].names[0], " : ", multiplicities[names[neighbor.links[neighborEnd][index0].names[0]]], ", from multiplicity of ", neighbor.names)
+                            # if '75' in neighbor.links[neighborEnd][index0].names :
+                            #     print("propagated multiplicity2: found the multiplicity of contig ", neighbor.links[neighborEnd][index0].names[0], " : ", multiplicities[names[neighbor.links[neighborEnd][index0].names[0]]], ", from multiplicity of ", neighbor.names)
                             
                             supported_links[2*names[neighbor.names[0]]+neighborEnd, 2*names[neighbor.links[neighborEnd][index0].names[0]]+neighbor.otherEndOfLinks[neighborEnd][index0]] = new_multiplicity
                             supported_links[2*names[neighbor.links[neighborEnd][index0].names[0]]+neighbor.otherEndOfLinks[neighborEnd][index0], 2*names[neighbor.names[0]]+neighborEnd] = new_multiplicity
@@ -228,8 +222,8 @@ def propagate_multiplicity(multiplicities, segments, names, contigIdx, supported
                     if multiplicities[names[neighbor.names[0]]] == 0 :
                         new_multiplicity = max(min(round(multiplicities[contigIdx] * neighbor.depths[0]/covTot), multiplicities[contigIdx]-len(seg.links[end])+1),1)
                         multiplicities[names[neighbor.names[0]]] = new_multiplicity
-                        if '75' in neighbor.names :
-                            print("Inferffing the multiplicity of contig ", neighbor.names, " from " , seg.names, " of multiplicity ", multiplicities[contigIdx], " the depth being ", neighbor.depths[0], " and covTot ",  covTot)
+                        # if '75' in neighbor.names :
+                        #     print("Inferffing the multiplicity of contig ", neighbor.names, " from " , seg.names, " of multiplicity ", multiplicities[contigIdx], " the depth being ", neighbor.depths[0], " and covTot ",  covTot)
                         if round(multiplicities[contigIdx] * neighbor.depths[0]/covTot) > 0:
                             found = True
                             supported_links[2*names[seg.names[0]]+end, 2*names[neighbor.names[0]]+seg.otherEndOfLinks[end][n]] = new_multiplicity
