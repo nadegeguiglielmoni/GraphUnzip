@@ -11,7 +11,7 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 ## Installation
 
 `GraphUnzip` requires python3 with numpy and scipy, you can install them using `pip install`.
-To run `GraphUnzip`, clone this repo using `git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git`, and simply run `main.py`
+`GraphUnzip` requires no installation. To run `GraphUnzip`, clone this repo using `git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git`, and simply run `graphunzip.py`
 
 ## Usage
 
@@ -25,8 +25,16 @@ and
 and/or 
 2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
 and/or
-2. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get this file from barcoded reads using BWA would be to: a) convert the assembly from gfa to fasta format ; b) create a bwa index from the fasta file ; c) align the barcoded reads using BWA with option -C to keep the long reads.
+2. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get this file from barcoded reads using BWA would be:
+```
+awk '/^S/{print ">"$2"\n"$3}' assembly.gfa | fold > assembly.fasta  		#produce a fasta file from the gfa
+bwa index assembly.fasta							#index the fasta file of the assembly
+bwa mem assembly barcoded_reads.fastq -C > reads_aligned_on_assembly.sam	#align the barcoded reads to the assembly : the -C option is very important here, to keep the barcodes in the sam file
+```
 
+to: a) convert the assembly from gfa to fasta format ; b) create a bwa index from the fasta file ; c) align the barcoded reads using BWA with option -C to keep the barcodes.
+
+### Running GraphUnzip
 
 To use `GraphUnzip`, you generally need to proceed in two steps :
 
@@ -36,9 +44,9 @@ To use `GraphUnzip`, you generally need to proceed in two steps :
 
 ### Options
 ```bash
-python main.py --help
+graphunzip.py --help
 
-usage: main.py [-h] -g GFA [-o OUTPUT] [-f FASTA_OUTPUT] [-A ACCEPTED]
+usage: graphunzip.py [-h] -g GFA [-o OUTPUT] [-f FASTA_OUTPUT] [-A ACCEPTED]
                [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
                [--HiC_IM HIC_IM] [-i HICINTERACTIONS]
                [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-e]
