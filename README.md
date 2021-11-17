@@ -19,27 +19,38 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 
 `GraphUnzip` needs two things to work :
 
-1. An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) 
-and
-2. Hi-C data : GraphUnzip needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats)
+An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) and any combination of :
+
+1. Hi-C data : GraphUnzip needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats)
 and/or 
 2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
 and/or
-2. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get this file from barcoded reads using BWA would be:
+3. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get this file from barcoded reads using BWA would be:
 ```
 awk '/^S/{print ">"$2"\n"$3}' assembly.gfa | fold > assembly.fasta  		#produce a fasta file from the gfa
 bwa index assembly.fasta							#index the fasta file of the assembly
 bwa mem assembly barcoded_reads.fastq -C > reads_aligned_on_assembly.sam	#align the barcoded reads to the assembly : the -C option is very important here, to keep the barcodes in the sam file
 ```
 
-to: a) convert the assembly from gfa to fasta format ; b) create a bwa index from the fasta file ; c) align the barcoded reads using BWA with option -C to keep the barcodes.
-
 ### Running GraphUnzip
 
 To use `GraphUnzip`, you generally need to proceed in two steps :
 
 1. If using Hi-C or linked reads, build interaction matrix(ces) (a matrix quantifying the pairwise interaction between all contigs): for that use the `HiC-IM`, or `linked-reads-IM` command, depending on which type of data you dispose. You will have to specify the files to which these interaction matrices will be written.
+```
+#for Hi-C
+graphunzip.py HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC-IM hic_interactionmatrix.txt
+
+#for linked reads
+graphunzip.py linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g assembly.gfa --linked_reads_IM linkedreads_interactionmatrix.txt
+```
 2. Use the command `unzip` to unzip the graph using the interaction matrices built beforehand and/or the gaf file if using long reads. This step is usually extremely quick.
+```
+#let's unzip our gfa using linked-reads, Hi-C and long reads :
+
+graphunzip.py -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_interactionmatrix.txt -l longreads_aligned_on_gfa.gaf -o assembly_unzipped.gfa
+
+```
 
 
 ### Options
@@ -57,9 +68,11 @@ usage: graphunzip.py [-h] -g GFA [-o OUTPUT] [-f FASTA_OUTPUT] [-A ACCEPTED]
 positional arguments:
   command               Either unzip, HiC-IM, long-reads-IM or linked-reads-IM
 
+mandatory arguments:
+  -g GFA, --gfa GFA     GFA file to phase
+
 optional arguments:
   -h, --help            show this help message and exit
-  -g GFA, --gfa GFA     GFA file to phase
 
 unzip options:
   -o OUTPUT, --output OUTPUT
@@ -114,11 +127,11 @@ linked-reads-IM options:
 
 ```
 
-The default values of -A and -R should be acceptable for a first run, but you might consider tweaking them:
+The default values are quite robust and should directly yield good unzipped assembly. However, you might consider tweaking -A or -R if you are not happy with the result (keep in mind that A > R):
 
-The accepted threshold is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
+The accepted threshold -A is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
 
-The rejected threshold is the threshold below which a link is considered non-existent (compared with a competing link). If the outputted assembly graph is too fragmented, lower this threshold.
+The rejected threshold -R is the threshold below which a link is considered non-existent (compared with a competing link). If the outputted assembly graph is too fragmented, lower this threshold.
 
 ## Citation
 
