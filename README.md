@@ -11,7 +11,7 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 ## Installation
 
 `GraphUnzip` requires python3 with numpy and scipy, you can install them using `pip install`.
-To run `GraphUnzip`, clone this repo, and simply run `python main.py`
+To run `GraphUnzip`, clone this repo using `git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git`, and simply run `main.py`
 
 ## Usage
 

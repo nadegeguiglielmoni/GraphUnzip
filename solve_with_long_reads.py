@@ -51,7 +51,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file
     
     lines = []
-    read_GAF(gafFile, 0.7, 0.5, lines)
+    read_GAF(gafFile, 0.7, 0.1, lines)
     
     sure_haploids = False
     
