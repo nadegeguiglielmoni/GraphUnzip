@@ -309,4 +309,111 @@ def crush_small_contigs(segments, interactionMatrix) :
     print('There are ', len(segments), ' segments left')
                      
                 
+#function to freeze and sometimes solve small o-loops (works only if long reads are there)
+def solve_small_loops(listOfSegments, names, repeats, lr_links, check_links) :
+    
+    for se in range(len(listOfSegments)) :
+        
+        segment = listOfSegments[se]
+        if segment in segment.links[0] : #this is a small loop of length 0
+            
+            if segment.links[0].count(segment) == 1 : #this is a o-loop, let's flatten it
+                
+                if repeats != [] :
+                    replications = 0
+                    for contig in segment.names :
+                        replications = max(replications, repeats[names[contig]])
+                        
+                    segment.flatten(replications)
+                    #print('In solve_small_loops, flattening ', segment.names, segment.insideCIGARs)
+                
+                else :
+                    segment.freeze(0)
+                    segment.freeze(1)
 
+        toRemove = []
+        for n, neighbor in enumerate(segment.links[0]) : #trying to detect o-loops of length 1
+            endOfLink = segment.otherEndOfLinks[0][n]
+            index = s.find_this_link(neighbor, 1-endOfLink, segment.links[1], segment.otherEndOfLinks[1], warning = False) #returns -1 if it does not find anything
+            
+            if index != -1 : # then this is a o-loop of length 1
+                    
+                    if lr_links != [] :
+                        cA0 = segment.names[0]
+                        oA0 = (0 == segment.orientations[0])
+                        cB0 = neighbor.names[-endOfLink]
+                        oB0 = (neighbor.orientations[-endOfLink] == endOfLink)
+                        
+                        if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, oB0, cA0, oA0) in lr_links :
+                            if (segment, 0, neighbor, endOfLink) not in toRemove and (neighbor, endOfLink, segment, 0) not in toRemove :
+                                toRemove += [(segment, 0, neighbor, endOfLink)]
+                        
+                        endOfLink2 = segment.otherEndOfLinks[1][index]
+                        cA1 = segment.names[-1]
+                        oA1 = (1 == segment.orientations[-1])
+                        cB1 = neighbor.names[-endOfLink2]
+                        oB1 = (neighbor.orientations[-endOfLink2] == endOfLink2)
+                        if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, oB1, cA1, oA1) in lr_links:
+                            if (segment, 1, neighbor, endOfLink2) not in toRemove and  (neighbor, endOfLink2, segment, 1) not in toRemove:
+                                toRemove += [(segment, 1, neighbor, endOfLink2)]
+                        
+        # print('3')
+        # check_segments(listOfSegments)          
+        
+        for i in toRemove :
+            # print('In o-loops : removing link from ', i[0].names, i[1], 'to ', i[2].names, i[3])
+            # print('Links from ', i[0].names, i[1], ' : ', [j.names for j in i[0].links[i[1]]], i[0].otherEndOfLinks[i[1]])
+            # print('Links from ', i[2].names, i[3], ' : ', [j.names for j in i[2].links[i[3]]], i[2].otherEndOfLinks[i[3]])
+            i[0].remove_end_of_link(i[1], i[2], i[3])
+            i[2].remove_end_of_link(i[3], i[0], i[1])
+            
+        # print('4')
+        # check_segments(listOfSegments) 
+                
+                
+            
+def solve_l_loops(segments, lr_links): #l-loops occur when one end of a contig is in contact with both end of another contig or when a contig is linked to itself at one end
+    
+    for segment in segments :
+        for endOfSegment in range(2) :
+            toRemove = []
+                    
+            for n in range(len(segment.links[endOfSegment])-1) :
+                    
+                if segment.links[endOfSegment][n].ID == segment.links[endOfSegment][n+1].ID and  segment.otherEndOfLinks[endOfSegment][n] == segment.otherEndOfLinks[endOfSegment][n+1]: #the two links going toward the same contig are next to each other because links are sorted
+                    
+                    #here we have a l-loop
+                    neighbor = segment.links[endOfSegment][n]
+                    lenToRemove = len(toRemove)
+                    
+                    if lr_links != [] :
+                        #let's check if the two links of the l-loop are confirmed by long reads
+                        
+                        if neighbor.ID == segment.ID : #here we have a l-loop of length 0
+                            cA = segment.names[-endOfSegment]
+                            oA = (endOfSegment == segment.orientations[-endOfSegment])
+                            if not (cA, oA, cA, not oA) in lr_links :
+                                toRemove += [(segment, endOfSegment, segment, endOfSegment)]
+                            
+                        else : #l-loop of length 1
+                        
+                            cA0 = segment.names[-endOfSegment]
+                            oA0 = (endOfSegment == segment.orientations[-endOfSegment])
+                            cB0 = neighbor.names[-segment.otherEndOfLinks[endOfSegment][n]]
+                            oB0 = (neighbor.orientations[-segment.otherEndOfLinks[endOfSegment][n]] == segment.otherEndOfLinks[endOfSegment][n])
+                            if not (cA0, oA0, cB0, oB0) in lr_links and not (cB0, not oB0, cA0, not oA0) in lr_links :
+                                toRemove += [(segment, endOfSegment, neighbor, int(oB0))]
+                                    
+                            cA1 = segment.names[-endOfSegment]
+                            oA1 = (endOfSegment == segment.orientations[-endOfSegment])
+                            cB1 = neighbor.names[-segment.otherEndOfLinks[endOfSegment][n+1]]
+                            oB1 = (neighbor.orientations[-segment.otherEndOfLinks[endOfSegment][n+1]] == segment.otherEndOfLinks[endOfSegment][n+1])
+                            if not (cA1, oA1, cB1, oB1) in lr_links and not (cB1, not oB1, cA1, not oA1) in lr_links:
+                                toRemove += [(segment, endOfSegment, neighbor, int(oB1))]
+                    
+                    if len(toRemove) == lenToRemove : #means that no links could be taken out
+                        segment.freeze(endOfSegment)
+                        
+            for i in toRemove :
+                i[0].remove_end_of_link(i[1], i[2], i[3])
+                i[2].remove_end_of_link(i[3], i[0], i[1])

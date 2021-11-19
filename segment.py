@@ -38,12 +38,12 @@ class Segment:
         if readCoverage != [] :
             self._depths = readCoverage.copy() #to keep in mind the read coverage of the contigs
         else :
-            self._depths = [0 for i in range(len(self._lengths))]
-        
+            self._depths = [1 for i in range(len(self._lengths))]
+            
         self._copiesOfContigs = [-1]*len(segNamesOfContig) #this is used exclusively while exporting, to indicate which copy of which contig is in the segment (copy 0/ copy 1 / copy 2 ...)
         
         #this group of attribute are linked arrays : one should never be modified without the others 
-        #They are sorted by ID of the neighbor : important handling quickly big nodes
+        #They are sorted by ID of the neighbor : important for handling quickly big nodes
         lists_keyed = [[(segLinks[0][i], segOtherEndOfLinks[0][i], segCIGARs[0][i]) for i in range(len(segLinks[0]))], [(segLinks[1][i], segOtherEndOfLinks[1][i], segCIGARs[1][i]) for i in range(len(segLinks[1]))]]
         lists_keyed[0].sort(key = lambda x: x[0].ID)
         lists_keyed[1].sort(key = lambda x: x[0].ID)
@@ -97,8 +97,6 @@ class Segment:
         return self._HiCcoverage
         
     def get_depth(self):
-        if len(self._depths) != len(self._lengths) :
-            print( len(self._depths), len(self._lengths), " error" )
         return self._depths
     
     def full_name(self) :
@@ -171,7 +169,7 @@ class Segment:
     #other functions that handle segments
     
     #function which goals is to return the intensity of HiC contacts between another segment and this one
-    def interaction_with_contigs(self, segment, interactionMatrix, names, copiesnumber = None, commonContigs = [], bestSignature = 1000, neighborOfNeigborUsed = True):
+    def interaction_with_contigs(self, segment, interactionMatrix, names, copiesnumber = None, commonContigs = set(), bestSignature = 1000):
         
         if copiesnumber == None :
             copiesnumber = [1 for i in interactionMatrix]
@@ -202,23 +200,22 @@ class Segment:
                     relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
                 else:
                     absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-                    
+                                        
         #now compute the interaction with neighbors of self
         
-        if neighborOfNeigborUsed :
-            endOfSegment = 1-orientation
-            for neighbor in self.links[endOfSegment] :
-                for co, contig in enumerate(neighbor.names) :
-                    for c, contigInSegment in enumerate(segment.names):
-                    
-                        if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
-                            
-                            depth = 2
-                            
-                            absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-                            relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
-                        else:
-                            absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+        endOfSegment = 1-orientation
+        for neighbor in self.links[endOfSegment] :
+            for co, contig in enumerate(neighbor.names) :
+                for c, contigInSegment in enumerate(segment.names):
+                
+                    if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+                        
+                        depth = 2
+                        
+                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+                        relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
+                    else:
+                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                 
             
         return absoluteScore, relativeScore, depth
@@ -372,12 +369,12 @@ class Segment:
         self._otherEndOfLinks[endOfSegment] = newEndOfLinks
         self._CIGARs[endOfSegment] = newCIGARs
 
-    def remove_end_of_link(self, endOfSegment, segmentToRemove, endOfSegmentToRemove = None): #endOfSegmentToRemove is there in case there exists two links between self[endOfSegment] and segment to remove. Needed for extra security
+    def remove_end_of_link(self, endOfSegment, segmentToRemove, endOfSegmentToRemove = None, warning = True): #endOfSegmentToRemove is there in case there exists two links between self[endOfSegment] and segment to remove. Needed for extra security
         
         #first determine the index of the segment to remove
         #print('Removing ', segmentToRemove.names, endOfSegmentToRemove, ' from ', self._namesOfContigs)
         #print('Among these links :', [i.names for i in self._links[endOfSegment]], self._otherEndOfLinks[endOfSegment])
-        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment], warning = True)
+        index = find_this_link(segmentToRemove, endOfSegmentToRemove, self._links[endOfSegment], self._otherEndOfLinks[endOfSegment], warning = warning)
         #index = self._links[endOfSegment].index(segmentToRemove)
    
         #then remove the end of unwanted link in all attributes
@@ -385,7 +382,7 @@ class Segment:
             del self._links[endOfSegment][index]
             del self._otherEndOfLinks[endOfSegment][index]
             del self._CIGARs[endOfSegment][index]
-        elif index == -1 :
+        elif index == -1 and warning:
              print('Trying unsuccesfully to remove ', segmentToRemove.names, ' from ', self._namesOfContigs)
      
     #returns two contigs, equal to this contig but split at axis, corresponding to the number of contigs left of the junction
@@ -485,6 +482,10 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
 def add_link(segment1, end1, segment2, end2, CIGAR = '*'):
     segment1.add_end_of_link(end1, segment2, end2, CIGAR)
     segment2.add_end_of_link(end2, segment1, end1, CIGAR)
+    
+def delete_link(segment1, end1, segment2, end2, warning = True) :
+    segment1.remove_end_of_link(end1, segment2, end2, warning = warning)
+    segment2.remove_end_of_link(end2, segment1, end1, warning = warning)
            
 def compute_copiesNumber(listOfSegments):
     cn = {}
