@@ -440,7 +440,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 t = time.time()
                 print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
             
-            f.write("S\tsupercontig_" + str(s) + "\t") #the name of the contigs are supercontig_i
+            f.write("S\t" + segment.full_name() + "\t") #the name of the contigs are supercontig_i
             fcontigs.write("supercontig_"+ str(s) + "\t"+segment.full_name()+"\n")
             
             

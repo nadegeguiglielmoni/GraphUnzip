@@ -106,7 +106,7 @@ unzip options:
   -d DEBUG, --debug DEBUG
                         Activate the debug mode. Parameter: directory to put
                         the logs and the intermediary GFAs.
-  --merge               If you want the output to have all possible contigs
+  --dont_merge          If you don't want the output to have all possible contigs
                         merged
 
 HiC-IM options:
