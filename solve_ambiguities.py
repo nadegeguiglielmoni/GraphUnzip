@@ -489,7 +489,7 @@ def get_rid_of_bad_links(listOfSegments, interactionMatrix, tagInteractionMatrix
                             f.write('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
                             f.close()
                             
-                        if verbose or 'edge_289' in segment.names :
+                        if verbose : #or 'edge_289' in segment.names :
                             print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength))
 
                         if linksStrength == [-1]: #means that the configuration does not enable the algorithm to compare the two interactions

@@ -158,10 +158,10 @@ def parse_args():
         help="""Activate the debug mode. Parameter: directory to put the logs and the intermediary GFAs.""",
     )
     groupUnzip.add_argument(
-        "--merge",
+        "--dont_merge",
         required=False,
         action="store_true",
-        help="""If you want the output to have all possible contigs merged""",
+        help="""If you don't want the output to have all possible contigs merged""",
     )
     return parser.parse_args()
 
@@ -195,7 +195,7 @@ def main():
     
     dbgDir = args.debug
     
-    merge = args.merge
+    merge = not args.dont_merge
 
     t = time.time()
 
