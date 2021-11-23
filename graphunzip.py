@@ -113,7 +113,7 @@ def parse_args():
     )
     
     groupUnzip.add_argument(
-        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format), if you have them"""
+        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format)"""
     )
     
     # groupUnzip.add_argument(
