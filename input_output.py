@@ -283,7 +283,7 @@ def get_contig_FASTA(fastaFile, contig, firstline=0):
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
 #input : contig ID, gfa file and contigOffset, the position of the contig in the GFA file
-#output : sequence, and if it is present, the sequencing depth of the contig
+#output : sequence, and if it is present, the sequencing depth of the contig and the rest of the optional tags that could be present in the input gfa
 def get_contig_GFA(gfaFile, contig, contigOffset):
        
     with open(gfaFile) as f:
@@ -291,14 +291,17 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
         f.seek(contigOffset)
         line = f.readline()         
         sline = line.strip('\n').split('\t')
-        if len(sline) == 3 and sline[0] == 'S' and (contig in sline[1]) :
-                return sline[2], ''
             
-        elif len(sline) > 3 and sline[0] == 'S' and (contig in sline[1]):
+        if len(sline) >= 3 and sline[0] == 'S' and (contig in sline[1]):
+            extra_tags = ''
+            depth = ''
             for f in sline[3:] :
                 if 'dp' in f or 'DP' in f :
-                    return sline[2], f
-            return sline[2], ''
+                    depth = f
+                else :
+                    extra_tags += f + '\t'
+                
+            return sline[2], depth, extra_tags
 
         else :
             print('ERROR : Problem in the offset file, not pointing to the right lines')
@@ -366,12 +369,12 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 
                 f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
                 if gfaFile != "":
-                    sequence, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    sequence, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
                     if depth == '':
-                        f.write(sequence + "\n")
+                        f.write(sequence + '\t'+ extra_tags +"\n")
                     else :
                         #newdepth = str(float(depth.split(':')[-1])/copies[contig])
-                        f.write(sequence + '\tDP:f:'+ str(segment.depths[c]) + '\n')
+                        f.write(sequence + '\tDP:f:'+ str(segment.depths[c]) + '\t' + extra_tags + '\n')
                 else:
                     f.write("*\n")
     
@@ -450,7 +453,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 
                 sequence = ''
                 for c, contig in enumerate(segment.names) :
-                    s, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    s, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
                     if segment.orientations[c] == 0 :
                         s = s[::-1]
                     if c > 0 :
@@ -533,7 +536,7 @@ def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fas
         
         sequence = ''
         for c, contig in enumerate(segment.names) :
-            s, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+            s, depth, extra_contigs = get_contig_GFA(gfaFile, contig, line_offset[contig])
             if segment.orientations[c] == 0 :
                 s = s[::-1]
             if c > 0 :
