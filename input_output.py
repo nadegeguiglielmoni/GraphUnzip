@@ -420,6 +420,8 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     s, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
                     if segment.orientations[c] == 0 :
                         s = s[::-1]
+                        complement_dict = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C'}
+                        s = ''.join([complement_dict[base] for base in s])
                     if c > 0 :
                         CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
                         
@@ -503,6 +505,8 @@ def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fas
             s, depth, extra_contigs = get_contig_GFA(gfaFile, contig, line_offset[contig])
             if segment.orientations[c] == 0 :
                 s = s[::-1]
+                complement_dict = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C'}
+                s = ''.join([complement_dict[base] for base in s])
             if c > 0 :
                 CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
                 
