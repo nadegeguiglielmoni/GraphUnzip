@@ -58,21 +58,20 @@ graphunzip.py -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_intera
 graphunzip.py --help
 
 usage: graphunzip.py [-h] -g GFA [-o OUTPUT] [-f FASTA_OUTPUT] [-A ACCEPTED]
-               [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
-               [--HiC_IM HIC_IM] [-i HICINTERACTIONS]
-               [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-e]
-               [--linked_reads_IM LINKED_READS_IM]
-               [--barcoded_SAM BARCODED_SAM] [-v] [-d DEBUG] [--merge]
-               command
+                     [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
+                     [--HiC_IM HIC_IM] [-i HICINTERACTIONS]
+                     [-k LINKEDREADSINTERACTIONS] [-l LONGREADS]
+                     [--linked_reads_IM LINKED_READS_IM]
+                     [--barcoded_SAM BARCODED_SAM] [-v] [-d DEBUG]
+                     [--dont_merge]
+                     command
 
 positional arguments:
   command               Either unzip, HiC-IM, long-reads-IM or linked-reads-IM
 
-mandatory arguments:
-  -g GFA, --gfa GFA     GFA file to phase
-
 optional arguments:
   -h, --help            show this help message and exit
+  -g GFA, --gfa GFA     GFA file to phase
 
 unzip options:
   -o OUTPUT, --output OUTPUT
@@ -101,13 +100,13 @@ unzip options:
                         from linked-reads-IM [default: None]
   -l LONGREADS, --longreads LONGREADS
                         Long reads mapped to the GFA with GraphAligner (GAF
-                        format), if you have them
+                        format) or SPAligner (TSV format)
   -v, --verbose
   -d DEBUG, --debug DEBUG
                         Activate the debug mode. Parameter: directory to put
                         the logs and the intermediary GFAs.
-  --dont_merge          If you don't want the output to have all possible contigs
-                        merged
+  --dont_merge          If you don't want the output to have all possible
+                        contigs merged
 
 HiC-IM options:
   -m MATRIX, --matrix MATRIX
@@ -124,9 +123,11 @@ linked-reads-IM options:
                         SAM file of the barcoded reads aligned to the
                         assembly. Barcodes must still be there (use option -C
                         if aligning with BWA) (required)
+ 
 
 ```
 
+The only parameters you can modify are -A and -R, only if using Hi-C (they are not used for long reads).
 The default values are quite robust and should directly yield good unzipped assembly. However, you might consider tweaking -A or -R if you are not happy with the result (keep in mind that A > R):
 
 The accepted threshold -A is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
