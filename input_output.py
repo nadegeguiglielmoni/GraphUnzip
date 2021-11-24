@@ -107,90 +107,54 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
         
     return interactionMatrix
 
-#input : a gaf file (outputted by graphaligner)
-#output : an interaction matrix with two values : 100 if the contigs are next to each other in some reads, 0 elsewhise
-def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold = 0, whole_mapping = False):
-     
-    print('Building interaction matrix from the gaf file')
-    f = open(gafFile, 'r')
+#input : GAF file (outputted by graphaligner) and parameters telling which line are deemed informative
+#output : list of useful lines extracted (['>12>34<2' , '>77<33' ,... ] for example)
+def read_GAF(gafFile,similarity_threshold, whole_mapping_threshold, lines) : #a function going through the gaf files and inventoring all useful lines
     
-    interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
-    repeats = [0]*len(segments)
+    gaf = open(gafFile, 'r')
     
-    allLinks = set()
-    noNames = set() #list of names that are not found in names
-   
-    #these two values are in case some contigs of the gafs are just subnames of names
-    namesPlus = names.copy()
-    contigsPlus = {}
-    for i in names :
-        contigsPlus[i] = i
-    
-    for line in f :
-        
+    for line in gaf :
         ls = line.split('\t')
-        if ls[5].count('>') + ls[5].count('<') > 1 :
-            
+        path = ls[5] # in GAF format, the 6th column is the path on which the read matched
         
+
+        if ls[5].count('>') + ls[5].count('<') > 1 :
+                        
             if (not 'id:f' in ls[-2]) or (float(ls[-2].split(':')[-1]) > similarity_threshold) :
                 
-                if not whole_mapping or (float(ls[2]) == 0 and float(ls[1]) == float(ls[3])) :
+                if (float(ls[3])-float(ls[2]))/float(ls[1]) > whole_mapping_threshold :
+    
+                    lines += [ls[5]]  
+
+#input : TSV file (outputted by SPAligner) 
+#output : list of sequences of contigs in GAF-like format (['>12>34<2' , '>77<33' ,... ] for example)
+def read_TSV(tsv_file, names, lines):
+    
+    tsv = open(tsv_file, 'r')
+    
+    for line in tsv :
+        ls = line.split('\t')
+        
+        alns = ls[6].split(';')
+        
+        for aln in alns :
+            contigs = aln.split(',')
+            
+            if len(contigs) > 1 :
+                alignment = ''
+                for contig in contigs :
+                    if '+' in contig[-1] :
+                        alignment += '>'
+                    else :
+                        alignment += '<'
+                    alignment += contig[:-1]
                     
-                    contigs = re.split('[><]' , ls[5])
-                    orientations = "".join(re.findall("[<>]", ls[5]))
-                    del contigs[0] #because the first element is always ''
-
-                    for c1 in range(len(contigs)-1) :
-                        for c2 in range(c1+1, len(contigs)):
-                            
-                            if contigs[c1] not in noNames and contigs[c2] not in noNames :
-                            
-                                #try to look for the name if it is not in names
-                                if contigs[c1] not in namesPlus :
-                                    found = False
-                                    for i in names.keys() :
-                                        if contigs[c1] in i :
-                                            namesPlus[contigs[c1]] = names[i]
-                                            contigsPlus[contigs[c1]] = i
-                                            found = True
-                                    if not found :
-                                        noNames.add(contigs[c1]) #if you do not find it once, the cause is lost
-                                            
-                                if contigs[c2] not in namesPlus :
-                                    found = False
-                                    for i in names.keys() :
-                                        if contigs[c2] in i :
-                                            namesPlus[contigs[c2]] = names[i]
-                                            contigsPlus[contigs[c2]] = i
-                                            found = True
-                                    if not found :
-                                        noNames.add(contigs[c2])
-                                
-                                #if the two contigs exist, go ahead
-                                if contigs[c1] in namesPlus and contigs[c2] in namesPlus :
-
-                                    if namesPlus[contigs[c1]] != namesPlus[contigs[c2]] :
-                                        interactionMatrix[namesPlus[contigs[c1]], namesPlus[contigs[c2]]] += 1
-                                        if c2 == c1 +1 :
-                                            if contigsPlus[contigs[c1]] == contigs[c1] and contigsPlus[contigs[c2]] == contigs[c2] :
-
-                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], orientations[c2] == '<'))
-                                                
-                                            elif contigsPlus[contigs[c1]] == contigs[c1] :
-                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], True))
-                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], False))
-                                            elif  contigsPlus[contigs[c2]] == contigs[c2] :
-                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], orientations[c2] == '<'))
-                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], orientations[c2] == '<'))
-                                            else :
-                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], True))
-                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], True))
-                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], False))
-                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], False))
-                                    else :
-                                        repeats[namesPlus[contigs[c1]]] = max(contigs.count(contigs[c1]), repeats[namesPlus[contigs[c1]]])
-                    
-    return interactionMatrix, repeats, allLinks
+                    if contig[:-1] not in names :
+                        print("Problem: ", line)
+                        while True :
+                            rien = 0
+                lines += [alignment]
+        
     
 def linkedReads_interactionMatrix(sam, names):
     
@@ -283,7 +247,7 @@ def get_contig_FASTA(fastaFile, contig, firstline=0):
     return "In get_contig : the contig you are seeking is not in the fasta file"
 
 #input : contig ID, gfa file and contigOffset, the position of the contig in the GFA file
-#output : sequence, and if it is present, the sequencing depth of the contig
+#output : sequence, and if it is present, the sequencing depth of the contig and the rest of the optional tags that could be present in the input gfa
 def get_contig_GFA(gfaFile, contig, contigOffset):
        
     with open(gfaFile) as f:
@@ -291,14 +255,17 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
         f.seek(contigOffset)
         line = f.readline()         
         sline = line.strip('\n').split('\t')
-        if len(sline) == 3 and sline[0] == 'S' and (contig in sline[1]) :
-                return sline[2], ''
             
-        elif len(sline) > 3 and sline[0] == 'S' and (contig in sline[1]):
+        if len(sline) >= 3 and sline[0] == 'S' and (contig in sline[1]):
+            extra_tags = ''
+            depth = ''
             for f in sline[3:] :
                 if 'dp' in f or 'DP' in f :
-                    return sline[2], f
-            return sline[2], ''
+                    depth = f
+                else :
+                    extra_tags += f + '\t'
+                
+            return sline[2], depth, extra_tags
 
         else :
             print('ERROR : Problem in the offset file, not pointing to the right lines')
@@ -366,12 +333,12 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 
                 f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
                 if gfaFile != "":
-                    sequence, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    sequence, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
                     if depth == '':
-                        f.write(sequence + "\n")
+                        f.write(sequence + '\t'+ extra_tags +"\n")
                     else :
                         #newdepth = str(float(depth.split(':')[-1])/copies[contig])
-                        f.write(sequence + '\tDP:f:'+ str(segment.depths[c]) + '\n')
+                        f.write(sequence + '\tDP:f:'+ str(segment.depths[c]) + '\t' + extra_tags + '\n')
                 else:
                     f.write("*\n")
     
@@ -450,9 +417,11 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 
                 sequence = ''
                 for c, contig in enumerate(segment.names) :
-                    s, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    s, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
                     if segment.orientations[c] == 0 :
                         s = s[::-1]
+                        complement_dict = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C'}
+                        s = ''.join([complement_dict[base] for base in s])
                     if c > 0 :
                         CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
                         
@@ -533,9 +502,11 @@ def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fas
         
         sequence = ''
         for c, contig in enumerate(segment.names) :
-            s, depth = get_contig_GFA(gfaFile, contig, line_offset[contig])
+            s, depth, extra_contigs = get_contig_GFA(gfaFile, contig, line_offset[contig])
             if segment.orientations[c] == 0 :
                 s = s[::-1]
+                complement_dict = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C'}
+                s = ''.join([complement_dict[base] for base in s])
             if c > 0 :
                 CIGARlength = np.sum([int(i) for i in re.findall(r'\d+', segment.insideCIGARs[c-1])])
                 

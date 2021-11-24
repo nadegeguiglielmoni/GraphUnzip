@@ -10,6 +10,7 @@ import input_output as io
 # import analyse_HiC
 from transform_gfa import gfa_to_fasta
 from solve_ambiguities import solve_ambiguities
+from solve_ambiguities import merge_adjacent_contigs
 from solve_with_long_reads import bridge_with_long_reads
 from determine_multiplicity import determine_multiplicity
 #from segment import check_if_all_links_are_sorted
@@ -112,7 +113,7 @@ def parse_args():
     )
     
     groupUnzip.add_argument(
-        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format), if you have them"""
+        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format)"""
     )
     
     # groupUnzip.add_argument(
@@ -293,7 +294,7 @@ def main():
             print("ERROR: You should provide to unzip long reads mapped in GAF format and/or interaction matrices, using either --HiCinteractions (-i) or --linkedReadsInteractions (-k). If you do not have them, you can create them using the HiC-IM, long-reads-IM or linked-reads-IM commands")
             sys.exit()
 
-        print("Everything loaded, moving on to unzipping")
+        print("Everything loaded, moving on to untangling the graph")
         
         #creating copiesnuber (cn), a dictionnary inventoring how many times 
         cn = {}
@@ -318,11 +319,10 @@ def main():
         elif not uselr :
             
             print("WARNING: all interaction matrices are empty, GraphUnzip does not do anything")
+        
+        merge_adjacent_contigs(segments)
             
-            
-        # now exporting the output
-        print("Now exporting")
-    
+        # now exporting the output        
         io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge)
     
         if fastaFile != "None":

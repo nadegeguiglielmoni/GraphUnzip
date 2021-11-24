@@ -9,6 +9,91 @@ Created on Tue Apr 28 16:22:21 2020
 This file is for function that do not have anymore utility in the master code, but that took time to program
 """
 
+#input : a gaf file (outputted by graphaligner)
+#output : an interaction matrix with two values : 100 if the contigs are next to each other in some reads, 0 elsewhise
+def longReads_interactionsMatrix(gafFile, names, segments, similarity_threshold = 0, whole_mapping = False):
+     
+    print('Building interaction matrix from the gaf file')
+    f = open(gafFile, 'r')
+    
+    interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+    repeats = [0]*len(segments)
+    
+    allLinks = set()
+    noNames = set() #list of names that are not found in names
+   
+    #these two values are in case some contigs of the gafs are just subnames of names
+    namesPlus = names.copy()
+    contigsPlus = {}
+    for i in names :
+        contigsPlus[i] = i
+    
+    for line in f :
+        
+        ls = line.split('\t')
+        if ls[5].count('>') + ls[5].count('<') > 1 :
+            
+        
+            if (not 'id:f' in ls[-2]) or (float(ls[-2].split(':')[-1]) > similarity_threshold) :
+                
+                if not whole_mapping or (float(ls[2]) == 0 and float(ls[1]) == float(ls[3])) :
+                    
+                    contigs = re.split('[><]' , ls[5])
+                    orientations = "".join(re.findall("[<>]", ls[5]))
+                    del contigs[0] #because the first element is always ''
+
+                    for c1 in range(len(contigs)-1) :
+                        for c2 in range(c1+1, len(contigs)):
+                            
+                            if contigs[c1] not in noNames and contigs[c2] not in noNames :
+                            
+                                #try to look for the name if it is not in names
+                                if contigs[c1] not in namesPlus :
+                                    found = False
+                                    for i in names.keys() :
+                                        if contigs[c1] in i :
+                                            namesPlus[contigs[c1]] = names[i]
+                                            contigsPlus[contigs[c1]] = i
+                                            found = True
+                                    if not found :
+                                        noNames.add(contigs[c1]) #if you do not find it once, the cause is lost
+                                            
+                                if contigs[c2] not in namesPlus :
+                                    found = False
+                                    for i in names.keys() :
+                                        if contigs[c2] in i :
+                                            namesPlus[contigs[c2]] = names[i]
+                                            contigsPlus[contigs[c2]] = i
+                                            found = True
+                                    if not found :
+                                        noNames.add(contigs[c2])
+                                
+                                #if the two contigs exist, go ahead
+                                if contigs[c1] in namesPlus and contigs[c2] in namesPlus :
+
+                                    if namesPlus[contigs[c1]] != namesPlus[contigs[c2]] :
+                                        interactionMatrix[namesPlus[contigs[c1]], namesPlus[contigs[c2]]] += 1
+                                        if c2 == c1 +1 :
+                                            if contigsPlus[contigs[c1]] == contigs[c1] and contigsPlus[contigs[c2]] == contigs[c2] :
+
+                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], orientations[c2] == '<'))
+                                                
+                                            elif contigsPlus[contigs[c1]] == contigs[c1] :
+                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], True))
+                                                allLinks.add((contigsPlus[contigs[c1]], orientations[c1] == '>', contigsPlus[contigs[c2]], False))
+                                            elif  contigsPlus[contigs[c2]] == contigs[c2] :
+                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], orientations[c2] == '<'))
+                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], orientations[c2] == '<'))
+                                            else :
+                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], True))
+                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], True))
+                                                allLinks.add((contigsPlus[contigs[c1]], True, contigsPlus[contigs[c2]], False))
+                                                allLinks.add((contigsPlus[contigs[c1]], False, contigsPlus[contigs[c2]], False))
+                                    else :
+                                        repeats[namesPlus[contigs[c1]]] = max(contigs.count(contigs[c1]), repeats[namesPlus[contigs[c1]]])
+                    
+    return interactionMatrix, repeats, allLinks
+
 def how_far_away_are_those_contigs(contig1, contig2, links, infContigs):
     connectedToContig1 = [contig1*2, contig1*2+1]
     
