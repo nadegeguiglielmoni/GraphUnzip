@@ -6,7 +6,7 @@ Created on Fri Oct  8 13:02:36 2021
 @author: rfaure
 """
 
-#main function of the file : tries to estimate how many copies of each contig is actually present in the actual assembly
+#main function of the file : tries to estimate how many copies of each contig is actually present in the actual assembly, based only on the topology of the graph and the coverage
 #input : a gfa (as a list of segments), with mandatory coverage information ; names (to know at what index to put each contig)
 #output : computed_multiplicity, which is a list containing the theoretical multiplicity of contig 'a' at position names[a]
 def determine_multiplicity(segments, names, supported_links) :
@@ -19,7 +19,7 @@ def determine_multiplicity(segments, names, supported_links) :
     for s in segments :
         
         links = s.get_links()
-        if len(links[0]) == 1 and len(links[1]) == 1 : #if the contig has strictly 1 neighbor at each end we can suppose it is haploid
+        if len(links[0]) <= 1 and len(links[1]) <= 1 : #if the contig has strictly 1 neighbor at each end we can suppose it is haploid
         
             weightedNumberOfRefContigs += s.length
             refCoverages += s.length * s.depths[0]

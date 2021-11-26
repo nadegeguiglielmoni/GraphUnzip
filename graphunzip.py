@@ -12,6 +12,7 @@ from transform_gfa import gfa_to_fasta
 from solve_ambiguities import solve_ambiguities
 from solve_ambiguities import merge_adjacent_contigs
 from solve_with_long_reads import bridge_with_long_reads
+from solve_with_HiC import solve_with_HiC
 from determine_multiplicity import determine_multiplicity
 #from segment import check_if_all_links_are_sorted
 
@@ -314,6 +315,7 @@ def main():
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
+            solve_with_HiC(segments, interactionMatrix, names)
             segments, cn = solve_ambiguities(segments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose)
         
         elif not uselr :
