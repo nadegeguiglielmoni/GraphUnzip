@@ -6,7 +6,9 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 
 ## Why use GraphUnzip ?
 
-`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. 
+`GraphUnzip` improves the contiguity of an assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` untangles an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes or metagenomes.
+
+Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/long read) assembler: go to the [bottom of the page](#hybridUnzip) to see an example.
 
 ## Installation
 
@@ -133,6 +135,47 @@ The default values are quite robust and should directly yield good unzipped asse
 The accepted threshold -A is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
 
 The rejected threshold -R is the threshold below which a link is considered non-existent (compared with a competing link). If the outputted assembly graph is too fragmented, lower this threshold.
+
+<a name="hybridUnzip"></a>
+## Hybrid assembly
+
+Combined with a short read assembler, GraphUnzip makes a great hybrid (short reads - long reads) assembler. Here is a suggested pipeline.
+
+###Intallation
+
+You'll need a working python installation to run this pipeline.
+
+If not already done, download GraphUnzip:
+`git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git`
+
+Install [SPAdes](github.com/ablab/spades) to have both a short read assembler and an aligner (SPAligner). You can use another assembler if you prefer, but the installation of SPAdes is still recommended to have access to SPAligner. On Linux, the commands are:
+```
+wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
+tar -xzf SPAdes-3.15.3-Linux.tar.gz
+```
+###Short read assembly
+ 
+Run the short read assembler. If you are using SPAdes,
+```
+SPAdes-3.15.3-Linux/bin/spades.py --s short_reads.fastq -o short_read_assembly
+```
+This is in case the short reads are unpaired. If using another type of library or if you want to tune other options, please refer to `spades.py --help`.
+
+###Read alignment
+
+We will use SPAligner to align long reads to the assembly graph. If you want to tune the parameters, refer to the [gitHub of SPAligner](https://github.com/ablab/spades/tree/spades_3.15.3/assembler/src/projects/spaligner).
+```
+SPAdes-3.15.3-Linux/bin/spaligner SPAdes-3.15.3-Linux/share/spaligner/spaligner_config.yaml -d pacbio -g short_read_assembly/assembly_graph_with_scaffolds.gfa -k 127 -s long_reads.fastq.gz
+```
+
+###Untangling the short-read assembly
+
+Now we use GraphUnzip:
+```
+GraphUnzip/graphunzip.py -g short_read_assembly/assembly_graph_with_scaffolds.gfa -l spaligner_result/alignment.tsv -o assembly.gfa -f assembly.fasta
+```
+
+The final assembly are assembly.gfa (GFA format) and assembly.fasta (FASTA format)
 
 ## Citation
 
