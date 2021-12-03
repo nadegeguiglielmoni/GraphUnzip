@@ -96,8 +96,16 @@ class Segment:
     def get_coverage(self):
         return self._HiCcoverage
         
-    def get_depth(self):
+    def get_depths(self):
         return self._depths
+    
+    def get_depth(self):
+        sumdepth = 0
+        sumlength = 0
+        for i in range(len(self._depths)) :
+            sumdepth += self._depths[i]*self._lengths[i]
+            sumlength += self._lengths[i]
+        return sumdepth / sumlength
     
     def full_name(self) :
         return '_'.join([self._namesOfContigs[i]+'-'+str(self._copiesOfContigs[i]) for i in range(len(self._namesOfContigs))])
@@ -149,7 +157,8 @@ class Segment:
     
     ID = property(get_id, set_id)
     HiCcoverage = property(get_coverage, set_coverage)
-    depths = property(get_depth)
+    depths = property(get_depths)
+    depth = property(get_depth)
     length = property(get_length)
     
     names = property(get_namesOfContigs)
@@ -382,8 +391,10 @@ class Segment:
             del self._links[endOfSegment][index]
             del self._otherEndOfLinks[endOfSegment][index]
             del self._CIGARs[endOfSegment][index]
+            return True
         elif index == -1 and warning:
              print('Trying unsuccesfully to remove ', segmentToRemove.names, ' from ', self._namesOfContigs)
+             return False
      
     #returns two contigs, equal to this contig but split at axis, corresponding to the number of contigs left of the junction
     def break_contig(self, axis) :
@@ -484,8 +495,9 @@ def add_link(segment1, end1, segment2, end2, CIGAR = '*'):
     segment2.add_end_of_link(end2, segment1, end1, CIGAR)
     
 def delete_link(segment1, end1, segment2, end2, warning = True) :
-    segment1.remove_end_of_link(end1, segment2, end2, warning = warning)
-    segment2.remove_end_of_link(end2, segment1, end1, warning = warning)
+    success1 = segment1.remove_end_of_link(end1, segment2, end2, warning = warning)
+    success2 = segment2.remove_end_of_link(end2, segment1, end1, warning = warning)
+    return success1 and success2
            
 def compute_copiesNumber(listOfSegments):
     cn = {}

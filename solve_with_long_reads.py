@@ -13,6 +13,7 @@ from determine_multiplicity import determine_multiplicity
 from solve_ambiguities import merge_adjacent_contigs
 from input_output import read_GAF
 from input_output import read_TSV
+import time
 
 import segment
 
@@ -31,7 +32,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     for se, s in enumerate(segments) :
         
         if multiplicities[se] == 1 :
-        #to be deemed haploid, a segment must have at mosetone connection at each of its end plus be equally or less covered thant neighboring contigs
+        #to be deemed haploid, a segment must have at most one connection at each of its end plus be equally or less covered thant neighboring contigs
             links = s.links
             if round(s.depths[0]/refHaploidy) == 1 :
                 haploidContigs.append(s)
@@ -427,10 +428,10 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
         multiplicities[s] = max(minimum_multiplicity[s], multiplicities[s])
             
     alreadyDuplicated = [-1 for i in range(len(names))] #list useful for duplicating long contigs : only duplicate them from one side, the one that is in this list 
-        
+            
     l = len(segments)
     for se in range(l) :
-
+        
         if (se)%1000 == 0 :
             print("Processed ", se, " contigs out of ", l, ", while untangling with long reads")
         s = segments[se]
@@ -462,14 +463,15 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                     #take care of the first contig, nobody is going to do it elsewhise
                     contig = segments[names[contigs[0]]]
                     idx = 0
-                    if len(contig.links[end]) > 0 : #delete all the links right of the contig, the only good one will be reestablished later
+                    if len(contig.links[end]) > 0 : #delete all the links right of the contig, the only good one will be reestablished later (actually, only delete the links to haploidContigs)
                         #print('here edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
                         while len(contig.links[end]) > idx :
                             neighbor = contig.links[end][idx]
                             if neighbor.names[0] in haploidContigsNames or alreadyDuplicated[names[neighbor.names[0]]] != 1-nextEnd :
-                                segment.delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][0])
+                                success = segment.delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][idx])
                             else :
                                 idx += 1
+
                         #print('now edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
 
                     #then take care of all other contigs

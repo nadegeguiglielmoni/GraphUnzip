@@ -64,8 +64,8 @@ def determine_multiplicity(segments, names, supported_links) :
             else :
                 new_multiplicity = max(new_multiplicity1, new_multiplicity2) #that includes the case where both are > 0, in which case we are not confident
                 
-            # if '5138' in segments[s].names :
-            #     print("Looking at 5138 and ")
+            # if 'edge_224' in segments[s].names :
+            #      print("Looking at 224 and ", new_multiplicity)
             if new_multiplicity > 0 and (segments[s].depths[0]/refCoverage > new_multiplicity/1.5 or confidence or refCoverage == 1):
                     computed_multiplicity[s] = new_multiplicity
                     #print("coucou, ", segments[s].names, " ", new_multiplicity)

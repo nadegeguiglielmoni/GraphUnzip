@@ -105,6 +105,8 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
     if unknowncontacts != 0 :
         print('There are ', unknowncontacts, ' out of ', n, ' contacts I did not manage to map : you may want to check if the names of the contigs are consistent throughout your files')
         
+    interactionMatrix.tocsr()
+    
     return interactionMatrix
 
 #input : GAF file (outputted by graphaligner) and parameters telling which line are deemed informative

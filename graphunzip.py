@@ -211,8 +211,9 @@ def main():
         gfaFile
     )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
 
-    interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
-    tagInteractionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+    interactionMatrix = sparse.coo_matrix((len(segments), len(segments)))
+    interactionMatrix.tocsr()
+    tagInteractionMatrix = sparse.csr_matrix((len(segments), len(segments)))
     useHiC = False
     uselr = False
     useTag = False
@@ -316,7 +317,7 @@ def main():
         if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
             solve_with_HiC(segments, interactionMatrix, names)
-            segments, cn = solve_ambiguities(segments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose)
+            #segments, cn = solve_ambiguities(segments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose)
         
         elif not uselr :
             
