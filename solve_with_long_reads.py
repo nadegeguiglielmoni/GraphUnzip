@@ -445,7 +445,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                         while len(contig.links[end]) > idx :
                             neighbor = contig.links[end][idx]
                             if neighbor.names[0] in haploidContigsNames or alreadyDuplicated[names[neighbor.names[0]]] != 1-nextEnd :
-                                segment.delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][0])
+                                segment.delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][idx])
                             else :
                                 idx += 1
                         #print('now edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
