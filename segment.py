@@ -481,13 +481,18 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
     listOfSegments.append(newSegment)
     
     #building the other end of links with the new segment
+    self_loop_CIGAR = ''
     for n, neighbor in enumerate(newSegment.links[0]) :
-        #print(len(neighbor.otherEndOfLinks[0]), len(neighbor.links[0]), len(neighbor.CIGARs[0]))
         neighbor.add_end_of_link(newSegment.otherEndOfLinks[0][n], newSegment, 0, CIGAR = newSegment.CIGARs[0][n])
+        if neighbor.ID == segment2.ID and newSegment.otherEndOfLinks[0][n] == 1 - endOfSegment2 : #check if the new contig should loop back on itself
+            self_loop_CIGAR = newSegment.CIGARs[0][n]
 
     for n, neighbor in enumerate(newSegment.links[1]) :
         #print(len(newSegment.otherEndOfLinks[1]), len(newSegment.links[1]), len(newSegment.CIGARs[1]))
         neighbor.add_end_of_link(newSegment.otherEndOfLinks[1][n], newSegment, 1, CIGAR = newSegment.CIGARs[1][n])
+        
+    if self_loop_CIGAR != '' :
+        add_link(newSegment, 0, newSegment, 1, self_loop_CIGAR)
 
 #function creating a link between two ends of contigs, OUTSIDE of the class
 def add_link(segment1, end1, segment2, end2, CIGAR = '*'):

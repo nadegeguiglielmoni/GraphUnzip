@@ -152,9 +152,7 @@ def read_TSV(tsv_file, names, lines):
                     alignment += contig[:-1]
                     
                     if contig[:-1] not in names :
-                        print("Problem: ", line)
-                        while True :
-                            rien = 0
+                        print("Problem, I cannot find the contigs in this line: ", line)
                 lines += [alignment]
         
     
@@ -282,7 +280,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
     noOffsets = False
-    print('Offsets  : ', offsetsFile)
+    #print('Offsets : ', offsetsFile)
     if offsetsFile == "" :
         noOffsets = True
         offsetsFile = gfaFile.strip('.gfa') + '_offsets.pickle'
@@ -476,7 +474,7 @@ def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fas
                 offset += len(line)
             
  
-    print('Line_offsets computed, launching writing of the fasta')
+    #print('Line_offsets computed, launching writing of the fasta')
     #Now that the preliminary work is done, start writing the new fasta file    
 
     f = open(exportFile, "w")

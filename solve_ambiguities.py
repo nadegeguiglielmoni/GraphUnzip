@@ -344,6 +344,7 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
 
     # add the new segment
     s.merge_two_segments(segment, endOfSegment, neighbor, listOfSegments)
+    
 
     # delete links going towards the two ex-segments
     otherEnd = 1 - endOfSegment
@@ -375,11 +376,12 @@ def merge_adjacent_contigs(listOfSegments):
                 
                 if not alreadyDidThisOne:
                     
-                    if len(segment.links[endOfSegment]) == 1and len(segment.links[endOfSegment][0].links[segment.otherEndOfLinks[endOfSegment][0]])== 1:  # then merge
+                    if len(segment.links[endOfSegment]) == 1 and len(segment.links[endOfSegment][0].links[segment.otherEndOfLinks[endOfSegment][0]])== 1 :  # then merge
                         alreadyDidThisOne = True
-                        if segment != segment.links[endOfSegment][0]:
+                        if segment.ID != segment.links[endOfSegment][0].ID:
                             goOn = True
                             listOfSegments = merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments)
+
 
     return listOfSegments
 
