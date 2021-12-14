@@ -6,7 +6,7 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 
 ## Why use GraphUnzip ?
 
-`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. 
+`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. For more details, see [when is GraphUnzip useful](## When is GraphUnzip useful ?) below.
 
 ## Installation
 
@@ -132,6 +132,15 @@ The default values are quite robust and should directly yield good unzipped asse
 The accepted threshold -A is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
 
 The rejected threshold -R is the threshold below which a link is considered non-existent (compared with a competing link). If the outputted assembly graph is too fragmented, lower this threshold.
+
+## When is GraphUnzip useful ?
+
+It is tempting to try to use GraphUnzip on any assembly to improve its contiguity. And you can ! Yet on some assemblies it will not improve the results at all. You can generally know that beforehand by looking at what the assembly graph looks like with the tool [Bandage](https://github.com/rrwick/Bandage/).
+GraphUnzip untangles assembly graphs. Thus it likes having messy, tangled graphs as input. Here is an example of an assembly on which GraphUnzip will probably do well:
+![tangled graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/gfa_tangled.png)
+
+On the contrary, some assemblies are very fragmented. For those, GraphUnzip cannot do much, since it cannot reconstitute the missing sequence between two contigs. You might consider using a scaffolder instead. Here is an example of a very fragmented assembly, which cannot be untangled much more:
+![fragmented graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/gfa_split.png)
 
 ## Citation
 
