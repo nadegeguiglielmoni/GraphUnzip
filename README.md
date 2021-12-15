@@ -135,6 +135,7 @@ The rejected threshold -R is the threshold below which a link is considered non-
 
 <a name="usefulness">
 </a>
+
 ## When is GraphUnzip useful ?
 
 It is tempting to try to use GraphUnzip on any assembly to improve its contiguity. And you can ! Yet on some assemblies it will not improve the results at all. You can generally know that beforehand by looking at what the assembly graph looks like with the tool [Bandage](https://github.com/rrwick/Bandage/).
