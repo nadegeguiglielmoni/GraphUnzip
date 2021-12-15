@@ -127,7 +127,6 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     #now remove the tips that apparently came from an overestimation in the multiplicity
     print("Now we correct the last quirks by looking a posteriori at the graph")
     merge_adjacent_contigs(segments)
-        
     trim_tips(segments, multiplicities, names, haploidContigsNames)
         
     #print(non_overlapping_bridges)

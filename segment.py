@@ -177,7 +177,7 @@ class Segment:
 
     #other functions that handle segments
     
-    #function which goals is to return the intensity of HiC contacts between another segment and this one
+    #function which goals is to return the intensity of Hi-C contacts between another segment and this one
     def interaction_with_contigs(self, segment, interactionMatrix, names, copiesnumber = None, commonContigs = set(), bestSignature = 1000):
         
         if copiesnumber == None :
@@ -186,16 +186,16 @@ class Segment:
         absoluteScore = 0
         relativeScore = 0
         
-        orientation = -1 # if supercontig is directly linked to the candidates, then this variable tells us by which end
+        # orientation = -1 # if supercontig is directly linked to the candidates, then this variable tells us by which end
         
-        if segment in self.links[0]:
-            orientation = 0
-        elif segment in self.links[1]:
-            orientation = 1
-        else: 
-            print('ERROR : trying to compute an interaction but the contigs do not touch each other')
-            print('Looking for ', self._namesOfContigs, ' from ', segment.names)
-            return 0, 0, 1
+        # if segment in self.links[0]:
+        #     orientation = 0
+        # elif segment in self.links[1]:
+        #     orientation = 1
+        # else: 
+        #     print('ERROR : trying to compute an interaction but the contigs do not touch each other')
+        #     print('Looking for ', self._namesOfContigs, ' from ', segment.names)
+        #     return 0, 0, 1
             
         depth = 1
         #first compute interactions with self
@@ -210,21 +210,20 @@ class Segment:
                 else:
                     absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                                         
-        #now compute the interaction with neighbors of self
-        
-        endOfSegment = 1-orientation
-        for neighbor in self.links[endOfSegment] :
-            for co, contig in enumerate(neighbor.names) :
-                for c, contigInSegment in enumerate(segment.names):
+        # #now compute the interaction with neighbors of self 
+        # endOfSegment = 1-orientation
+        # for neighbor in self.links[endOfSegment] :
+        #     for co, contig in enumerate(neighbor.names) :
+        #         for c, contigInSegment in enumerate(segment.names):
                 
-                    if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+        #             if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
                         
-                        depth = 2
+        #                 depth = 2
                         
-                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-                        relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
-                    else:
-                        absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+        #                 absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+        #                 relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
+        #             else:
+        #                 absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
                 
             
         return absoluteScore, relativeScore, depth
