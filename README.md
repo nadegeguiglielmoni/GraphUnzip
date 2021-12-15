@@ -6,7 +6,7 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 
 ## Why use GraphUnzip ?
 
-`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. For more details, see [when is GraphUnzip useful](#installation) below.
+`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. For more details, see [when is GraphUnzip useful](#usefulness) below.
 
 ## Installation
 
@@ -133,7 +133,9 @@ The accepted threshold -A is the threshold above which a link is considered real
 
 The rejected threshold -R is the threshold below which a link is considered non-existent (compared with a competing link). If the outputted assembly graph is too fragmented, lower this threshold.
 
+<a name="usefulness">
 ## When is GraphUnzip useful ?
+</a>
 
 It is tempting to try to use GraphUnzip on any assembly to improve its contiguity. And you can ! Yet on some assemblies it will not improve the results at all. You can generally know that beforehand by looking at what the assembly graph looks like with the tool [Bandage](https://github.com/rrwick/Bandage/).
 GraphUnzip untangles assembly graphs. Thus it likes having messy, tangled graphs as input. Here is an example of an assembly on which GraphUnzip will probably do well:
