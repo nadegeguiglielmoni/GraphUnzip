@@ -6,7 +6,7 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 
 ## Why use GraphUnzip ?
 
-`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. For more details, see [when is GraphUnzip useful](# When is GraphUnzip useful ?) below.
+`GraphUnzip` improves the contiguity of assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` unzips an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes. For more details, see [when is GraphUnzip useful](#when-is-graphunzip-useful-?) below.
 
 ## Installation
 
