@@ -28,30 +28,31 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file    
     #print("multiplicity of 95 : ", multiplicities[names['edge_95']])
     #print(multiplicities)
-    haploidContigs = []
-    for se, s in enumerate(segments) :
+    # haploidContigs = []
+    # for se, s in enumerate(segments) :
         
-        if multiplicities[se] == 1 :
-        #to be deemed haploid, a segment must have at most one connection at each of its end plus be equally or less covered thant neighboring contigs
-        #if depth could not be read, all contigs will be supposed haploid and we'll iteratively correct this assumption in a later phase
-            links = s.links
-            if round(s.depths[0]/refHaploidy) == 1 :
-                haploidContigs.append(s)
-            elif len(links[0]) == 1 and len(links[1]) == 1 :# and s.depths[0] < 1.5*links[0][0].depths[0] and s.depths[0] < 1.5*links[1][0].depths[0] : 
-                haploidContigs.append(s)
-            elif len(links[0]) == 1 and len(links[1]) == 0  : #and s.depths[0] < 1.5*links[0][0].depths[0] : 
-                haploidContigs.append(s)
-            elif len(links[0]) == 0 and len(links[1]) == 1 : # and s.depths[0] < 1.5*links[1][0].depths[0] : 
-                haploidContigs.append(s)
+    #     if multiplicities[se] == 1 :
+    #     #to be deemed haploid, a segment must have at most one connection at each of its end plus be equally or less covered thant neighboring contigs
+    #     #if depth could not be read, all contigs will be supposed haploid and we'll iteratively correct this assumption in a later phase
+    #         links = s.links
+    #         if round(s.depths[0]/refHaploidy) == 1 :
+    #             haploidContigs.append(s)
+    #         elif len(links[0]) == 1 and len(links[1]) == 1 :# and s.depths[0] < 1.5*links[0][0].depths[0] and s.depths[0] < 1.5*links[1][0].depths[0] : 
+    #             haploidContigs.append(s)
+    #         elif len(links[0]) == 1 and len(links[1]) == 0  : #and s.depths[0] < 1.5*links[0][0].depths[0] : 
+    #             haploidContigs.append(s)
+    #         elif len(links[0]) == 0 and len(links[1]) == 1 : # and s.depths[0] < 1.5*links[1][0].depths[0] : 
+    #             haploidContigs.append(s)
         
     
-    haploidContigs.sort(key= lambda x: x.length, reverse = True)
+    # haploidContigs.sort(key= lambda x: x.length, reverse = True)
     
-    haploidContigsNames = {} #contains the index of each contig (identified by its name) in the haploidContigs list
-    index = 0
-    for s in haploidContigs :
-        haploidContigsNames[s.names[0]] = index
-        index += 1
+    # haploidContigsNames = {} #contains the index of each contig (identified by its name) in the haploidContigs list
+    # index = 0
+    # for s in haploidContigs :
+    #     haploidContigsNames[s.names[0]] = index
+    #     index += 1
+    
     
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file
     
@@ -68,6 +69,9 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
         print("ERROR: input format of mapped read not recognized. It should be .gfa or .gpa")
         sys.exit()
     
+    #determine an approximate list of contigs that look haploid
+    haploidContigs, haploidContigsNames = determine_haploid_contigs(lines, segments, names)
+    #print(haploidContigsNames)
     sure_haploids = False
     
     #inventoriate all bridges in the list bridges : sequence of contigs found in the GAF containing at least one contig of multiplicity 1. Do fill in the longContigs list while you're at it
@@ -130,10 +134,52 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     trim_tips(segments, multiplicities, names, haploidContigsNames)
         
     #print(non_overlapping_bridges)
+
+
+#input : all aligned long reads
+#output : A list of "haploid" contigs, i.e. contigs that have at most one possible other contig right and left
+def determine_haploid_contigs(lines, segments, names) :
+    
+    haploidContigsIdx = set([i for i in range(len(segments))]) #list of the idx of all haploid contigs : we'll whittle it down
+    neighborLeftRight = [(set(), set()) for i in range(len(segments))] #list of neighbor contigs left and right of each contig : if a contig has only one neighbor left and right we'll say it's haploid
+    
+    for line in lines :
+        
+        contigs = re.split('[><]' , line)
+        orientations = "".join(re.findall("[<>]", line))
+        del contigs[0] #because the first element is always ''
+    
+        for c, contig in enumerate(contigs) :
             
-                  
+            if names[contig] in haploidContigsIdx :
+                
+                orientation = '><'.index(orientations[c])
+                
+                if c > 0 :
+                    
+                    neighborLeftRight[names[contig]][orientation].add(contigs[c-1])
+                    if len (neighborLeftRight[names[contig]][orientation]) > 1 :
+                        haploidContigsIdx.discard(names[contig])
+                        
+                if c < len(contigs) -1 :
+                    
+                    neighborLeftRight[names[contig]][1-orientation].add(contigs[c+1])
+                    if len (neighborLeftRight[names[contig]][1-orientation]) > 1 :
+                        haploidContigsIdx.discard(names[contig])
+       
+    haploidContigs = [segments[i] for i in haploidContigsIdx]
+    haploidContigs.sort(key= lambda x: x.length, reverse = True)
+    
+    haploidContigsNames = {} #contains the index of each contig (identified by its name) in the haploidContigs list
+    index = 0
+    for s in haploidContigs :
+        haploidContigsNames[s.names[0]] = index
+        index += 1
+        
+    return haploidContigs, haploidContigsNames
+        
 #input : a list of alignments of a gaf file
-#output : the completed bridges list, with for each haploid contig a list of what was found left and right of the contig
+#output : the completed bridges list, with for each haploid contig a list of what was found left and right of the contig. 
 def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names) :
     
     
@@ -239,10 +285,10 @@ def build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, h
                     
                     consensus_bridges[c][end] = consensus_bridges[c][end] + cons1[0] + cons2[0]
                     
-                    if cons2[0] == haploidContigs[c].names[0]:
-                        #not_actually_haploid += [c]
-                        #break
-                        pass
+                    # if cons2[0] == haploidContigs[c].names[0] and len(consensus_bridges[c][end]) < len(names): #if the contig loops on itself, it is not haploid except if we're on a circular chromosome
+                    #     #not_actually_haploid += [c]
+                    #     #break
+                    #     pass
                     
                     
                     #inventoriate this bridge in supported_links
@@ -636,8 +682,9 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
         for end in range(2) :
             
             if len(seg.links[1-end]) == 0 and len(seg.links[end]) == 1 :
+
                 
-                if any([seg.length < 0.1*i.length for i in seg.links[end][0].links[seg.otherEndOfLinks[end][0]]]) : #this means we're in a very short dead end
+                if any([extended_length(i, seg.links[end][0].otherEndOfLinks[seg.otherEndOfLinks[end][0]][e], 10*seg.length) for e,i in enumerate(seg.links[end][0].links[seg.otherEndOfLinks[end][0]])]) : #this means we're in a very short dead end
                                     
                     if all([i not in haploidContigsNames for i in seg.names]) : #then it means it's probably an error in the determination of the multiplicity
                     
@@ -646,4 +693,29 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
     
     for i in toDelete[::-1]:
         del segments[i]
-                    
+
+#a function returning True if you can go far (up to threshold) with neighbors of neighbors of neighbors of...
+def extended_length(segment, end, threshold) :
+    
+    if segment.length > threshold :
+        return True
+    
+    for n, neighbor in enumerate(segment.links[1-end]) :
+        
+        if extended_length(neighbor, segment.otherEndOfLinks[1-end][n], threshold-segment.length) :
+            return True
+        
+    return False
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
