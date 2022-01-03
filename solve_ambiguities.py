@@ -153,7 +153,7 @@ def compute_commonContigs2(segment, endOfSegment, listOfNeighborIndices, depth) 
     
     for n in listOfNeighborIndices :
         vicinityContigs = set()
-        propagate_vicinity(segment.links[endOfSegment][n], segment.otherEndOfLinks[endOfSegment][n], vicinityContigs, 0, depth)
+        propagate_vicinity(segment.links[endOfSegment][n], segment.otherEndOfLinks[endOfSegment][n], vicinityContigs, 0, depth, recursionDepth=0, maxRecursionDepth= 30)
         listOfTouchedContig += [set()]
         for comm in vicinityContigs :
             listOfTouchedContig[-1].add(comm.split('$:')[0])
@@ -166,16 +166,16 @@ def compute_commonContigs2(segment, endOfSegment, listOfNeighborIndices, depth) 
     return commonContigs
 
 #a recursive function to find all contigs within the limitDepth of the end of a contig
-def propagate_vicinity(segment, endOfSegment, vicinityContigs, depth, limitDepth) :
+def propagate_vicinity(segment, endOfSegment, vicinityContigs, depth, limitDepth, recursionDepth, maxRecursionDepth = 30) :
     
-    if depth > limitDepth :
+    if depth > limitDepth or recursionDepth >= maxRecursionDepth:
         return 0
     else :
         for name in segment.names :
             vicinityContigs.add(name+"$:"+str(endOfSegment)+"$:"+str(segment.ID))
         for n, neighbor in enumerate(segment.links[1-endOfSegment]):
             if neighbor.names[0]+"$:"+str(segment.otherEndOfLinks[1-endOfSegment][n])+"$:"+str(neighbor.ID) not in vicinityContigs :
-                propagate_vicinity(neighbor, segment.otherEndOfLinks[1-endOfSegment][n], vicinityContigs, depth+segment.length , limitDepth)
+                propagate_vicinity(neighbor, segment.otherEndOfLinks[1-endOfSegment][n], vicinityContigs, depth+segment.length , limitDepth, recursionDepth+1, maxRecursionDepth)
         return 0
 
 def compute_commonContigs(segment, candidatesSegments, listOfTouchingEnds, depth) :

@@ -87,6 +87,8 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     haploidContigs, haploidContigsNames, consensus_bridges = build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, haploidContigsNames)
     print("Done building consensus bridges")
     
+    #print("Consensus bridge of contig 223445 : ", consensus_bridges[haploidContigsNames['223445']])
+    
     bridges = []
         
     print("Now we will determine through an iterative process what contigs of the assembly are present only once in the final genome")
@@ -106,7 +108,6 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
         if not sure_haploids :
             print("Out of ", leng, " supposed single-copy contigs, ", leng-len(haploidContigs), " were not actually haploid. Recomputing until all the single-copy contigs are robust.")
 
-            
     #from the consensus bridges, mark all links that are supported by the long reads
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file, and in how many different consensus
     compute_supported_links(supported_links, consensus_bridges, haploidContigsNames, haploidContigs, longContigs, names)
@@ -140,8 +141,8 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
 #output : A list of "haploid" contigs, i.e. contigs that have at most one possible other contig right and left
 def determine_haploid_contigs(lines, segments, names) :
     
-    haploidContigsIdx = set([i for i in range(len(segments))]) #list of the idx of all haploid contigs : we'll whittle it down
-    neighborLeftRight = [(set(), set()) for i in range(len(segments))] #list of neighbor contigs left and right of each contig : if a contig has only one neighbor left and right we'll say it's haploid
+    #haploidContigsIdx = set([i for i in range(len(segments))]) #list of the idx of all haploid contigs : we'll whittle it down
+    neighborLeftRight = [({}, {}) for i in range(len(segments))] #list of neighbor contigs left and right of each contig : if a contig has only one neighbor left and right we'll say it's haploid
     
     for line in lines :
         
@@ -151,23 +152,38 @@ def determine_haploid_contigs(lines, segments, names) :
     
         for c, contig in enumerate(contigs) :
             
-            if names[contig] in haploidContigsIdx :
+            #if names[contig] in haploidContigsIdx :
                 
                 orientation = '><'.index(orientations[c])
                 
                 if c > 0 :
                     
-                    neighborLeftRight[names[contig]][orientation].add(contigs[c-1])
-                    if len (neighborLeftRight[names[contig]][orientation]) > 1 :
-                        haploidContigsIdx.discard(names[contig])
-                        
+                    if contigs[c-1] not in neighborLeftRight[names[contig]][orientation] :
+                        neighborLeftRight[names[contig]][orientation][contigs[c-1]] = 1
+                    else :
+                        neighborLeftRight[names[contig]][orientation][contigs[c-1]] += 1
+                    # if len (neighborLeftRight[names[contig]][orientation].keys()) > 1 :
+                    #     #haploidContigsIdx.discard(names[contig])
+      
                 if c < len(contigs) -1 :
                     
-                    neighborLeftRight[names[contig]][1-orientation].add(contigs[c+1])
-                    if len (neighborLeftRight[names[contig]][1-orientation]) > 1 :
-                        haploidContigsIdx.discard(names[contig])
+                    if contigs[c+1] not in neighborLeftRight[names[contig]][1-orientation] :
+                        neighborLeftRight[names[contig]][1-orientation][contigs[c+1]] = 1
+                    else :
+                        neighborLeftRight[names[contig]][1-orientation][contigs[c+1]] += 1
+                        
+                    # if len (neighborLeftRight[names[contig]][1-orientation].keys()) > 1 :
+                    #     #haploidContigsIdx.discard(names[contig])
+
+    
+    haploidContigs = []
+    for se, nei in enumerate(neighborLeftRight) :
        
-    haploidContigs = [segments[i] for i in haploidContigsIdx]
+        if (len(nei[0]) ==0 or max(nei[0].values()) > 0.9 * sum(nei[0].values())) and (len(nei[1])==0 or max(nei[1].values()) > 0.9 * sum(nei[1].values())) :
+            
+            haploidContigs += [segments[se]]
+        
+       
     haploidContigs.sort(key= lambda x: x.length, reverse = True)
     
     haploidContigsNames = {} #contains the index of each contig (identified by its name) in the haploidContigs list
@@ -683,8 +699,8 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
             
             if len(seg.links[1-end]) == 0 and len(seg.links[end]) == 1 :
 
-                
-                if any([extended_length(i, seg.links[end][0].otherEndOfLinks[seg.otherEndOfLinks[end][0]][e], 10*seg.length) for e,i in enumerate(seg.links[end][0].links[seg.otherEndOfLinks[end][0]])]) : #this means we're in a very short dead end
+                print("Checking if ", seg.names, " is a tip")
+                if any([extended_length(i, seg.links[end][0].otherEndOfLinks[seg.otherEndOfLinks[end][0]][e], 10*seg.length, 30) for e,i in enumerate(seg.links[end][0].links[seg.otherEndOfLinks[end][0]])]) : #this means we're in a very short dead end
                                     
                     if all([i not in haploidContigsNames for i in seg.names]) : #then it means it's probably an error in the determination of the multiplicity
                     
@@ -694,15 +710,28 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
     for i in toDelete[::-1]:
         del segments[i]
 
-#a function returning True if you can go far (up to threshold) with neighbors of neighbors of neighbors of...
-def extended_length(segment, end, threshold) :
+#a function returning True if you can go far (up to threshold) with neighbors of neighbors of neighbors of... 
+#it returns False if it needs to recur deeper than thresholdContigs (even though it might be true)
+def extended_length(segment, end, thresholdLength, thresholdContigs) :
     
-    if segment.length > threshold :
+    #print("Extended length called with threshold ", thresholdLength, " on segment , ", segment.names)
+    
+    if thresholdContigs == 0 :
+        return False
+    
+    if segment.length > thresholdLength :
         return True
     
-    for n, neighbor in enumerate(segment.links[1-end]) :
+    #start by looking down the longest contig, it will be fastest
+    longestContig = [i for i in range(len(segment.links[1-end]))]
+    longestContig.sort(key= lambda x : segment.links[1-end][x].length, reverse = True)
+    
+    #print("Longest contigs : ", longestContig, [segment.links[1-end][i].length for i in longestContig])
+    
+    for n in longestContig[:min(len(longestContig), 2)] : #only explore the 2 most promising neighbors, beyond it's not worth it
         
-        if extended_length(neighbor, segment.otherEndOfLinks[1-end][n], threshold-segment.length) :
+        neighbor = segment.links[1-end][n]
+        if extended_length(neighbor, segment.otherEndOfLinks[1-end][n], thresholdLength-segment.length, thresholdContigs-1) :
             return True
         
     return False
