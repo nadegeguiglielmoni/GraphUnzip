@@ -60,9 +60,11 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}):
     list_of_knots, list_of_neighbors, knotOfContig, haploidContigs, haploidContigsNames = determine_list_of_knots(segments, multiplicities, haploidContigs, haploidContigsNames, normalInteractions, names)
     
     #try to know what haploid contigs go together
-    contacts = sparse.lil_matrix((len(haploidContigs)*2, len(haploidContigs)*2))
+    contacts = [[] for i in range(len(list_of_knots))]
     #while not sure :
-    haploidContigs, haploidContigsNames, sure =  match_haploidContigs(segments, names, normalInteractions, list_of_neighbors, list_of_knots, contacts, knotOfContig, haploidContigs, haploidContigsNames, copiesnumber)
+    solvedKnots, haploidContigs, haploidContigsNames, sure = match_haploidContigs(segments, names, normalInteractions, list_of_neighbors, list_of_knots, contacts, knotOfContig, haploidContigs, haploidContigsNames, copiesnumber)
+    
+    find_paths(contacts, segments, list_of_knots, solvedKnots)
 
 
 #input: a graph, in the form of a list of segments and a list of haploid conigs
@@ -194,11 +196,12 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
     
     sure_haploids = True
     not_actually_haploid = [] #a list of contigs that have no contacts with neighbors among the haploidContigs (those contigs are useless)
+    solvedKnots = []
     
-    for knot in list_of_knots :
+    for k, knot in enumerate(list_of_knots) :
         
         if len(knot) > 1 :
-            preferred_contact = {}
+            preferred_contact = {} #preferred_contact associates to an end all the ends that points toward it
             knot_solved = True
             
             for e, end in enumerate(knot) :
@@ -214,8 +217,7 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
                         for name2 in haploidContigs[neighbor//2].names :
                             total += interactionMatrix[names[name1], names[name2]]
                     interactions += [ total ]
-                    #interactions += [interactionMatrix[index][ names[haploidContigs[neighbor//2].full_name()]]]
-                #interactions = [ interactionMatrix[index][ haploidContigsNames[haploidContigs[i//2].full_name()] ] for i in knot ]
+
                 
                 interactions = interactions_with_neighbors(haploidContigs[end//2], end%2, [haploidContigs[i//2] for i in list_of_neighbors[end]], [i%2 for i in list_of_neighbors[end]], segments, interactionMatrix, names, copiesnumber)
                 if interactions == [-1] :
@@ -235,8 +237,7 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
                     #     #print("Contig ", haploidContigs[list_of_neighbors[end][bestIdx]//2].names, " does not look so haploid")
                     #     sure_haploids = False
                     
-                    contacts[list_of_neighbors[end][bestIdx], end] = 1
-                    contacts[end, list_of_neighbors[end][bestIdx]] = 1
+                    contacts[k] += [(end, list_of_neighbors[end][bestIdx])] 
                     
                 else :
                     print("I can't do anything about contig ", haploidContigs[end//2].names)
@@ -246,11 +247,10 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
 
                     
             if knot_solved :
+                solvedKnots += [k]
                 print("We solved a knot:")
-                for e, end in enumerate(knot) :
-                    for otherEnd in range(contacts.shape[0]) :
-                        if contacts[otherEnd, end] == 1 :
-                            print(haploidContigs[end//2].names, " -> ", haploidContigs[otherEnd//2].names)
+                for contact in contacts[k] :
+                    print(haploidContigs[contact[0]//2].names, " -> ", haploidContigs[contact[1]//2].names)
             print()
          
     #now get rid of non-haploid and uninformative contigs
@@ -272,7 +272,7 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
             reliable_haploid_contigsNames[haploidContigs[i].names[0]] = index
             index += 1
             
-    return reliable_haploid_contigs, reliable_haploid_contigsNames, sure_haploids #return the updated list of haploid contigs
+    return solvedKnots, reliable_haploid_contigs, reliable_haploid_contigsNames, sure_haploids #return the updated list of haploid contigs
 
 #a function normalizing an interaction matrix by iteratively dividing the rows and the columns by their norms. Additionally sets to 0 all values on the diagonal
 #input : un-normalized matrix
@@ -322,6 +322,19 @@ def normalize(matrix) :
     print("Finished normalizing the interaction matrix")
     return newMatrix
 
+#input : list of ends of haploid contigs we want to link, list of the solved knots we can work on (a partially resolved knot is no good)
+#output : paths between the linked segments
+def find_paths(contacts, segments, knots, solvedKnots) :
+    
+    for k in solvedKnots :
+        
+        knot = knots[k]
+        
+        #the first step is to list all the ways to answer the contacts
+        enumerate_paths(contacts, knot, segments)
 
-
-
+#input : a knot and the graph
+#output : a list of 
+def enumerate_paths(contacts, knot, segments) :
+    
+    pass
