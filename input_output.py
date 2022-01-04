@@ -12,6 +12,7 @@ import os.path #to check the existence of files
 import pickle #for writing files and reading them
 import re #to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
 import shutil #to remove directories
+import sys
 
 from segment import Segment
 from segment import compute_copiesNumber
@@ -150,9 +151,8 @@ def read_TSV(tsv_file, names, lines):
                     alignment += contig[:-1]
                     
                     if contig[:-1] not in names :
-                        print("Problem: ", line)
-                        while True :
-                            rien = 0
+                        print("ERROR: while reading the .tsv, I am coming across a contig that was not in the .gfa, namely ", contig[:-1], ". I recommend you check that you are using the same GFA that you aligned the long reads on.")
+                        sys.exit()
                 lines += [alignment]
         
     
