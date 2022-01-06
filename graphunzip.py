@@ -55,34 +55,13 @@ def parse_args():
         help="""Optional fasta output [default: None]""",
     )
     
-    groupUnzip.add_argument(
-        "-A",
-        "--accepted",
-        required=False,
-        default=0.30,
-        help="""Two links that are compared are deemed both true if
-                        the weakest of the two, in term of Hi-C contacts, is
-                        stronger than this parameter times the strength of the
-                        strongest link [default: 0.30]""",
-    )
-    groupUnzip.add_argument(
-        "-R",
-        "--rejected",
-        required=False,
-        default=0.15,
-        help="""When two links are compared, the weakest of the two,
-                        in term of Hi-C contacts, is considered false and
-                        deleted if it is weaker than this parameter times the
-                        strength of the strongest links (always smaller than
-                        --accepted)[default: 0.15]""",
-    )
+
     
     groupUnzip.add_argument(
-        "-s",
-        "--steps",
-        required=False,
-        default=10,
-        help="""Number of cycles get rid of bad links - duplicate contigs. [default: 10]""",
+        "-u",
+        "--unreliable_coverage",
+        action="store_true",
+        help="""Use this option if the coverage information of the graph is not reliable""",
     )
 
     groupHiC.add_argument(
@@ -130,20 +109,6 @@ def parse_args():
     grouplinked.add_argument(
         "--barcoded_SAM", required=False, default = "Empty", help = """SAM file of the barcoded reads aligned to the assembly. Barcodes must still be there (use option -C if aligning with BWA) (required)""")
     
-    # parser.add_argument(
-    #     "-Alr",
-    #     "--accepted-lr",
-    #     required=False,
-    #     default=0.30,
-    #     help="""Threshold to accept long-reads links. [default: 0.30]""",
-    # )
-    # parser.add_argument(
-    #     "-Rlr",git c
-    #     "--rejected-lr",
-    #     required=False,
-    #     default=0.15,
-    #     help="""Threshold to reject long-reads links. [default: 0.15]""",
-    # )
 
     
     groupUnzip.add_argument(
@@ -189,15 +154,14 @@ def main():
     interactionFileH = args.HiCinteractions
     interactionFileT = args.linkedReadsInteractions
     
-    stringenceReject = float(args.rejected)
-    stringenceAccept = float(args.accepted)
-    steps = int(args.steps)
     
     verbose = args.verbose
     
     dbgDir = args.debug
     
     merge = not args.dont_merge
+    
+    reliableCoverage = not args.unreliable_coverage
 
     t = time.time()
 
@@ -316,7 +280,7 @@ def main():
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
-            solve_with_HiC(segments, interactionMatrix, names)
+            solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage)
             #segments, cn = solve_ambiguities(segments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose)
         
         elif not uselr :

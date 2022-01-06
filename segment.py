@@ -60,6 +60,9 @@ class Segment:
     def get_id(self):
         return self._id
     
+    # def __hash__(self):
+    #     return self._id
+    
     def get_orientations(self):
         return self._orientationOfContigs
     
@@ -152,7 +155,7 @@ class Segment:
     def divide_depths(self, n) : #when duplicating a segment, you need to lower the coverage of all replicas
         for i in range (len(self._depths)) :
             self._depths[i] /= n
-        
+                    
     # properties
     
     ID = property(get_id, set_id)
@@ -394,7 +397,7 @@ class Segment:
         elif index == -1 and warning:
              print('Trying unsuccesfully to remove ', segmentToRemove.names, ' from ', self._namesOfContigs)
              return False
-     
+        
     #returns two contigs, equal to this contig but split at axis, corresponding to the number of contigs left of the junction
     def break_contig(self, axis) :
         
@@ -441,7 +444,21 @@ class Segment:
             #print('Links before any removal, ', [i.names for i in self._links[0]], '\n')
             self.remove_end_of_link(0, self)
             self.remove_end_of_link(1, self)
-                    
+  
+    #a function to delete all the links of a segment (typically before deleting it)
+    def cut_all_links(self) :
+        
+        for end in range(2) :
+            
+            for n, neighbor in enumerate(self._links[end]) :
+                
+                otherEnd = self._otherEndOfLinks[end][n]
+                neighbor.remove_end_of_link(otherEnd, self, end)
+        
+        self._links = [[],[]]
+        self._otherEndOfLinks = [[],[]]
+        self._CIGARs = [[],[]]
+        
 #This function is OUTSIDE the class. It takes two segments and the end of the first segment which is linked to the second. It appends a merged contig to the listOfSegments, without modifying the two inputed segments
 def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
     
