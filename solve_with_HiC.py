@@ -75,7 +75,8 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
     
     untangled_paths = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage)
     
-    untangle_knots(untangled_paths, segments)
+    segments = untangle_knots(untangled_paths, segments)
+    
 
 
 #input: a graph, in the form of a list of segments and a list of haploid conigs
@@ -84,12 +85,12 @@ def determine_list_of_knots(segments, multiplicities, haploidContigs, haploidCon
     
     #first compute the list of neighbors for all haploidContigs, checking if each contig is informative or not
     listOfNeighbors = [[] for i in range(len(haploidContigs)*2)]
-    notInformative = []
+    notInformative = set()
     for end in range(len(listOfNeighbors)) :
         segmentsAlreadyTraversed = set()
         listOfNeighbors[end] = find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames)
         
-        #check if the contig is informative and it it does not loop on itself
+        #check if the contig is informative and if it does not loop on itself
         if end % 2 == 1 :
             
             interactions = []
@@ -111,32 +112,28 @@ def determine_list_of_knots(segments, multiplicities, haploidContigs, haploidCon
             #     while True :
             #         r=0
             if all([i==0 for i in interactions]) :
-                notInformative += [end//2]
+                notInformative.add(end//2)
           
             #now check if it does not loop on itself
             for neighbor in listOfNeighbors[end] :
                 if neighbor//2 == end//2 :
-                    notInformative += [end//2]
+                    notInformative.add(end//2)
                     
             for neighbor in listOfNeighbors[end-1] :
                 if neighbor//2 == end//2 :
-                    notInformative += [end//2]
+                    notInformative.add(end//2)
             
     #remove all uninformative haploidContigs from haploidContigs
-    print("Here are all the uninformative contigs I should remove : ", [haploidContigs[i].names for i in notInformative])
+    #print("Here are all the uninformative contigs I should remove : ", [haploidContigs[i].names for i in notInformative])
     # while True :
     #     pass
     index = 0
-    indexNot = 0
-    
     reliable_haploid_contigs = []
     reliable_haploid_contigsNames = {}
     
     for i in range(len(haploidContigs)) :
         
-        if indexNot<len(notInformative) and i == notInformative[indexNot] :
-            indexNot += 1
-        else :
+        if i not in notInformative :
             reliable_haploid_contigs += [haploidContigs[i]]
             reliable_haploid_contigsNames[haploidContigs[i].full_name()] = index
             index += 1
@@ -360,31 +357,37 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
         #the first step is to list all the ways to answer the contacts, i.e. for each path the set of decisions that can be made to link the two extremities
         #a set of decisions for 1 path comes in the form of a dictionnary of (contig, endOfContig) : listOfNeighbor. For example (contig1, 0) : [0,2] means that you can go from the extremity 0 of contig1 to its neighbor number 0 or 2 when coming from endOfPath2 and trying to go to endOfPath1
         alldecisions = [] #list of all sets of decisions for all paths of the knot
-        for path in contacts[k] :
+        touchedContigs = {} #a dict associating to each contig the list of paths it finds itself on
+        for p, path in enumerate(contacts[k]) :
             
-            decisions = find_decisions_on_path(haploidContigs[path[0]//2], path[0]%2, haploidContigs[path[1]//2], path[1]%2, haploidContigsNames)
+            decisions = find_decisions_on_path(haploidContigs[path[0]//2], path[0]%2, haploidContigs[path[1]//2], path[1]%2, haploidContigsNames, touchedContigs, p)
             alldecisions.append(decisions)
             
-            print("The knot is : ", [haploidContigs[i//2].names for i in knot], k)
-            print("Here are the decisions I can make to go from contig ", haploidContigs[path[0]//2].full_name(), " to ", haploidContigs[path[1]//2].full_name(), " : ")
-            print(decisions)
+            # print("The knot is : ", [haploidContigs[i//2].names for i in knot], k)
+            # print("Here are the decisions I can make to go from contig ", haploidContigs[path[0]//2].full_name(), " to ", haploidContigs[path[1]//2].full_name())
+            # print(decisions)
     
-        untangled_paths[-1] += find_best_paths(alldecisions, interactionMatrix, names, segments, contacts[k], haploidContigs, confidentCoverage)
+        # print("touchedContigs : ", touchedContigs, "\n")
         
-        print("Here are the untangled paths I got : ", untangled_paths)
-        print()
+        repartitionOfContigs = dispatch_contigs(touchedContigs, contacts[k], interactionMatrix, names, haploidContigs, confidentCoverage)
+        untangled_paths[-1] = find_best_paths(alldecisions, repartitionOfContigs, segments, contacts[k], haploidContigs)
+        
+        #untangled_paths[-1] += find_best_paths(alldecisions, interactionMatrix, names, segments, contacts[k], haploidContigs, confidentCoverage)
+        
+        # print("Here are the untangled paths I got : ", untangled_paths)
+        # print()
     
     return untangled_paths
 
 #input: two ends of a path
-#output : the list of all possible decisions we can make to go from segment1 to segment2
-def find_decisions_on_path(segment1, end1, segment2, end2, haploidContigsNames) :
+#output : the list of all possible decisions we can make to go from segment1 to segment2, as well as a completed touchedContigs, i.e. with indexOfPath added on all possible contigs reached by this path
+def find_decisions_on_path(segment1, end1, segment2, end2, haploidContigsNames, touchedContigs, indexOfPath) :
     
     touchingSegment1 = set() #a set of tuple (contig ID, end of contig) from which it is possible to reach segment 1 
     reachable_from_segment1(segment1, end1, haploidContigsNames, touchingSegment1)
         
     decisions = {} #decisions is a dict : for each end of each intermediary contig, there is a list of possible (neighbor,end), gives you all the neighbor indices you can choose to go from 2 to 1
-    backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, decisions)
+    backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, decisions, touchedContigs, indexOfPath)
       
     return decisions
 
@@ -402,10 +405,10 @@ def reachable_from_segment1(segment1, end1, haploidContigsNames, reachable) :
             reachable_from_segment1(neighbor, 1-otherEnd, haploidContigsNames, reachable)
         
 #input : all the contigs reachable from segment1
-#output : all the decisions with which you can go from segment2 to segment 1
-def backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, decisions) :
+#output : all the decisions with which you can go from segment2 to segment 1, and touchedContigsCompleted with indexOfPath
+def backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, decisions, touchedContigs, indexOfPath) :
     
-    decisions[(segment2.full_name(), end2)] = []
+    decisions[(segment2, end2)] = []
     
     for n, neighbor in enumerate(segment2.links[end2]) :
         
@@ -414,106 +417,79 @@ def backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, de
         
         if (neighbor.full_name(), 1-otherEnd) in touchingSegment1 :
             
-            decisions[(segment2.full_name(), end2)] += [n]
+            decisions[(segment2, end2)] += [n]
+            if neighbor not in touchedContigs :
+                touchedContigs[neighbor] = {indexOfPath}
+            else :
+                touchedContigs[neighbor].add(indexOfPath)
             
-            if (neighbor.full_name(), 1-otherEnd) not in decisions :
-                backtrack_from_segment2(neighbor, 1-otherEnd, segment1, end1, touchingSegment1, decisions)
+            if (neighbor, 1-otherEnd) not in decisions :
+                backtrack_from_segment2(neighbor, 1-otherEnd, segment1, end1, touchingSegment1, decisions, touchedContigs, indexOfPath)
                 
         if neighbor.ID == segment1.ID and otherEnd == end1 :
-            decisions[(segment2.full_name(), end2)] += [n]
-            
-#input : a list of decisions that can be made for each path
-#output : a proposition of a set of good paths to untangle the knot
-def find_best_paths(alldecisions, interactionMatrix, names, segments, contacts, haploidContigs, confidentCoverage) :
-    
-    #use a gradient descent to find the best set of paths, starting with a naive algorithm thathas equiprobability for all decisions
-    
-    rules_of_decisions = [] #this will be a list of dictionnary : to each decision will be attached a probability to do this or that
-    
-    #initiate rules_of_decisions to equiprobability
-    for decisions in alldecisions :
-        
-        probabilities = {}
-        for choices in decisions.keys() :
-            
-            probabilities[choices] = [1/len(decisions[choices]) for i in range(len(decisions[choices]))]
-            
-        rules_of_decisions += [probabilities]
-            
-    # loop and change rules_of_decisions until we don't manage to do better anymore
-    
-    time_since_last_improval = 0
-    bestScore = 0
-    bestPaths = []
-    number_of_tries = 10 #we launch 10 times the same rule of decision before making it evolve
-    number_of_generation = 0
-    while time_since_last_improval < 2 : #if you don't manage to imrpove the paths twice in a row, call it a day
-    
-        #initiate the variable that will keep in mind all the decisions
-        decisions_made = []
-        for decisions in alldecisions :
-        
-            score = {}
-            for choices in decisions.keys() :
-                
-                score[choices] = [[] for i in range(number_of_tries)]
-                
-            decisions_made += [score]
-            
-        #initiate the variable that keeps in mind the score of each try
-        scores = [0 for i in range(number_of_tries)]
-        
-        #now try different things and see how it works
-        for attempt in range(number_of_tries) :
-            
-            paths = try_a_untangling(attempt, scores, decisions_made, alldecisions, rules_of_decisions, segments, contacts, haploidContigs, interactionMatrix, names, confidentCoverage) #paths there is in format [>contig1<contig456<contig3 , <contig23>contig67>contig888]
-            if scores[attempt] > bestScore :
-                bestPaths = paths
-                bestScore = scores[attempt]
-                time_since_last_improval = -1
-        
-        #modify the rule of decision according to what has worked
-        for p, path in enumerate(rules_of_decisions) :
-        
-            for choices in path.keys() :
-                
-                if len(path[choices]) > 1 :
-                
-                    applicable_scores = [scores[i] for i in range(len(scores)) if decisions_made[p][choices][i] != []]
-                    mean_score =  np.mean(applicable_scores)
-                    
-                    for attempt in range(number_of_tries) :
-                        if decisions_made[p][choices][attempt] != [] :
-                            
-                            if scores[attempt] > mean_score :
-                                for ch in decisions_made[p][choices][attempt] :
-                                    path[choices][ ch ] += 1/number_of_tries * 1/np.sqrt(1+number_of_generation) / len(decisions_made[p][choices][attempt])
-                                if path[choices][ decisions_made[p][choices][attempt] ] > 0.9 :
-                                    path[choices][ decisions_made[p][choices][attempt] ] = 0.9
-                            elif scores[attempt] < mean_score :
-                                for ch in decisions_made[p][choices][attempt] :
-                                    path[choices][ ch ] -= 1/number_of_tries * 1/np.sqrt(1+number_of_generation) / len(decisions_made[p][choices][attempt])
-                                if path[choices][ decisions_made[p][choices][attempt] ] < 0.1 :
-                                    path[choices][ decisions_made[p][choices][attempt] ] = 0.1
-                    
-                    #we've tweaked the probabilities, but we must adjust them so they sum to one :
-                    sumProbas = np.sum(path[choices])
-                    path[choices] = [i/sumProbas for i in path[choices]]
-                    
-        #now rule_of_decision has changed, re-try other paths in the next iteration
-                
-        number_of_generation += 1
-        time_since_last_improval += 1
-        
-    return bestPaths
+            decisions[(segment2, end2)] += [n]
+  
+#input : a list of contacts and intermediary contigs
+#output : a repartition of all intermediary contigs between the different paths
+def dispatch_contigs(touchedContigs, contacts, interactionMatrix, names, haploidContigs, confidentCoverage) :
 
-#input : a rule of decision and a knot (implicitely described by contacts and haploidContigs)
-#output : a scored set of paths obtained with the rule of decision
-def try_a_untangling(attempt, scores, decisions_made, alldecisions, rules_of_decisions, segments, contacts, haploidContigs, interactionMatrix, names, confidentCoverage) :
+    repartitionOfContigs= {} #a dict associating each contig to a dictionnary giving the repartition of this contig
     
-    paths = []
-    intermediaryContigs = {} #dictionnary associating to each intermediary contig the number of times it has been used in each path
+    #first deal with intermediary contigs
+    refCoverage = np.mean([haploidContigs[i[0]//2].depth for i in contacts]+[haploidContigs[i[1]//2].depth for i in contacts]) #refCoverage is the average of the coverage of the haploid contigs bordering the knot
+
+    for intercontig in touchedContigs.keys() :
+
+        repartitionOfContigs[intercontig] = {}        
+
+        #how many times this contig should appear ? :
+        multiplicity = 0
+        if confidentCoverage :
+            multiplicity = round(intercontig.depth / refCoverage)
+        multiplicity = max([len(intercontig.links[0]), len(intercontig.links[1]), multiplicity])
+        
+        #compute the interaction of this contig with each path it can be on
+        interaction_with_path = [0 for i in range(len(contacts))]
+        for p in touchedContigs[intercontig] :
+            for subcontig in intercontig.names :
+                for subco in haploidContigs[contacts[p][0]//2].names :
+                    interaction_with_path[p] += interactionMatrix[names[subcontig], names[subco]]
+                for subco in haploidContigs[contacts[p][1]//2].names :
+                    interaction_with_path[p] += interactionMatrix[names[subcontig], names[subco]]
+             
+        #give an estimate of how it should be spread between the different paths
+        totalInteraction = np.sum(interaction_with_path)
+
+        for p in touchedContigs[intercontig] :
+            if totalInteraction > 0 :
+                estimate = round(multiplicity*interaction_with_path[p]/totalInteraction) #the number of times we expect to find this intermediary in this path
+            else :
+                estimate = -1
+                
+            repartitionOfContigs[intercontig][p] = estimate
+            
+        if 'edge_111' in intercontig.names :
+                    print("Here is the repartition of contig 111 ", repartitionOfContigs[intercontig], " among the paths ", contacts)
+                    
+    #then dispatch the border contig (1 in each path in which they belong)
+    for p, path in enumerate(contacts) :
+        
+        for extremity in range(2) :
+            segment = haploidContigs[path[extremity]//2]
+            end = path[extremity]%2
+        
+            if segment not in repartitionOfContigs :
+                repartitionOfContigs[segment] = {}
+            
+            repartitionOfContigs[segment][p] = 1
+                    
+    return repartitionOfContigs
+  
+#input : a list of decisions that can be made for each path and the ideal repartition of intermediary contigs
+#output : a proposition of a set of good paths to untangle the knot 
+def find_best_paths(alldecisions, repartitionOfContigs, segments, contacts, haploidContigs) :
     
+    resultPaths = []
     for p, path in enumerate(contacts) :
         
         segment1 = haploidContigs[path[0]//2]
@@ -522,74 +498,51 @@ def try_a_untangling(attempt, scores, decisions_made, alldecisions, rules_of_dec
         segment2 = haploidContigs[path[1]//2]
         end2 = path[1]%2
         
-        #print("Tentatively building a path from ", segment1.full_name(), " to ", segment2.full_name())
-        
-        paths += ['<>'[end2]+segment2.full_name()]
-        
-        #start from the end of the path and go back to the beginning, following alldecisions
-        while  segment2.ID != segment1.ID or end2 != 1-end1 :
+        best_path_coming_from_there = {} #a dictionary with the best score on each intermediary contig, the path it came from and the number of occurences of each contig on this path
+        for intermediary in repartitionOfContigs.keys() :
+            best_path_coming_from_there[(intermediary,0)] = (-10000, '', {i:0 for i in repartitionOfContigs.keys()})
+            best_path_coming_from_there[(intermediary,1)] = (-10000, '', {i:0 for i in repartitionOfContigs.keys()})
+        best_path_coming_from_there[(segment1, 1-end1)] = (-10000, '', {i:0 for i in repartitionOfContigs.keys()})
+        best_path_coming_from_there[(segment2, end2)] = (0, '<>'[end2]+segment2.full_name(), {i:0 for i in repartitionOfContigs.keys()}) #this is the start point of the exploration
             
-            #choose where to go next
-            #print("I'm going from ", haploidContigs[path[1]//2].names, " to ", haploidContigs[path[0]//2].names, ", in ", segment2.names, " now, here are the decisions I can take : ", alldecisions[p][(segment2.full_name(), end2)], " p: ", p, (segment2.full_name(), end2))
-            decision = np.random.choice(alldecisions[p][(segment2.full_name(), end2)], p = rules_of_decisions[p][(segment2.full_name(), end2)])
-            decisions_made[p][(segment2.full_name(), end2)][attempt] += [decision]
+        list_of_new_paths_to_check = [(segment2, end2)] #start from there
+        while len(list_of_new_paths_to_check) > 0 :
+            
+            new_list_of_new_paths_to_check = []
+            for (segment, end) in list_of_new_paths_to_check :
+                
+                # print("Here is the end, to go from ", segment2.names, " to ", segment1.names, " : ", segment.names, " ", end)
+                # print("All the keys of decisions : ",[(i[0].names, i[1]) for i in alldecisions[p].keys()])
+                for n in alldecisions[p][(segment,end)] :
+                    
+                    neighbor = segment.links[end][n]
+                    otherEnd = segment.otherEndOfLinks[end][n]
+                    
+                    if repartitionOfContigs[neighbor][p] != -1 : #a score of -1 meant a contig we did not manage to dispatch
+                        good = repartitionOfContigs[neighbor][p] - best_path_coming_from_there[(segment,end)][2][neighbor] - 0.5 #positive if we lack this contig in this path, negative elsewhise
+                        potentialScore = best_path_coming_from_there[(segment,end)][0] + good/abs(good) 
+                    else : #if we have no information on this contig, the contig is weightless
+                        potentialScore = best_path_coming_from_there[(segment,end)][0]
+                    
+                    if potentialScore > best_path_coming_from_there[(neighbor, 1-otherEnd)][0] :
                         
-            newsegment2 = segment2.links[end2][decision]
-            newend2 = 1-segment2.otherEndOfLinks[end2][decision]
-            
-            #print("Making the path from ", segment2.full_name(), " to ", newsegment2.full_name(), ", thanks to decision ", decision)
-            
-            segment2 = newsegment2
-            end2 = newend2
-            
-            if segment2.ID in intermediaryContigs :
-                if p in intermediaryContigs[segment2] :
-                    intermediaryContigs[segment2][p] += 1
-                else :
-                    intermediaryContigs[segment2][p] = 1
-            else :
-                intermediaryContigs[segment2] = {p:1}
-            
-            paths[-1] += '<>'[end2]+segment2.full_name()
-     
-    scores[attempt] = score_this_attempt(paths, interactionMatrix, names, contacts, haploidContigs, intermediaryContigs, confidentCoverage)
-    return paths
-            
-#input : a set of paths, an interaction matix, an inventory of where intermediary contigs are found and in how many times
-#output : a score for this set of paths
-def score_this_attempt(paths, interactionMatrix, names, contacts, haploidContigs, intermediaryContigs, confidentCoverage) :
+                        if neighbor.ID != segment1.ID or otherEnd != end1 :
+                            new_list_of_new_paths_to_check += [(neighbor, 1-otherEnd)]
+                        
+                        newpath = best_path_coming_from_there[(segment, end)][1] + '<>'[1-otherEnd] + neighbor.full_name()
+                        newdict = {i:best_path_coming_from_there[(segment,end)][2][i] for i in repartitionOfContigs.keys()}
+                        newdict[neighbor] += 1
+                        best_path_coming_from_there[(neighbor, 1-otherEnd)] = (potentialScore, newpath, newdict)
+        
+            list_of_new_paths_to_check = new_list_of_new_paths_to_check
+        
+        resultPaths += [best_path_coming_from_there[(segment1, 1-end1)][1]]
+        
+        print("Best path to go from ", segment2.names, " to ", segment1.names, " is ", resultPaths[-1])
     
-    score = 0
-    refCoverage = np.mean([haploidContigs[i[0]//2].depth for i in contacts]+[haploidContigs[i[1]//2].depth for i in contacts]) #refCoverage is the average of the coverage of the haploid contigs bordering the knot
-    
-    for intercontig in intermediaryContigs.keys() :
-        
-        interaction_with_path = [0 for i in range(len(contacts))]
-        for p in range(len(contacts)) :
-            
-            #compute the interaction of this contig with each path
-            for subcontig in intercontig.names :
-                for subco in haploidContigs[contacts[p][0]//2].names :
-                    interaction_with_path[p] += interactionMatrix[names[subcontig], names[subco]]
-                for subco in haploidContigs[contacts[p][1]//2].names :
-                    interaction_with_path[p] += interactionMatrix[names[subcontig], names[subco]]
-            
-        #how many times this contig should appear ? :
-        multiplicity = 0
-        if confidentCoverage :
-            multiplicity = round(intercontig.depth / refCoverage)
-        multiplicity = max([len(intercontig.links[0]), len(intercontig.links[1]), multiplicity])
-        
-        #then, how many times it should appear in each path -> compute the score ?
-        totalInteraction = np.sum(interaction_with_path)
-        for p in intermediaryContigs[intercontig].keys() :
-            estimate = round(multiplicity*interaction_with_path[p]/totalInteraction) #the number of times we expect to find this intermediary in this path
-            score += interaction_with_path[p] * 1/(1+abs( intermediaryContigs[intercontig][p] - estimate))
-            
-    return score
-        
-#input : untangled paths and the graph
-#output : the updated graph with the paths integrated
+    return resultPaths
+
+
 def untangle_knots(untangled_paths, segments)    :
     
     fullnames = {}
@@ -705,6 +658,8 @@ def untangle_knots(untangled_paths, segments)    :
             seg.cut_all_links()
     
     segments = newsegments
+            
+    return segments
             
 
         

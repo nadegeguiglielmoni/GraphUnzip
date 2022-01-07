@@ -288,8 +288,9 @@ def main():
             print("WARNING: all interaction matrices are empty, GraphUnzip does not do anything")
         
         merge_adjacent_contigs(segments)
+
             
-        # now exporting the output        
+        # now exporting the output
         io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge)
     
         if fastaFile != "None":
