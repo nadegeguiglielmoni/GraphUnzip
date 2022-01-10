@@ -39,7 +39,7 @@ To use `GraphUnzip`, you generally need to proceed in two steps :
 1. If using Hi-C or linked reads, build interaction matrix(ces) (a matrix quantifying the pairwise interaction between all contigs): for that use the `HiC-IM`, or `linked-reads-IM` command, depending on which type of data you dispose. You will have to specify the files to which these interaction matrices will be written.
 ```
 #for Hi-C
-graphunzip.py HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC-IM hic_interactionmatrix.txt
+graphunzip.py HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC_IM hic_interactionmatrix.txt
 
 #for linked reads
 graphunzip.py linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g assembly.gfa --linked_reads_IM linkedreads_interactionmatrix.txt
