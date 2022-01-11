@@ -38,8 +38,8 @@ def break_up_chimeras(segments, names, interactionMatrix, length) :
                 for nameLeft in segment.names[axis:] :
                     for nameRight in segment.names[:axis] :
                         
-                        nameLeft = nameLeft.split('-')[0]
-                        nameRight = nameRight.split('-')[0]
+                        # nameLeft = nameLeft.split('-')[0]
+                        # nameRight = nameRight.split('-')[0]
                         
                         interaction += interactionMatrix[names[nameLeft], names[nameRight]]
                         
