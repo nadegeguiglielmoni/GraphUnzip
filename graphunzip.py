@@ -55,6 +55,13 @@ def parse_args():
     )
     
     groupUnzip.add_argument(
+        "-r",
+        "--rename",
+        action="store_true",
+        help="""Use if you want to name the resulting supercontigs with short names""",
+    )
+    
+    groupUnzip.add_argument(
         "-A",
         "--accepted",
         required=False,
@@ -193,6 +200,7 @@ def main():
     steps = int(args.steps)
     
     verbose = args.verbose
+    rename = args.rename
     
     dbgDir = args.debug
     
@@ -325,10 +333,10 @@ def main():
             
         # now exporting the output  
         print("Now exporting the result")
-        io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge)
+        io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge, rename_contigs=rename)
     
         if fastaFile != "None":
-            io.export_to_fasta(segments, gfaFile, fastaFile)
+            io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)
     
         print("Finished in ", time.time() - t, " seconds")
 
