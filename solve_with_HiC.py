@@ -12,6 +12,7 @@ from determine_multiplicity import determine_multiplicity
 from interaction_between_contigs import interactions_with_neighbors
 from interaction_between_contigs import compute_commonContigs
 from solve_ambiguities import merge_adjacent_contigs
+from solve_ambiguities import break_up_chimeras
 
 from segment import delete_link
 from segment import Segment
@@ -107,9 +108,12 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
         #while not sure :
         
         solvedKnots, rien1, rien2, sure = match_haploidContigs(segments, names, normalInteractions, list_of_neighbors, list_of_knots, contacts, knotOfContig, haploidContigs, haploidContigsNames, copiesnumber, verbose)  
-        untangled_paths = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage, verbose)
+        untangled_paths = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, normalInteractions, names, confidentCoverage, verbose)
         
         segments, haploidContigs, haploidContigsNames, go_on = untangle_knots(untangled_paths, segments, haploidContigs)
+        
+    
+    segments = break_up_chimeras(segments, names, interactionMatrix, 1000000)
         
     
     return segments
