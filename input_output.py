@@ -396,12 +396,14 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     # in the case the user prefers having merged contigs as an output
     else : #if merge_adjacent_contigs == True
         
-        #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C)
-
+        #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C). Also store that information in a dictionary
         if rename_contigs :
             fcontigs = open('/'.join(exportFile.split('/')[:-1])+'supercontigs.txt', 'w') 
 
-        
+            supercontigs = {}
+            for s, segment in enumerate(listOfSegments):
+                supercontigs[segment.full_name()] = "supercontig_"+ str(s)
+            
         for s, segment in enumerate(listOfSegments):
             
             if  time.time() > t+1 :
@@ -451,9 +453,13 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                             orientation1 = '-'
                         if segment.otherEndOfLinks[endOfSegment][n] == 1 :
                             orientation2 = '-'
-                            
-                        f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
-                                '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+                        
+                        if not rename_contigs :
+                            f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
+                                    '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+                        else :
+                            f.write("L\t"+supercontigs[segment.full_name()]+'\t'+orientation1+'\t'+supercontigs[neighbor.full_name()]+\
+                                    '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
                                 
 def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fasta", rename_contigs = False): 
     

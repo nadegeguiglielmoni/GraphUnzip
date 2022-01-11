@@ -56,9 +56,9 @@ def parse_args():
     
     groupUnzip.add_argument(
         "-r",
-        "--rename",
+        "--dont_rename",
         action="store_true",
-        help="""Use if you want to name the resulting supercontigs with short names""",
+        help="""Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs""",
     )
     
     groupUnzip.add_argument(
@@ -200,7 +200,7 @@ def main():
     steps = int(args.steps)
     
     verbose = args.verbose
-    rename = args.rename
+    rename = not args.dont_rename
     
     dbgDir = args.debug
     
