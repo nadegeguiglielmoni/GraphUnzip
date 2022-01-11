@@ -54,15 +54,6 @@ def parse_args():
         default="None",
         help="""Optional fasta output [default: None]""",
     )
-    
-
-    
-    groupUnzip.add_argument(
-        "-u",
-        "--unreliable_coverage",
-        action="store_true",
-        help="""Use this option if the coverage information of the graph is not reliable""",
-    )
 
     groupHiC.add_argument(
         "-m", "--matrix", required=False, default="Empty", help="""Sparse Hi-C contact map"""
@@ -129,6 +120,13 @@ def parse_args():
         required=False,
         action="store_true",
         help="""If you don't want the output to have all possible contigs merged""",
+    )
+    
+    groupUnzip.add_argument(
+        "-u",
+        "--unreliable_coverage",
+        action="store_true",
+        help="""Use this option if the coverage information of the graph is not reliable""",
     )
     return parser.parse_args()
 
@@ -280,7 +278,7 @@ def main():
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
-            segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage)
+            segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
             #segments, cn = solve_ambiguities(segments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose)
         
         elif not uselr :

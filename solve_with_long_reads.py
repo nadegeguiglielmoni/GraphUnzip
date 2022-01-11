@@ -21,7 +21,7 @@ import segment
 #Input : initial gfa (as a list of segments), a GAF file with long reads mapped to the segments, names (which is an index numbering the contig), multiplicity : the pre-computed ploidy of each contig (as numbered in names)
 #Output : new gfa (as a list of segments) corrected with long reads, and modified copiesnumber (taking into account contigs that have been duplicated)
 def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_links2, refHaploidy, multiplicities):
-    
+        
     ##There are two phases : first build consensus with approximate haploid contigs. Detect the incoherence, obtain a reliable haploid list and do that all over again
     
     #first phase : determine all contigs that look haploid, and sort them by length
@@ -84,9 +84,10 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     #now, from all the bridges, build consensus bridges
     consensus_bridges = [['',''] for i in range(len(haploidContigs))] #consensus bridge is essentially the same as bridges, except there is only one bridge left at each side for each contig
     print("Building consensus bridges from all the long reads")
+
     haploidContigs, haploidContigsNames, consensus_bridges = build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, haploidContigsNames)
     print("Done building consensus bridges")
-    
+
     #print("Consensus bridge of contig 223445 : ", consensus_bridges[haploidContigsNames['223445']])
     
     bridges = []
@@ -101,12 +102,14 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
 
         #consensus bridges overlap two by two (e.g. >2>3>4 right of 1 overlaps with <3<2<1 left of 4), so merge them to have a set of non-overlapping consensus bridges
         non_overlapping_bridges = [['',''] for i in range(len(haploidContigs))] 
+
         haploidContigs, haploidContigsNames, consensus_bridges, sure_haploids = merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsNames, haploidContigs, longContigs, names, multiplicities)
+
         #print("nonoverlap consensus of 20: ", non_overlapping_bridges[haploidContigsNames['20']])
         #if this last phase of merge_contig detected no inconstistencies, sure_haploids=True and the program moves on
         
         if not sure_haploids :
-            print("Out of ", leng, " supposed single-copy contigs, ", leng-len(haploidContigs), " were not actually haploid. Recomputing until all the single-copy contigs are robust.")
+            print("Out of ", leng, " supposed single-copy contigs, ", leng-len(haploidContigs), " were not actually haploid. Recomputing until all the single-copy contigs are robust")
 
     #from the consensus bridges, mark all links that are supported by the long reads
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file, and in how many different consensus
@@ -121,8 +124,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
         supported_links2 [c,r] = max(supported_links2[c,r], m)  
     #print("Link is supported after maxing with strength ", supported_links2[2*names['127'], 2*names['112']])
     # print("Link is supported after maxing with strength ", supported_links2[2*names['2505'], 2*names['2489']])
-
-                    
+         
     #print("Contig 1621 has for consensus : ", consensus_bridges[haploidContigsNames["1621"]])
 
     #now actually unzip the graph using the instructions in non_overlapping_bridges
@@ -275,7 +277,7 @@ def build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, h
     for c in range(len(bridges)) :
                 
         if (c)%100 == 0 :
-            print("consensused ", c, " bridges out of ", len(consensus_bridges))
+            print("consensused ", c, " bridges out of ", len(consensus_bridges), end='\r')
             
         localContigs = [ [ re.split('[><]' , bridges[c][j][k])[1:] for k in range(len(bridges[c][j])) ] for j in range(2)]
         localOrientations = [ [ "".join(re.findall("[<>]", bridges[c][j][k])) for k in range(len(bridges[c][j])) ] for j in range(2)]
@@ -467,7 +469,7 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
                     non_overlapping_bridges[c][end] = ''
     
     #now update haploidCOntig and consensus_bridges
-    
+        
     new_consensus_bridges = []
     reliable_haploid_contigs = []
     reliable_haploid_contigsNames = {}
@@ -481,7 +483,8 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
         
         if indexNot<len(not_actually_haploid) and i == not_actually_haploid[indexNot] :
             indexNot += 1
-            multiplicities[names[haploidContigs[i].names[0]]] += 1
+            if multiplicities[names[haploidContigs[i].names[0]]] == 1 :
+                multiplicities[names[haploidContigs[i].names[0]]] += 1
         else :
             new_consensus_bridges += [consensus_bridges[i]]
             reliable_haploid_contigs += [haploidContigs[i]]
@@ -528,6 +531,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
         s = segments[se]
          
         if s.names[0] in haploidContigsNames :
+            
                         
             for end in range(2) :
                 
@@ -605,7 +609,6 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                                                     
                         if multiplicity > 1 and (c < len(contigs)-1 or (longContigs[names[contigs[-1]]] and alreadyDuplicated[names[contigs[-1]]] != 1 - end1)): #if multiplicity>1, the contig should be duplicated 
                         
-                        
                             newSegment = segment.Segment(contig.names, contig.orientations, contig.lengths, contig.insideCIGARs, HiCcoverage = contig.HiCcoverage, readCoverage = [i/multiplicity for i in contig.depths])
                             segments.append(newSegment)
                             newContigsIndices += [len(segments) - 1]
@@ -642,7 +645,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
 
                                 for alreadyDuplicatedContig in segments[oldContigsIndices[c-1]].links[end0] :
                                     if alreadyDuplicatedContig.names[0] == contigs[c]:
-                                        segment.add_link(segments[newContigsIndices[-1]] , end0, alreadyDuplicatedContig, end1)
+                                        segment.add_link(segments[newContigsIndices[-1]] , end0, alreadyDuplicatedContig, end1, CIGAR)
 
                                                         
                         else :
@@ -699,7 +702,7 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
             
             if len(seg.links[1-end]) == 0 and len(seg.links[end]) == 1 :
 
-                print("Checking if ", seg.names, " is a tip")
+                #print("Checking if ", seg.names, " is a tip")
                 if any([extended_length(i, seg.links[end][0].otherEndOfLinks[seg.otherEndOfLinks[end][0]][e], 10*seg.length, 30) for e,i in enumerate(seg.links[end][0].links[seg.otherEndOfLinks[end][0]])]) : #this means we're in a very short dead end
                                     
                     if all([i not in haploidContigsNames for i in seg.names]) : #then it means it's probably an error in the determination of the multiplicity

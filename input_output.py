@@ -260,7 +260,7 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
             extra_tags = ''
             depth = ''
             for f in sline[3:] :
-                if 'dp' in f or 'DP' in f :
+                if 'dp' in f or 'DP' in f or 'KC' in f or 'RC' in f:
                     depth = f
                 else :
                     extra_tags += f + '\t'
@@ -334,11 +334,13 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
                 if gfaFile != "":
                     sequence, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    #print("Here is the depth I got : ", depth)
                     if depth == '':
                         f.write(sequence + '\t'+ extra_tags +"\n")
                     else :
-                        #newdepth = str(float(depth.split(':')[-1])/copies[contig])
-                        f.write(sequence + '\tDP:f:'+ str(segment.depths[c]) + '\t' + extra_tags + '\n')
+                        
+                        newdepth = str(float(depth.split(':')[-1])/copies[contig])
+                        f.write(sequence + '\t' + ":".join(depth.split(':')[:-1]) + ":" + newdepth + '\t' + extra_tags + '\n')
                 else:
                     f.write("*\n")
     
@@ -539,9 +541,15 @@ def load_gfa(file):
             for element in l :
                 if 'dp' in element[:2] or 'DP' in element[:2] :
                     try :
-                       cov = float(element[5:])
+                       cov = float(element.split(":")[-1])
                     except:
-                        nothing = 0
+                        pass
+                        
+                elif 'RC' in element[:2] or 'KC' in element[:2] :
+                    try :
+                       cov = float(element.split(":")[-1])/len(l[2])
+                    except:
+                        pass
             
             s = Segment([l[1]], [1], [len(l[2])], readCoverage = [cov])
             segments.append(s)
