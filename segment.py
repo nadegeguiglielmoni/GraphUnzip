@@ -208,10 +208,10 @@ class Segment:
                 
                 if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
                     
-                    absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
-                    relativeScore += interactionMatrix[names[contigInSegment],names[contig]]
+                    absoluteScore += interactionMatrix[names[contig], names[contigInSegment]]
+                    relativeScore += interactionMatrix[names[contig], names[contigInSegment]]
                 else:
-                    absoluteScore += interactionMatrix[names[contigInSegment],names[contig]]
+                    absoluteScore += interactionMatrix[names[contig], names[contigInSegment]]
                                         
         # #now compute the interaction with neighbors of self 
         # endOfSegment = 1-orientation

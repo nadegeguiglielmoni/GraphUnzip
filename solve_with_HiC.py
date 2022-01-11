@@ -383,49 +383,30 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
 #input : un-normalized matrix
 #output : a new normalized matrix
 def normalize(matrix) :
+    W = matrix.tocsr()
+    W = W.astype('float64')
     
-    matrixNow = matrix.tocoo()
-    newMatrix = sparse.dok_matrix(matrix.shape)
-    
-    newMatrix = sparse.dok_matrix(matrix.shape)
-    
-    for steps in range(5) : #do 5 rounds of dividing
-    
-        sums = [0 for i in range(matrix.shape[0])]
-        for r, c, m in zip(matrixNow.row, matrixNow.col, matrixNow.data):
-            sums[r] += m
-        for r, c, m in zip(matrixNow.row, matrixNow.col, matrixNow.data) :
-            newMatrix[r,c] = m/sums[r]
-          
-        matrixNow = newMatrix.tocoo()
+    for rounds in range(10) :
+        for i in range(W.shape[0]):
+                row_sum = W.data[W.indptr[i]:W.indptr[i+1]].sum()
+                if row_sum != 0:
+                    W.data[W.indptr[i]:W.indptr[i+1]] /= row_sum
+             
+        W = W.transpose()
+        W = W.tocsr()
+        for i in range(W.shape[0]):
+                row_sum = W.data[W.indptr[i]:W.indptr[i+1]].sum()
+                if row_sum != 0:
+                    W.data[W.indptr[i]:W.indptr[i+1]] /= row_sum
+        W = W.transpose()
         
-        sums = [0 for i in range(matrix.shape[0])]
-        for r, c, m in zip(matrixNow.row, matrixNow.col, matrixNow.data):
-            sums[c] += m
-        for r, c, m in zip(matrixNow.row, matrixNow.col, matrixNow.data) :
-            newMatrix[r,c] = m/sums[c]
-            
-        matrixNow = newMatrix.tocoo()
-                
-    #end by normalizing on the rows, because we will query on the rows
-    sums = [0 for i in range(matrix.shape[0])]
-    for r, c, m in zip(matrixNow.row, matrixNow.col, matrixNow.data):
-        sums[r] += m
-    for r, c, m in zip(matrixNow.row, matrixNow.col, matrixNow.data) :
-        if r != c: #sets 0 on the diagonal
-            newMatrix[r,c] = m/sums[r]
-         
-    # values = []
-    # for r, c, m in zip(matrixNow.row, matrixNow.col, matrixNow.data):
-    #     values += [m]
+    #normalize one last time, as the interactions will be queried by row
+    for i in range(W.shape[0]):
+        row_sum = W.data[W.indptr[i]:W.indptr[i+1]].sum()
+        if row_sum != 0:
+            W.data[W.indptr[i]:W.indptr[i+1]] /= row_sum
         
-    # plt.hist(values, bins=50)
-    # plt.xlim([0.05, 0.8])
-    # plt.ylim([0,1000])
-    # plt.show()
-        
-    print("Finished normalizing the interaction matrix")
-    return newMatrix
+    return W.todok()
 
 #input : list of ends of haploid contigs we want to link, list of the solved knots we can work on (a partially resolved knot is no good)
 #output : paths between the linked segments
