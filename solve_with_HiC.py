@@ -113,7 +113,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
         segments, haploidContigs, haploidContigsNames, go_on = untangle_knots(untangled_paths, segments, haploidContigs)
         
     
-    segments = break_up_chimeras(segments, names, interactionMatrix, 1000000)
+    #segments = break_up_chimeras(segments, names, interactionMatrix, 1000000)
         
     
     return segments
