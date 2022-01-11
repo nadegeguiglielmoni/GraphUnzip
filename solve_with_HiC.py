@@ -35,7 +35,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
                 copiesnumber[name] = 1
     
     #normalize the interactionMatrix
-    normalInteractions = normalize(interactionMatrix)
+    normalInteractions = normalize(interactionMatrix, verbose)
     
     #print("Interactions of contig 147 : ", [normalInteractions[names["edge_147"], i] for i in range(len(names))])
     
@@ -92,26 +92,31 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
         index += 1
       
     solvedKnots = [0]  
-    go_on = True      
-    while go_on: 
+    go_on = True
+    limit = 5
+    limit_counter = 0
+    while go_on and limit_counter < limit: 
+        
+        limit_counter += 1
         
         #determine explicitely all knots of the graph
-        list_of_knots, list_of_neighbors, knotOfContig, haploidContigs, haploidContigsNames = determine_list_of_knots(segments, haploidContigs, haploidContigsNames, normalInteractions, names)
+        list_of_knots, list_of_neighbors, knotOfContig, haploidContigs, haploidContigsNames = determine_list_of_knots(segments, haploidContigs, haploidContigsNames, normalInteractions, names, verbose)
         
         #try to know what haploid contigs go together
         contacts = [[] for i in range(len(list_of_knots))]
         #while not sure :
         
         solvedKnots, rien1, rien2, sure = match_haploidContigs(segments, names, normalInteractions, list_of_neighbors, list_of_knots, contacts, knotOfContig, haploidContigs, haploidContigsNames, copiesnumber, verbose)  
-        untangled_paths = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage)
+        untangled_paths = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage, verbose)
         
         segments, haploidContigs, haploidContigsNames, go_on = untangle_knots(untangled_paths, segments, haploidContigs)
+        
     
     return segments
 
 #input: a graph, in the form of a list of segments and a list of haploid conigs
 #output : a list of all independant knots of the graph. A new list of haploidContigs where each haploid contig actually has contacts with neighboring haploid contigs
-def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, interactionMatrix, names) :
+def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, interactionMatrix, names, verbose = False) :
     
     #first compute the list of neighbors for all haploidContigs, checking if each contig is informative or not
     listOfNeighbors = [[] for i in range(len(haploidContigs)*2)]
@@ -146,8 +151,7 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
             
     #remove all uninformative haploidContigs from haploidContigs
     #print("Here are all the uninformative contigs I should remove : ", [haploidContigs[i].names for i in notInformative])
-    # while True :
-    #     pass
+
     index = 0
     reliable_haploid_contigs = []
     reliable_haploid_contigsNames = {}
@@ -375,18 +379,24 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
             index += 1
             
 
-    #print("Contacts : ", contacts)
+    if verbose :
+        print("Finished matching haploid contigs, now we'll move on to the paths linking them")
             
     return solvedKnots, reliable_haploid_contigs, reliable_haploid_contigsNames, sure_haploids #return the updated list of haploid contigs
 
 #a function normalizing an interaction matrix by iteratively dividing the rows and the columns by their norms. Additionally sets to 0 all values on the diagonal
 #input : un-normalized matrix
 #output : a new normalized matrix
-def normalize(matrix) :
+def normalize(matrix, verbose) :
+    
+    if verbose :
+        print("Normalizing the interaction matrix")
     W = matrix.tocsr()
     W = W.astype('float64')
     
     for rounds in range(10) :
+        if verbose :
+            print("Round ", rounds, "/10", end='\r')
         for i in range(W.shape[0]):
                 row_sum = W.data[W.indptr[i]:W.indptr[i+1]].sum()
                 if row_sum != 0:
@@ -405,12 +415,15 @@ def normalize(matrix) :
         row_sum = W.data[W.indptr[i]:W.indptr[i+1]].sum()
         if row_sum != 0:
             W.data[W.indptr[i]:W.indptr[i+1]] /= row_sum
+            
+    if verbose :
+        print("Finished normalizing the interaction matrix")
         
     return W.todok()
 
 #input : list of ends of haploid contigs we want to link, list of the solved knots we can work on (a partially resolved knot is no good)
 #output : paths between the linked segments
-def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage) :
+def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage, verbose = False) :
     
     untangled_paths = []
     
@@ -423,6 +436,8 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
         #a set of decisions for 1 path comes in the form of a dictionnary of (contig, endOfContig) : listOfNeighbor. For example (contig1, 0) : [0,2] means that you can go from the extremity 0 of contig1 to its neighbor number 0 or 2 when coming from endOfPath2 and trying to go to endOfPath1
         alldecisions = [] #list of all sets of decisions for all paths of the knot
         touchedContigs = {} #a dict associating to each contig the list of paths it finds itself on
+        if verbose :
+                print("Expliciting all the paths for knot ", k)
         for p, path in enumerate(contacts[k]) :
             
             decisions = find_decisions_on_path(haploidContigs[path[0]//2], path[0]%2, haploidContigs[path[1]//2], path[1]%2, haploidContigsNames, touchedContigs, p)
@@ -433,8 +448,11 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
             # print(decisions)
     
         # print("touchedContigs : ", touchedContigs, "\n")
-        
+        if verbose :
+                print("Dispatching all the intermediary contigs")
         repartitionOfContigs = dispatch_contigs(touchedContigs, contacts[k], interactionMatrix, names, haploidContigs, confidentCoverage)
+        if verbose :
+            print("Finding dynamically the best paths to satisfy all constraints")
         untangled_paths[-1] = find_best_paths(alldecisions, repartitionOfContigs, segments, contacts[k], haploidContigs)
         
         #untangled_paths[-1] += find_best_paths(alldecisions, interactionMatrix, names, segments, contacts[k], haploidContigs, confidentCoverage)
@@ -574,6 +592,7 @@ def find_best_paths(alldecisions, repartitionOfContigs, segments, contacts, hapl
         while len(list_of_new_paths_to_check) > 0 :
             
             new_list_of_new_paths_to_check = []
+            list_of_check_scores = [] # a list of the scores of the paths to check, because we want to set a limit to the number of paths we explore, since this number grows combinatorily in very complex regions
             for (segment, end) in list_of_new_paths_to_check :
                 
                 # print("Here is the end, to go from ", segment2.names, " to ", segment1.names, " : ", segment.names, " ", end)
@@ -593,13 +612,17 @@ def find_best_paths(alldecisions, repartitionOfContigs, segments, contacts, hapl
                         
                         if neighbor.ID != segment1.ID or otherEnd != end1 :
                             new_list_of_new_paths_to_check += [(neighbor, 1-otherEnd)]
+                            list_of_check_scores += [potentialScore]
                         
                         newpath = best_path_coming_from_there[(segment, end)][1] + '<>'[1-otherEnd] + neighbor.full_name()
-                        newdict = {i:best_path_coming_from_there[(segment,end)][2][i] for i in repartitionOfContigs.keys()}
+                        #newdict = {i:best_path_coming_from_there[(segment,end)][2][i] for i in repartitionOfContigs.keys()}
+                        newdict = best_path_coming_from_there[(segment,end)][2].copy()
                         newdict[neighbor] += 1
                         best_path_coming_from_there[(neighbor, 1-otherEnd)] = (potentialScore, newpath, newdict)
         
-            list_of_new_paths_to_check = new_list_of_new_paths_to_check
+            best_paths = list(range(len(list_of_check_scores)))
+            best_paths.sort(reverse = True, key = lambda x : list_of_check_scores[x])
+            list_of_new_paths_to_check = [new_list_of_new_paths_to_check[i] for i in best_paths[:1000]] #only explore the 1000 best paths, it is largely sufficient
         
         resultPaths += [best_path_coming_from_there[(segment1, 1-end1)][1]]
         
@@ -767,7 +790,7 @@ def untangle_knots(untangled_paths, segments, haploidContigs)    :
 
     stillHaploids = [] 
     for s, seg in enumerate(newsegments) :
-        if (seg in haps or seg not in pastSegments) and (len(seg.links[0]) == 1 or len(seg.links[1]) == 1) : #if seg is not in pastsegment, it has been created thus is haploid
+        if (seg in haps or seg not in pastSegments) and (len(seg.links[0]) == 1 or len(seg.links[1]) == 1 or seg.length > min(np.min([i.length for i in seg.links[0]], initial=seg.length),np.min([i.length for i in seg.links[1]], initial=seg.length))) : #if seg is not in pastsegment, it has been created thus is haploid (if it is long enough or has 1 link at one of its ends)
             
             stillHaploids += [seg]
             

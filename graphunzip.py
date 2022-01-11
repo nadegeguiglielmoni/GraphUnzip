@@ -278,6 +278,7 @@ def main():
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 or tagInteractionMatrix.count_nonzero() > 0 :
                     
+            #segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
             segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
             #segments, cn = solve_ambiguities(segments, interactionMatrix, tagInteractionMatrix, multiplicities, names, stringenceReject, stringenceAccept, steps, copiesNumber = cn, debugDir = dbgDir, verbose = verbose)
         
