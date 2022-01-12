@@ -137,6 +137,8 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     trim_tips(segments, multiplicities, names, haploidContigsNames)
         
     #print(non_overlapping_bridges)
+    
+    return segments
 
 
 #input : all aligned long reads
