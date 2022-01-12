@@ -140,7 +140,7 @@ optional arguments:
 
 Combined with a short read assembler, GraphUnzip makes a great hybrid (short reads - long reads) assembler. Here is a suggested pipeline.
 
-###Intallation
+### Intallation
 
 You'll need a working python installation to run this pipeline.
 
@@ -152,7 +152,7 @@ Install [SPAdes](github.com/ablab/spades) to have both a short read assembler an
 wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
 tar -xzf SPAdes-3.15.3-Linux.tar.gz
 ```
-###Short read assembly
+### Short read assembly
  
 Run the short read assembler. If you are using SPAdes,
 ```
@@ -160,14 +160,14 @@ SPAdes-3.15.3-Linux/bin/spades.py --s short_reads.fastq -o short_read_assembly
 ```
 This is in case the short reads are unpaired. If using another type of library or if you want to tune other options, please refer to `spades.py --help`.
 
-###Read alignment
+### Read alignment
 
 We will use SPAligner to align long reads to the assembly graph. If you want to tune the parameters, refer to the [gitHub of SPAligner](https://github.com/ablab/spades/tree/spades_3.15.3/assembler/src/projects/spaligner).
 ```
 SPAdes-3.15.3-Linux/bin/spaligner SPAdes-3.15.3-Linux/share/spaligner/spaligner_config.yaml -d pacbio -g short_read_assembly/assembly_graph_with_scaffolds.gfa -k 127 -s long_reads.fastq.gz
 ```
 
-###Untangling the short-read assembly
+### Untangling the short-read assembly
 
 Now we use GraphUnzip:
 ```
