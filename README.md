@@ -118,19 +118,21 @@ optional arguments:
 
 To run command linked-reads-IM:
 ```bash
-./graphunzip.py HiC-IM --help
-usage: graphunzip.py [-h] -g GFA_GRAPH -m MATRIX -F FRAGMENTS [--HiC_IM HIC_IM]
+./graphunzip.py linked-reads-IM --help
+usage: graphunzip.py [-h] -g GFA_GRAPH -p--linked_reads_IM P__LINKED_READS_IM
+                     -b BARCODED_SAM
 
 optional arguments:
   -h, --help            show this help message and exit
   -g GFA_GRAPH, --gfa_graph GFA_GRAPH
                         GFA file that will be untangled (required)
-  -m MATRIX, --matrix MATRIX
-                        Sparse Hi-C contact map (required)
-  -F FRAGMENTS, --fragments FRAGMENTS
-                        Fragments list (required)
-  --HiC_IM HIC_IM       Output file for the Hi-C interaction matrix (required)
-
+  -p--linked_reads_IM P__LINKED_READS_IM
+                        Output file for the linked-read interaction matrix
+                        (required)
+  -b BARCODED_SAM, --barcoded_SAM BARCODED_SAM
+                        SAM file of the barcoded reads aligned to the
+                        assembly. Barcodes must still be there (use option -C
+                        if aligning with BWA) (required)
 ```
 
 <a name="hybridUnzip"></a>
