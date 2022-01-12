@@ -11,8 +11,8 @@ A file summarizing the algorithmic part of untangling the graph with HiC
 from determine_multiplicity import determine_multiplicity
 from interaction_between_contigs import interactions_with_neighbors
 from interaction_between_contigs import compute_commonContigs
-from solve_ambiguities import merge_adjacent_contigs
-from solve_ambiguities import break_up_chimeras
+from finish_untangling import merge_adjacent_contigs
+from finish_untangling import break_up_chimeras
 
 from segment import delete_link
 from segment import Segment

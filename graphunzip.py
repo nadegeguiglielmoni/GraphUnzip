@@ -9,8 +9,7 @@ import input_output as io
 
 # import analyse_HiC
 from transform_gfa import gfa_to_fasta
-from solve_ambiguities import solve_ambiguities
-from solve_ambiguities import merge_adjacent_contigs
+from finish_untangling import merge_adjacent_contigs
 from solve_with_long_reads import bridge_with_long_reads
 from solve_with_HiC import solve_with_HiC
 from determine_multiplicity import determine_multiplicity
@@ -83,13 +82,13 @@ def parse_args_unzip() :
         required = False,
         action="store_true",
     )
-    groupOther.add_argument(
-        "-d",
-        "--debug",
-        required = False,
-        default = '',
-        help="""Activate the debug mode. Parameter: directory to put the logs and the intermediary GFAs.""",
-    )
+    # groupOther.add_argument(
+    #     "-d",
+    #     "--debug",
+    #     required = False,
+    #     default = '',
+    #     help="""Activate the debug mode. Parameter: directory to put the logs and the intermediary GFAs.""",
+    # )
     groupOther.add_argument(
         "--dont_merge",
         required=False,
@@ -233,7 +232,7 @@ def main():
         interactionFileT = args.linkedReadsInteractions
         
         verbose = args.verbose
-        dbgDir = args.debug 
+        # dbgDir = args.debug 
         merge = not args.dont_merge
         reliableCoverage = not args.unreliable_coverage
         
@@ -302,6 +301,7 @@ def main():
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 :
             segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
+            print("Done untangling the graph")
         
         elif tagInteractionMatrix.count_nonzero() > 0 :
             segments = solve_with_HiC(segments, tagInteractionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
@@ -310,6 +310,7 @@ def main():
             
             print("WARNING: all interaction matrices are empty, GraphUnzip does not do anything")
         
+        print("Now exporting the result")
         merge_adjacent_contigs(segments)
 
             

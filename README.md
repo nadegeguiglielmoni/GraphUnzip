@@ -57,84 +57,81 @@ graphunzip.py -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_intera
 
 ### Options
 ```bash
-graphunzip.py --help
-
-usage: graphunzip.py [-h] -g GFA [-o OUTPUT] [-f FASTA_OUTPUT] [-A ACCEPTED]
-                     [-R REJECTED] [-s STEPS] [-m MATRIX] [-F FRAGMENTS]
-                     [--HiC_IM HIC_IM] [-i HICINTERACTIONS]
-                     [-k LINKEDREADSINTERACTIONS] [-l LONGREADS]
-                     [--linked_reads_IM LINKED_READS_IM]
-                     [--barcoded_SAM BARCODED_SAM] [-v] [-d DEBUG]
-                     [--dont_merge]
-                     command
+./graphunzip.py --help
+usage: graphunzip.py [-h] command
 
 positional arguments:
-  command               Either unzip, HiC-IM, long-reads-IM or linked-reads-IM
+  command     Either unzip, HiC-IM (to prepare Hi-C data) or linked-reads-IM (to prepare linked reads data)
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+To run command unzip:
+```bash
+./graphunzip.py unzip --help
+usage: graphunzip.py [-h] [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-o OUTPUT]
+                     [-f FASTA_OUTPUT] [-v] [--dont_merge] [-u]
+                     gfa_graph
 
 optional arguments:
   -h, --help            show this help message and exit
-  -g GFA, --gfa GFA     GFA file to phase
 
-unzip options:
+Input of GraphUnzip:
+  gfa_graph             GFA file to untangle
+  -i HICINTERACTIONS, --HiCinteractions HICINTERACTIONS
+                        File containing the Hi-C interaction matrix from HiC-IM [default: None]
+  -k LINKEDREADSINTERACTIONS, --linkedReadsInteractions LINKEDREADSINTERACTIONS
+                        File containing the linked-reads interaction matrix from linked-reads-IM [default: None]
+  -l LONGREADS, --longreads LONGREADS
+                        Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format)
+
+Output of GraphUnzip:
   -o OUTPUT, --output OUTPUT
                         Output GFA [default: output.gfa]
   -f FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
-  -A ACCEPTED, --accepted ACCEPTED
-                        Two links that are compared are deemed both true if
-                        the weakest of the two, in term of Hi-C contacts, is
-                        stronger than this parameter times the strength of the
-                        strongest link [default: 0.30]
-  -R REJECTED, --rejected REJECTED
-                        When two links are compared, the weakest of the two,
-                        in term of Hi-C contacts, is considered false and
-                        deleted if it is weaker than this parameter times the
-                        strength of the strongest links (always smaller than
-                        --accepted)[default: 0.15]
-  -s STEPS, --steps STEPS
-                        Number of cycles get rid of bad links - duplicate
-                        contigs. [default: 10]
-  -i HICINTERACTIONS, --HiCinteractions HICINTERACTIONS
-                        File containing the Hi-C interaction matrix from HiC-
-                        IM [default: None]
-  -k LINKEDREADSINTERACTIONS, --linkedReadsInteractions LINKEDREADSINTERACTIONS
-                        File containing the linked-reads interaction matrix
-                        from linked-reads-IM [default: None]
-  -l LONGREADS, --longreads LONGREADS
-                        Long reads mapped to the GFA with GraphAligner (GAF
-                        format) or SPAligner (TSV format)
+
+Other options:
   -v, --verbose
-  -d DEBUG, --debug DEBUG
-                        Activate the debug mode. Parameter: directory to put
-                        the logs and the intermediary GFAs.
-  --dont_merge          If you don't want the output to have all possible
-                        contigs merged
+  --dont_merge          If you don't want the output to have all possible contigs merged
+  -u, --unreliable_coverage
+                        Use this option if the coverage information of the graph is not reliable
+```
 
-HiC-IM options:
+To run command HiC-IM:
+```bash
+./graphunzip.py HiC-IM --help
+usage: graphunzip.py [-h] -g GFA_GRAPH -m MATRIX -F FRAGMENTS [--HiC_IM HIC_IM]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g GFA_GRAPH, --gfa_graph GFA_GRAPH
+                        GFA file that will be untangled (required)
   -m MATRIX, --matrix MATRIX
-                        Sparse Hi-C contact map
+                        Sparse Hi-C contact map (required)
   -F FRAGMENTS, --fragments FRAGMENTS
-                        Fragments list
+                        Fragments list (required)
   --HiC_IM HIC_IM       Output file for the Hi-C interaction matrix (required)
-
-linked-reads-IM options:
-  --linked_reads_IM LINKED_READS_IM
-                        Output file for the linked-read interaction matrix
-                        (required)
-  --barcoded_SAM BARCODED_SAM
-                        SAM file of the barcoded reads aligned to the
-                        assembly. Barcodes must still be there (use option -C
-                        if aligning with BWA) (required)
- 
 
 ```
 
-The only parameters you can modify are -A and -R, only if using Hi-C (they are not used for long reads).
-The default values are quite robust and should directly yield good unzipped assembly. However, you might consider tweaking -A or -R if you are not happy with the result (keep in mind that A > R):
+To run command linked-reads-IM:
+```bash
+./graphunzip.py HiC-IM --help
+usage: graphunzip.py [-h] -g GFA_GRAPH -m MATRIX -F FRAGMENTS [--HiC_IM HIC_IM]
 
-The accepted threshold -A is the threshold above which a link is considered real (compared with a competing link). If you notice too many contig duplications, increase this threshold.
+optional arguments:
+  -h, --help            show this help message and exit
+  -g GFA_GRAPH, --gfa_graph GFA_GRAPH
+                        GFA file that will be untangled (required)
+  -m MATRIX, --matrix MATRIX
+                        Sparse Hi-C contact map (required)
+  -F FRAGMENTS, --fragments FRAGMENTS
+                        Fragments list (required)
+  --HiC_IM HIC_IM       Output file for the Hi-C interaction matrix (required)
 
-The rejected threshold -R is the threshold below which a link is considered non-existent (compared with a competing link). If the outputted assembly graph is too fragmented, lower this threshold.
+```
 
 <a name="hybridUnzip"></a>
 ## Hybrid assembly

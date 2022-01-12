@@ -10,7 +10,7 @@ import re #to find all numbers in a mixed number/letters string (such as 31M1D4M
 from collections import Counter #to count the elements in a list quickly
 from scipy import sparse #to handle sparse matrices
 from determine_multiplicity import determine_multiplicity
-from solve_ambiguities import merge_adjacent_contigs
+from finish_untangling import merge_adjacent_contigs
 from input_output import read_GAF
 from input_output import read_TSV
 import time

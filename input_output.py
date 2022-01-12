@@ -307,7 +307,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
         
         #print(line_offset)
  
-    print('Line_offsets computed, launching proper writing of the new GFA')
+    #print('Line_offsets computed, launching proper writing of the new GFA')
     #Now that the preliminary work is done, start writing the new gfa file    
 
     # now sort the segments by length, to output at the beginning of the files the longests fragments
