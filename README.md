@@ -23,13 +23,17 @@ Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/l
 
 An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) and any combination of :
 
-1. Hi-C data : GraphUnzip needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats)
+1. Hi-C data : GraphUnzip needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats). You can use [hicstuff](https://github.com/koszullab/hicstuff) to obtain these files, using preferably iterative mode :
+```bash
+awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta file from the gfa
+hicstuff pipeline -t 8 --mapping=iterative -o mapping/ -g assembly.fasta -e DpnII HiC_reads_forward.fq HiC_reads_reads_reverse.fq
+```
 and/or 
 2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
 and/or
 3. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get this file from barcoded reads using BWA would be:
 ```
-awk '/^S/{print ">"$2"\n"$3}' assembly.gfa | fold > assembly.fasta  		#produce a fasta file from the gfa
+awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta file from the gfa
 bwa index assembly.fasta							#index the fasta file of the assembly
 bwa mem assembly barcoded_reads.fastq -C > reads_aligned_on_assembly.sam	#align the barcoded reads to the assembly : the -C option is very important here, to keep the barcodes in the sam file
 ```
@@ -71,8 +75,7 @@ To run command unzip:
 ```bash
 ./graphunzip.py unzip --help
 usage: graphunzip.py [-h] [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-o OUTPUT]
-                     [-f FASTA_OUTPUT] [-v] [--dont_merge] [-u]
-                     gfa_graph
+                     [-f FASTA_OUTPUT] [-v] [--dont_merge] [-u] -g graph.gfa
 
 optional arguments:
   -h, --help            show this help message and exit

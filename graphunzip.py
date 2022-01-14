@@ -42,7 +42,7 @@ def parse_args_unzip() :
     groupOutput = parser.add_argument_group("Output of GraphUnzip")
     groupOther = parser.add_argument_group("Other options")
     
-    groupInput.add_argument("gfa_graph",  help="""GFA file to untangle""")
+    groupInput.add_argument("-g", "--gfa", required=True, help="""GFA file to untangle""")
     groupInput.add_argument(
         "-i",
         "--HiCinteractions",
@@ -221,7 +221,7 @@ def main():
         
         args = parse_args_unzip()
         
-        gfaFile = args.gfa_graph
+        gfaFile = args.gfa
         
         outFile = args.output
         fastaFile = args.fasta_output

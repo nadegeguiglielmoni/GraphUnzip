@@ -12,6 +12,7 @@ import os.path #to check the existence of files
 import pickle #for writing files and reading them
 import re #to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
 import shutil #to remove directories
+import sys #to exit when there is an error
 
 from segment import Segment
 from segment import compute_copiesNumber
