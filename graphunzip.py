@@ -43,8 +43,79 @@ def parse_args_unzip() :
     groupBehavior = parser.add_argument_group("Behavior of GraphUnzip")
     groupOther = parser.add_argument_group("Other options")
     
-    groupInput.add_argument("-g", "--gfa", required=True, help="""GFA file to untangle""")
-    groupInput.add_argument(
+
+    parser.add_argument("command", help="Either unzip, HiC-IM, long-reads-IM or linked-reads-IM")
+    
+    groupUnzip = parser.add_argument_group("unzip options")
+    groupHiC = parser.add_argument_group("HiC-IM options")
+    grouplinked = parser.add_argument_group("linked-reads-IM options")
+    
+    parser.add_argument("-g", "--gfa", required = True, help="""GFA file to phase""")
+    
+    groupUnzip.add_argument(
+        "-o",
+        "--output",
+        required=False,
+        default="output.gfa",
+        help="""Output GFA [default: output.gfa]""",
+    )
+    groupUnzip.add_argument(
+        "-f",
+        "--fasta_output",
+        required=False,
+        default="None",
+        help="""Optional fasta output [default: None]""",
+    )
+    
+    groupUnzip.add_argument(
+        "-r",
+        "--dont_rename",
+        action="store_true",
+        help="""Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs""",
+    )
+    
+    groupUnzip.add_argument(
+        "-A",
+        "--accepted",
+        required=False,
+        default=0.30,
+        help="""Two links that are compared are deemed both true if
+                        the weakest of the two, in term of Hi-C contacts, is
+                        stronger than this parameter times the strength of the
+                        strongest link [default: 0.30]""",
+    )
+    groupUnzip.add_argument(
+        "-R",
+        "--rejected",
+        required=False,
+        default=0.15,
+        help="""When two links are compared, the weakest of the two,
+                        in term of Hi-C contacts, is considered false and
+                        deleted if it is weaker than this parameter times the
+                        strength of the strongest links (always smaller than
+                        --accepted)[default: 0.15]""",
+    )
+    
+    groupUnzip.add_argument(
+        "-s",
+        "--steps",
+        required=False,
+        default=10,
+        help="""Number of cycles get rid of bad links - duplicate contigs. [default: 10]""",
+    )
+
+    groupHiC.add_argument(
+        "-m", "--matrix", required=False, default="Empty", help="""Sparse Hi-C contact map"""
+    )
+
+    groupHiC.add_argument(
+        "-F", "--fragments", required=False, default="Empty", help="""Fragments list"""
+    )
+    groupHiC.add_argument(
+        "--HiC_IM", required=False, default="Empty", help="""Output file for the Hi-C interaction matrix (required)"""
+    )
+    
+    groupUnzip.add_argument(
         "-i",
         "--HiCinteractions",
         required=False,
@@ -240,6 +311,7 @@ def main():
         interactionFileT = args.linkedReadsInteractions
         
         verbose = args.verbose
+        rename = not args.dont_rename
         # dbgDir = args.debug 
         merge = not args.dont_merge
         reliableCoverage = not args.conservative
@@ -318,15 +390,16 @@ def main():
             
             print("WARNING: all interaction matrices are empty, GraphUnzip does not do anything")
         
-        print("Now exporting the result")
+        print("\nDone untangling, now merging all contigs that can be merged")
         merge_adjacent_contigs(segments)
 
             
-        # now exporting the output
-        io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge)
+        # now exporting the output  
+        print("Now exporting the result")
+        io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge, rename_contigs=rename)
     
         if fastaFile != "None":
-            io.export_to_fasta(segments, gfaFile, fastaFile)
+            io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)
     
         print("Finished in ", time.time() - t, " seconds")
         

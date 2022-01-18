@@ -12,7 +12,8 @@ import os.path #to check the existence of files
 import pickle #for writing files and reading them
 import re #to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
 import shutil #to remove directories
-import sys #to exit when there is an error
+import sys #to exit when there is an error and to set recursion limit
+
 
 from segment import Segment
 from segment import compute_copiesNumber
@@ -153,7 +154,8 @@ def read_TSV(tsv_file, names, lines):
                     alignment += contig[:-1]
                     
                     if contig[:-1] not in names :
-                        print("Problem, I cannot find the contigs in this line: ", line)
+                        print("ERROR: while reading the .tsv, I am coming across a contig that was not in the .gfa, namely ", contig[:-1], ". I recommend you check that you are using the same GFA that you aligned the long reads on.")
+                        sys.exit()
                 lines += [alignment]
         
     
@@ -277,7 +279,7 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
 # Input :
 #   offset file is for speeding up exportation
 #   merge_adjacent_contig is to produce a GFA with contigs merged
-def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", merge_adjacent_contigs = False): 
+def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", merge_adjacent_contigs = False, rename_contigs = False): 
     
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
     noOffsets = False
@@ -399,20 +401,25 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     # in the case the user prefers having merged contigs as an output
     else : #if merge_adjacent_contigs == True
         
-        #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C)
+        #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C). Also store that information in a dictionary
+        if rename_contigs :
+            fcontigs = open('/'.join(exportFile.split('/')[:-1])+'supercontigs.txt', 'w') 
 
-        fcontigs = open('/'.join(exportFile.split('/')[:-1])+'supercontigs.txt', 'w') 
-
-        
+            supercontigs = {}
+            for s, segment in enumerate(listOfSegments):
+                supercontigs[segment.full_name()] = "supercontig_"+ str(s)
+            
         for s, segment in enumerate(listOfSegments):
             
             if  time.time() > t+1 :
                 t = time.time()
                 print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
             
-            f.write("S\t" + segment.full_name() + "\t") #the name of the contigs are supercontig_i
-            fcontigs.write("supercontig_"+ str(s) + "\t"+segment.full_name()+"\n")
-            
+            if rename_contigs :
+                f.write("S\t" + "supercontig_"+ str(s) + "\t") #the name of the contigs are supercontig_i
+                fcontigs.write("supercontig_"+ str(s) + "\t"+segment.full_name()+"\n")
+            else :
+                f.write("S\t" + segment.full_name() + "\t") #the name of the contigs are supercontig_i            
             
             fullDepth = 0
             
@@ -451,11 +458,15 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                             orientation1 = '-'
                         if segment.otherEndOfLinks[endOfSegment][n] == 1 :
                             orientation2 = '-'
-                            
-                        f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
-                                '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+                        
+                        if not rename_contigs :
+                            f.write("L\t"+segment.full_name()+'\t'+orientation1+'\t'+neighbor.full_name()+\
+                                    '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+                        else :
+                            f.write("L\t"+supercontigs[segment.full_name()]+'\t'+orientation1+'\t'+supercontigs[neighbor.full_name()]+\
+                                    '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
                                 
-def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fasta"): 
+def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fasta", rename_contigs = False): 
     
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
 
@@ -497,7 +508,10 @@ def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fas
             t = time.time()
             print(int(s / len(listOfSegments) * 1000) / 10, "% of sequences written", end = '\r')
         
-        f.write(">supercontig_" + str(s+1) + "\n")
+        if rename_contigs :
+            f.write(">supercontig_" + str(s+1) + "\n")
+        else :
+            f.write(">"+segment.full_name() + "\n")
         
         fullDepth = 0
         

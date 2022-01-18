@@ -6,7 +6,8 @@ Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.
 
 ## Why use GraphUnzip ?
 
-`GraphUnzip` improves the contiguity of an assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` untangles an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes or metagenomes.
+<<<<<<< HEAD
+`GraphUnzip` improves the contiguity of an assembly and duplicates collapsed homozygous contigs, aiming at reconstituting an assembly with haplotypes assembled separately. `GraphUnzip` untangles an uncollapsed assembly graph in GFA format. Its naive approach makes no assumption on the ploidy or the heterozygosity rate of the organism and thus can be used on highly heterozygous genomes or metagenomes. If you want to know when GraphUnzip may be useful to you, take a look at [when is GraphUnzip useful](#usefulness) below.
 
 Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/long read) assembler: go to the [bottom of the page](#hybridUnzip) to see an example.
 
@@ -45,7 +46,7 @@ To use `GraphUnzip`, you generally need to proceed in two steps :
 1. If using Hi-C or linked reads, build interaction matrix(ces) (a matrix quantifying the pairwise interaction between all contigs): for that use the `HiC-IM`, or `linked-reads-IM` command, depending on which type of data you dispose. You will have to specify the files to which these interaction matrices will be written.
 ```
 #for Hi-C
-graphunzip.py HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC-IM hic_interactionmatrix.txt
+graphunzip.py HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC_IM hic_interactionmatrix.txt
 
 #for linked reads
 graphunzip.py linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g assembly.gfa --linked_reads_IM linkedreads_interactionmatrix.txt
@@ -178,6 +179,18 @@ GraphUnzip/graphunzip.py -g short_read_assembly/assembly_graph_with_scaffolds.gf
 ```
 
 The final assembly are assembly.gfa (GFA format) and assembly.fasta (FASTA format)
+
+<a name="usefulness">
+</a>
+
+## When is GraphUnzip useful ?
+
+It is tempting to try to use GraphUnzip on any assembly to improve its contiguity. And you can ! Yet on some assemblies it will not improve the results at all. You can generally know that beforehand by looking at what the assembly graph looks like with the tool [Bandage](https://github.com/rrwick/Bandage/).
+GraphUnzip untangles assembly graphs. Thus it likes having messy, tangled graphs as input. Here is an example of an assembly on which GraphUnzip will probably do well:
+![tangled graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/gfa_tangled.png)
+
+On the contrary, some assemblies are very fragmented. For those, GraphUnzip cannot do much, since it cannot reconstitute the missing sequence between two contigs. You might consider using a scaffolder instead. Here is an example of a very fragmented assembly, which cannot be untangled much more:
+![fragmented graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/gfa_split.png)
 
 ## Citation
 
