@@ -74,19 +74,20 @@ optional arguments:
 
 To run command unzip:
 ```bash
-./graphunzip.py unzip --help
-usage: graphunzip.py [-h] [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-o OUTPUT]
-                     [-f FASTA_OUTPUT] [-v] [--dont_merge] [-u] -g graph.gfa
+./graphunzip.py unzip -h
+usage: graphunzip.py [-h] -g GFA [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-o OUTPUT]
+                     [-f FASTA_OUTPUT] [-v] [-r] [--dont_merge] [-c] [-b]
 
 optional arguments:
   -h, --help            show this help message and exit
 
 Input of GraphUnzip:
-  gfa_graph             GFA file to untangle
+  -g GFA, --gfa GFA     GFA file to phase
   -i HICINTERACTIONS, --HiCinteractions HICINTERACTIONS
                         File containing the Hi-C interaction matrix from HiC-IM [default: None]
   -k LINKEDREADSINTERACTIONS, --linkedReadsInteractions LINKEDREADSINTERACTIONS
-                        File containing the linked-reads interaction matrix from linked-reads-IM [default: None]
+                        File containing the linked-reads interaction matrix from linked-reads-IM [default:
+                        None]
   -l LONGREADS, --longreads LONGREADS
                         Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format)
 
@@ -96,11 +97,18 @@ Output of GraphUnzip:
   -f FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
 
+Behavior of GraphUnzip:
+  -c, --conservative    Output very robust contigs. Use this option if the coverage information of the graph is
+                        not reliable
+  -b, --bold            [default] Proposes the best untangling it can get (but other equivalent may exist).
+                        Only use this option if the contig coverage information of the graph can be trusted
+
 Other options:
   -v, --verbose
+  -r, --dont_rename     Use if you don't want to name the resulting supercontigs with short names but want to
+                        keep the names of the original contigs
   --dont_merge          If you don't want the output to have all possible contigs merged
-  -u, --unreliable_coverage
-                        Use this option if the coverage information of the graph is not reliable
+
 ```
 
 To run command HiC-IM:

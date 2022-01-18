@@ -43,94 +43,25 @@ def parse_args_unzip() :
     groupBehavior = parser.add_argument_group("Behavior of GraphUnzip")
     groupOther = parser.add_argument_group("Other options")
     
-
-    parser.add_argument("command", help="Either unzip, HiC-IM, long-reads-IM or linked-reads-IM")
     
-    groupUnzip = parser.add_argument_group("unzip options")
-    groupHiC = parser.add_argument_group("HiC-IM options")
-    grouplinked = parser.add_argument_group("linked-reads-IM options")
-    
-    parser.add_argument("-g", "--gfa", required = True, help="""GFA file to phase""")
-    
-    groupUnzip.add_argument(
-        "-o",
-        "--output",
-        required=False,
-        default="output.gfa",
-        help="""Output GFA [default: output.gfa]""",
-    )
-    groupUnzip.add_argument(
-        "-f",
-        "--fasta_output",
-        required=False,
-        default="None",
-        help="""Optional fasta output [default: None]""",
-    )
-    
-    groupUnzip.add_argument(
-        "-r",
-        "--dont_rename",
-        action="store_true",
-        help="""Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs""",
-    )
-    
-    groupUnzip.add_argument(
-        "-A",
-        "--accepted",
-        required=False,
-        default=0.30,
-        help="""Two links that are compared are deemed both true if
-                        the weakest of the two, in term of Hi-C contacts, is
-                        stronger than this parameter times the strength of the
-                        strongest link [default: 0.30]""",
-    )
-    groupUnzip.add_argument(
-        "-R",
-        "--rejected",
-        required=False,
-        default=0.15,
-        help="""When two links are compared, the weakest of the two,
-                        in term of Hi-C contacts, is considered false and
-                        deleted if it is weaker than this parameter times the
-                        strength of the strongest links (always smaller than
-                        --accepted)[default: 0.15]""",
-    )
-    
-    groupUnzip.add_argument(
-        "-s",
-        "--steps",
-        required=False,
-        default=10,
-        help="""Number of cycles get rid of bad links - duplicate contigs. [default: 10]""",
-    )
-
-    groupHiC.add_argument(
-        "-m", "--matrix", required=False, default="Empty", help="""Sparse Hi-C contact map"""
-    )
-
-    groupHiC.add_argument(
-        "-F", "--fragments", required=False, default="Empty", help="""Fragments list"""
-    )
-    groupHiC.add_argument(
-        "--HiC_IM", required=False, default="Empty", help="""Output file for the Hi-C interaction matrix (required)"""
-    )
-    
-    groupUnzip.add_argument(
+    groupInput.add_argument("-g", "--gfa", required = True, help="""GFA file to phase""")
+ 
+    groupInput.add_argument(
         "-i",
         "--HiCinteractions",
         required=False,
         default="Empty",
-        help="""File containing the Hi-C interaction matrix from HiC-IM [default: None]""",
+        help="""File containing the Hi-C interaction matrix from HiC-IM [optional]""",
     )
     groupInput.add_argument(
         "-k",
         "--linkedReadsInteractions",
         required=False,
         default="Empty",
-        help="""File containing the linked-reads interaction matrix from linked-reads-IM [default: None]""",
+        help="""File containing the linked-reads interaction matrix from linked-reads-IM [optional]""",
     )
     groupInput.add_argument(
-        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format)"""
+        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) [optional]"""
     )
 
     groupOutput.add_argument(
@@ -153,6 +84,12 @@ def parse_args_unzip() :
         "--verbose",
         required = False,
         action="store_true",
+    )
+    groupOther.add_argument(
+        "-r",
+        "--dont_rename",
+        action="store_true",
+        help="""Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs""",
     )
     # groupOther.add_argument(
     #     "-d",
