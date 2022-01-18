@@ -28,7 +28,7 @@ from re import findall  #to find all numbers in a mixed number/letters string (s
 
 import sys #to augment the maximum recursion depth
 
-MAX_RECURSION = 100
+MAX_RECURSION = 1000
 sys.setrecursionlimit(MAX_RECURSION) #this may be important in find_neighbors
 
 
@@ -125,7 +125,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
         print("Finished determining the paths, now modifying the graph and duplicating necessary contigs")
         segments, haploidContigs, haploidContigsNames, go_on = untangle_knots(untangled_paths, segments, haploidContigs)
         
-        print("Finished round of untangling number ", limit_counter , ". Untangled ", go_on, " contigs. Going on one supplementary round if ", go_on, ">0 and if ", limit_counter, "<", limit)
+        print("Finished round of untangling number ", limit_counter , ". Untangled ", go_on, " contigs. Going on one supplementary round if ", go_on, "> 0 and if ", limit_counter, "<", limit)
         
     
     #segments = break_up_chimeras(segments, names, interactionMatrix, 1000000)
@@ -142,7 +142,7 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
     notInformative = set()
     for end in range(len(listOfNeighbors)) :
         segmentsAlreadyTraversed = set()
-        listOfNeighbors[end] = list(set(find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, MAX_RECURSION-10))) #list(set()) to have all elements only once
+        listOfNeighbors[end] = list(set(find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, 100))) #list(set()) to have all elements only once
         
         #check if the contig is informative
         if end % 2 == 1 :
@@ -189,7 +189,7 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
     listOfNeighbors = [[] for i in range(len(haploidContigs)*2)]
     for end in range(len(listOfNeighbors)) :
         segmentsAlreadyTraversed = set()
-        listOfNeighbors[end] = find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, MAX_RECURSION-10)
+        listOfNeighbors[end] = find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, 100)
         #print("Neighbors of ", haploidContigs[end//2].full_name(), " : ", [haploidContigs[i//2].full_name() for i in listOfNeighbors[end]])
 
     #Now move on to listing the knots
@@ -261,7 +261,7 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
     listOfNeighbors = [[] for i in range(len(haploidContigs)*2)]
     for end in range(len(listOfNeighbors)) :
         segmentsAlreadyTraversed = set()
-        listOfNeighbors[end] = find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, MAX_RECURSION-10)
+        listOfNeighbors[end] = find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, 100)
         
         #forbid l-loops. If it is the only thing possible from end, check end as non-informative (it's at least non-haploid)
         for n, neighbor in enumerate(listOfNeighbors[end]) :
@@ -317,7 +317,7 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
 def find_neighbors(segment, end, segmentsAlreadyTraversed, haploidContigsNames, recursionDepth, maxRecursionDepth) :
     
     if recursionDepth > maxRecursionDepth :
-        return [-1]
+        return []
     
     res = []
     
@@ -488,7 +488,7 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
         # if 'edge_72' in haploidContigs[path[0]//2].names or 'edge_72' in haploidContigs[path[1]//2].names :
         #     print("Path going from ", haploidContigs[path[0]//2].names, " to ", haploidContigs[path[1]//2].names, " contain a loop ", confidentUntangle)
 
-        if verbose and not confidentUntangle :
+        if not confidentUntangle and verbose :
             print("Path going from ", haploidContigs[path[0]//2].names, " to ", haploidContigs[path[1]//2].names, " contain a loop, I need to be confident about the coverage to solve this")
         
         if confidentCoverage or confidentUntangle:
@@ -510,15 +510,15 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
 #output : the list of all possible decisions we can make to go from segment1 to segment2, as well as a completed touchedContigs, i.e. with indexOfPath added on all possible contigs reached by this path
 def find_decisions_on_path(segment1, end1, segment2, end2, haploidContigsNames, touchedContigs, indexOfPath) :
     
-    loop = False
+    loop = [False] #loop is a list of one bool : since it is a list, it is a mutable type (yes, this is very dirty)
     
     touchingSegment1 = set() #a set of tuple (contig ID, end of contig) from which it is possible to reach segment 1 
-    loop = reachable_from_segment1(segment1, end1, haploidContigsNames, touchingSegment1, loop)
+    reachable_from_segment1(segment1, end1, haploidContigsNames, touchingSegment1, loop)
         
     decisions = {} #decisions is a dict : for each end of each intermediary contig, there is a list of possible (neighbor,end), gives you all the neighbor indices you can choose to go from 2 to 1
     backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, decisions, touchedContigs, indexOfPath)
       
-    return decisions, False
+    return decisions, loop[0]
 
 #input : a knot and an end of segment
 #output : all the segments that can be reached from segment1 and from which end (in form of a set of tuple (ID, end))
@@ -531,12 +531,11 @@ def reachable_from_segment1(segment1, end1, haploidContigsNames, reachable, loop
         if (neighbor.full_name(), otherEnd) not in reachable and neighbor.full_name() not in haploidContigsNames :
         
             reachable.add((neighbor.full_name(), otherEnd))
-            loop = reachable_from_segment1(neighbor, 1-otherEnd, haploidContigsNames, reachable, loop)
+            reachable_from_segment1(neighbor, 1-otherEnd, haploidContigsNames, reachable, loop)
             
-        elif (neighbor.full_name(), otherEnd) not in reachable :
-            loop = True
-    return loop
-        
+        elif (neighbor.full_name(), otherEnd) in reachable :
+            loop[0] = True
+                                
 #input : all the contigs reachable from segment1
 #output : all the decisions with which you can go from segment2 to segment 1, and touchedContigsCompleted with indexOfPath
 def backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, decisions, touchedContigs, indexOfPath) :
@@ -768,8 +767,6 @@ def untangle_knots(untangled_paths, segments, haploidContigs)    :
                 
                 if c > 0 and c < len(contigs)-1 :
                     
-                    go_on += 1
-                    
                     newSegment = Segment(contig.names, contig.orientations, contig.lengths, contig.insideCIGARs, HiCcoverage = contig.HiCcoverage, readCoverage = [i/numberofcopies[contigName] for i in contig.depths])
                     segments.append(newSegment)
                     newContigsIndices += [len(segments) - 1]
@@ -788,6 +785,8 @@ def untangle_knots(untangled_paths, segments, haploidContigs)    :
                     
                     #now that we have created another contig, the old one should be deleted at the end
                     toDelete.add(segments[fullnames[contig.full_name()]])
+                    if len(segments[fullnames[contig.full_name()]].links[0]) + len(segments[fullnames[contig.full_name()]].links[1]) > 0 : #if it's = 0, it touches both ends and thus the contig was reconstructed identically 
+                        go_on += 1
                     
                 elif c>0 and c == len(contigs) -1 : #then do not duplicate the segment, but do link it
                 
@@ -814,6 +813,9 @@ def untangle_knots(untangled_paths, segments, haploidContigs)    :
                 
                 for n, neighbor in enumerate(contig.links[end]):
                     if n > 0 :
+                        
+                        go_on += 1
+                        
                         newSegment = Segment(contig.names, contig.orientations, contig.lengths, contig.insideCIGARs, HiCcoverage = contig.HiCcoverage, readCoverage = [i for i in contig.depths])
                         add_link(newSegment, end, neighbor, contig.otherEndOfLinks[end][n], contig.CIGARs[end][n])
                         delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][n])

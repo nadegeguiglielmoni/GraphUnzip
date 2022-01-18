@@ -40,6 +40,7 @@ def parse_args_unzip() :
     parser = argparse.ArgumentParser()
     groupInput = parser.add_argument_group("Input of GraphUnzip")
     groupOutput = parser.add_argument_group("Output of GraphUnzip")
+    groupBehavior = parser.add_argument_group("Behavior of GraphUnzip")
     groupOther = parser.add_argument_group("Other options")
     
     groupInput.add_argument("-g", "--gfa", required=True, help="""GFA file to untangle""")
@@ -96,11 +97,18 @@ def parse_args_unzip() :
         help="""If you don't want the output to have all possible contigs merged""",
     )
     
-    groupOther.add_argument(
-        "-u",
-        "--unreliable_coverage",
+    groupBehavior.add_argument(
+        "-c",
+        "--conservative",
         action="store_true",
-        help="""Use this option if the coverage information of the graph is not reliable""",
+        help="""Output very robust contigs. Use this option if the coverage information of the graph is not reliable""",
+    )
+    
+    groupBehavior.add_argument(
+        "-b",
+        "--bold",
+        action="store_true",
+        help="""[default] Proposes the best untangling it can get (but other equivalent may exist). Only use this option if the contig coverage information of the graph can be trusted""",
     )
     
     return parser.parse_args(sys.argv[2:])
@@ -234,7 +242,7 @@ def main():
         verbose = args.verbose
         # dbgDir = args.debug 
         merge = not args.dont_merge
-        reliableCoverage = not args.unreliable_coverage
+        reliableCoverage = not args.conservative
         
         # Loading the data
         print("Loading the GFA file")
