@@ -17,7 +17,7 @@ import time
 
 #from segment import find_this_link
 
-import segment
+import segment as sg
 
 #Master function of the file
 #Input : initial gfa (as a list of segments), a GAF file with long reads mapped to the segments, names (which is an index numbering the contig), multiplicity : the pre-computed ploidy of each contig (as numbered in names)
@@ -81,7 +81,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     longContigs = [True for i in range(len(names))] #then all contigs that are in the middle of a read will be marked as False
     bridges = [[[],[]] for i in range(len(haploidContigs))] #bridges is a list inventoring at index haploidCOntigsNames[seg.names[0]] all the links left and right of the contig, supported by the gaf
     minimum_supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #minimum_supported links is the list of all links between different contigs found at least once in the gaf file
-    inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments)
+    inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) 
     
     #now, from all the bridges, build consensus bridges
     consensus_bridges = [['',''] for i in range(len(haploidContigs))] #consensus bridge is essentially the same as bridges, except there is only one bridge left at each side for each contig
@@ -202,7 +202,7 @@ def determine_haploid_contigs(lines, segments, names) :
         
 #input : a list of alignments of a gaf file
 #output : the completed bridges list, with for each haploid contig a list of what was found left and right of the contig. 
-def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names) :
+def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) :
 # =======
 # #output : the completed bridges list, with for each haploid contig a list of what was found left and right of the contig
 # def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) :
@@ -225,7 +225,7 @@ def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigs
                 or1 = '<>'.index(orientations[c-1])
                 or2 = '><'.index(orientations[c])
                 #check if the link actually exists (it should, if the aligner did its job correctly, but apparently sometimes SPAligner behaves strangely)
-                if -1 == find_this_link(segments[names[contig]], or2, segments[names[contigs[c-1]]].links[or1], segments[names[contigs[c-1]]].otherEndOfLinks[or1]) :
+                if -1 == sg.find_this_link(segments[names[contig]], or2, segments[names[contigs[c-1]]].links[or1], segments[names[contigs[c-1]]].otherEndOfLinks[or1]) :
                     print ("WARNING: discrepancy between what's found in the alignment files and the inputted GFA graph. Link ", contigs[c-1:c+1], orientations[c-1:c+1], " not found in the gfa")
                     possible = False
                     
@@ -580,7 +580,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                     nextEnd = 0
                     if orientations[1] == '<' :
                         nextEnd = 1
-                    CIGAR = segments[names[contigs[0]]].CIGARs[end][segment.find_this_link(segments[oldContigsIndices[1]], nextEnd, segments[names[contigs[0]]].links[end], segments[names[contigs[0]]].otherEndOfLinks[end])]
+                    CIGAR = segments[names[contigs[0]]].CIGARs[end][sg.find_this_link(segments[oldContigsIndices[1]], nextEnd, segments[names[contigs[0]]].links[end], segments[names[contigs[0]]].otherEndOfLinks[end])]
                     nextCIGAR = '';
 
                     
@@ -592,7 +592,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                         while len(contig.links[end]) > idx :
                             neighbor = contig.links[end][idx]
                             if neighbor.names[0] in haploidContigsNames or alreadyDuplicated[names[neighbor.names[0]]] != 1-nextEnd :
-                                success = segment.delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][idx])
+                                success = sg.delete_link(contig, end, neighbor, contig.otherEndOfLinks[end][idx])
 
                             else :
                                 idx += 1
@@ -625,8 +625,8 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                             nextEnd = 0
                             if orientations[c+1] == '<' :
                                 nextEnd = 1
-                            if segment.find_this_link(segments[oldContigsIndices[c+1]], nextEnd, contig.links[1-end1], contig.otherEndOfLinks[1-end1]) != -1 :
-                                nextCIGAR = contig.CIGARs[1-end1][segment.find_this_link(segments[oldContigsIndices[c+1]], nextEnd, contig.links[1-end1], contig.otherEndOfLinks[1-end1])]
+                            if sg.find_this_link(segments[oldContigsIndices[c+1]], nextEnd, contig.links[1-end1], contig.otherEndOfLinks[1-end1]) != -1 :
+                                nextCIGAR = contig.CIGARs[1-end1][sg.find_this_link(segments[oldContigsIndices[c+1]], nextEnd, contig.links[1-end1], contig.otherEndOfLinks[1-end1])]
                             else :
                                 print("Debug WARNING, ", contigs, " : looking for ", segments[oldContigsIndices[c+1]].names, " ", nextEnd, " from ", contig.names, " among ", [i.names for i in contig.links[1-end1]], " ", contig.otherEndOfLinks[1-end1], " ", s.names[0], " ",non_overlapping_bridges[haploidContigsNames[s.names[0]]][end])
                             
@@ -637,7 +637,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                                                     
                         if multiplicity > 1 and (c < len(contigs)-1 or (longContigs[names[contigs[-1]]] and alreadyDuplicated[names[contigs[-1]]] != 1 - end1)): #if multiplicity>1, the contig should be duplicated 
                         
-                            newSegment = segment.Segment(contig.names, contig.orientations, contig.lengths, contig.insideCIGARs, HiCcoverage = contig.HiCcoverage, readCoverage = [i/multiplicity for i in contig.depths])
+                            newSegment = sg.Segment(contig.names, contig.orientations, contig.lengths, contig.insideCIGARs, HiCcoverage = contig.HiCcoverage, readCoverage = [i/multiplicity for i in contig.depths])
                             segments.append(newSegment)
                             newContigsIndices += [len(segments) - 1]
                             
@@ -645,7 +645,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                                 copiesnumber[n] += 1
 
                             #add the link to form the new bridge
-                            segment.add_link(segments[-1], end1, segments[newContigsIndices[c-1]], end0, CIGAR)
+                            sg.add_link(segments[-1], end1, segments[newContigsIndices[c-1]], end0, CIGAR)
 
                             #delete the old link if and only if it was only supported by one path only
                             supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] -= 1
@@ -653,17 +653,17 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                             minimum_supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] -= 1
                             minimum_supported_links[names[contigs[c-1]]*2+end0, names[contigs[c]]*2+end1] -= 1
                                 
-                            if supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] == 0 and len(segments[oldContigsIndices[c-1]].links[end0])>1 and segment.find_this_link(segments[oldContigsIndices[c]], end1, segments[oldContigsIndices[c-1]].links[end0], segments[oldContigsIndices[c-1]].otherEndOfLinks[end0], warning=False) != -1:
+                            if supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] == 0 and len(segments[oldContigsIndices[c-1]].links[end0])>1 and sg.find_this_link(segments[oldContigsIndices[c]], end1, segments[oldContigsIndices[c-1]].links[end0], segments[oldContigsIndices[c-1]].otherEndOfLinks[end0], warning=False) != -1:
                                 # if "130" in segments[oldContigsIndices[c-1]].names : 
                                 #     print("remove links left of ", segments[oldContigsIndices[c]].names, " : ", segments[oldContigsIndices[c-1]].names)
-                                segment.delete_link(segments[oldContigsIndices[c]], end1, segments[oldContigsIndices[c-1]], end0, warning = True) #though it is very hard to be sure, it is not impossible at that point that we actually delete a link that is present in another bridge, so don't warn
+                                sg.delete_link(segments[oldContigsIndices[c]], end1, segments[oldContigsIndices[c-1]], end0, warning = True) #though it is very hard to be sure, it is not impossible at that point that we actually delete a link that is present in another bridge, so don't warn
                                 
                             #since contig has been duplicated, lower its depth
                             contig.divide_depths(multiplicity/(multiplicity-1))
                             
                             if c == len(contigs) - 1 :
                                 for n, neighbor in enumerate(contig.links[1-end1]) :
-                                    segment.add_link(segments[-1], 1-end1, neighbor, contig.otherEndOfLinks[1-end1][n], contig.CIGARs[1-end1][n])
+                                    sg.add_link(segments[-1], 1-end1, neighbor, contig.otherEndOfLinks[1-end1][n], contig.CIGARs[1-end1][n])
                                 alreadyDuplicated [names[contigs[-1]]] = end1
                                     
                                     
@@ -673,7 +673,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
 
                                 for alreadyDuplicatedContig in segments[oldContigsIndices[c-1]].links[end0] :
                                     if alreadyDuplicatedContig.names[0] == contigs[c]:
-                                        segment.add_link(segments[newContigsIndices[-1]] , end0, alreadyDuplicatedContig, end1, CIGAR)
+                                        sg.add_link(segments[newContigsIndices[-1]] , end0, alreadyDuplicatedContig, end1, CIGAR)
 
                                                         
                         else :
@@ -687,7 +687,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                                 for n, neighbor in enumerate(contig.links[end1]) :
                                     if neighbor.ID != segments[newContigsIndices[c-1]].ID:
                                         if supported_links[names[contigs[c]]*2+end1 , names[neighbor.names[0]]*2+contig.otherEndOfLinks[end1][n]] <= 0 and minimum_supported_links[names[contigs[c]]*2+end1 , names[neighbor.names[0]]*2+contig.otherEndOfLinks[end1][n]] <= 0  :
-                                            segment.delete_link(contig, end1, neighbor, contig.otherEndOfLinks[end1][n])
+                                            sg.delete_link(contig, end1, neighbor, contig.otherEndOfLinks[end1][n])
                                         
                             # print("RIght of 138 there is ", [i.ID for i in segments[names['138']].links[1]], " ", [i for i in segments[names['119']].otherEndOfLinks[1]], " ", segments[names['119']].ID)
                             # print("RIght of 119 there is ", [i.ID for i in segments[names['119']].links[1]], " ", [i for i in segments[names['138']].otherEndOfLinks[1]], " ", segments[names['138']].ID)
@@ -701,11 +701,11 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                                 if not (c == len(contigs)-2 and alreadyDuplicated[names[contigs[c+1]]] == 1-nextEnd and contigs[c+1] not in haploidContigs): #delete all the links right of the contig, the only good one will be reestablished later, except if looking at a long contig duplicated from the other end
                                     while len(contig.links[1-end1]) > 0 :
                                         neighbor = contig.links[1-end1][0]
-                                        segment.delete_link(contig, 1-end1, neighbor, contig.otherEndOfLinks[1-end1][0])
+                                        sg.delete_link(contig, 1-end1, neighbor, contig.otherEndOfLinks[1-end1][0])
 
                             
                             #now the link the contig to the contig right at its left
-                            segment.add_link(contig, end1, segments[newContigsIndices[c-1]], end0, CIGAR) 
+                            sg.add_link(contig, end1, segments[newContigsIndices[c-1]], end0, CIGAR) 
                             
                             newContigsIndices += [oldContigsIndices[c]]
                             
@@ -735,7 +735,7 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
                                     
                     if all([i not in haploidContigsNames for i in seg.names]) : #then it means it's probably an error in the determination of the multiplicity
                     
-                        segment.delete_link(seg, end, seg.links[end][0], seg.otherEndOfLinks[end][0])
+                        sg.delete_link(seg, end, seg.links[end][0], seg.otherEndOfLinks[end][0])
                         toDelete += [s]
     
     for i in toDelete[::-1]:
@@ -745,7 +745,7 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
 #it returns False if it needs to recur deeper than thresholdContigs (even though it might be true)
 def extended_length(segment, end, thresholdLength, thresholdContigs) :
     
-    #print("Extended length called with threshold ", thresholdLength, " on segment , ", segment.names)
+    #print("Extended length called with threshold ", thresholdLength, " on segment , ", sg.names)
     
     if thresholdContigs == 0 :
         return False

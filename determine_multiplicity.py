@@ -24,7 +24,7 @@ def determine_multiplicity(segments, names, supported_links) :
             weightedNumberOfRefContigs += s.length
             refCoverages += s.length * s.depths[0]
 
-      
+    print(len(segments), refCoverages, weightedNumberOfRefContigs)  
     refCoverage = refCoverages / weightedNumberOfRefContigs
     
     if refCoverage == 1 or refCoverage == 0 :

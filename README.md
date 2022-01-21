@@ -50,7 +50,7 @@ graphunzip.py HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/f
 #for linked reads
 graphunzip.py linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g assembly.gfa --linked_reads_IM linkedreads_interactionmatrix.txt
 ```
-2. Use the command `unzip` to unzip the graph using the interaction matrices built beforehand and/or the gaf file if using long reads. This step is usually extremely quick.
+2. Use the command `unzip` to unzip the graph using the interaction matrices built beforehand and/or the gaf file if using long reads.
 ```
 #let's unzip our gfa using linked-reads, Hi-C and long reads :
 

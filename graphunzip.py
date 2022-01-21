@@ -189,7 +189,10 @@ def main():
         segments, names = io.load_gfa(
             gfaFile
         )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
-                    
+        if len(segments) == 0 :
+            print("ERROR: could not read the GFA")
+            sys.exit()
+        
         if os.path.exists(fragmentsFile) and os.path.exists(matrixFile):
             
             fragmentList = io.read_fragment_list(fragmentsFile)
@@ -222,6 +225,9 @@ def main():
         segments, names = io.load_gfa(
             gfaFile
         )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
+        if len(segments) == 0 :
+            print("ERROR: could not read the GFA")
+            sys.exit()
         
         if not os.path.exists(barcodedSAM):
             print('Error: could not find the SAM file.')
@@ -258,6 +264,9 @@ def main():
         segments, names = io.load_gfa(
             gfaFile
         )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
+        if len(segments) == 0 :
+            print("ERROR: could not read the GFA")
+            sys.exit()
         
         interactionMatrix = sparse.csr_matrix((len(segments), len(segments)))
         tagInteractionMatrix = sparse.csr_matrix((len(segments), len(segments)))
