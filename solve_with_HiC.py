@@ -73,7 +73,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
                 m1 = max([i.depth for i in links[0]])
             if len(links[1]) > 0 :
                 m2 = max([i.depth for i in links[1]])
-            if s.depth < 1.5 * max(m1, m2) :
+            if s.depth < 1.5 * max(m1, m2) and s.length > 1000  : #the length>1000 is essentialy there to ignore small dead ends
                 haploidContigs.append(s)
         
         elif not confidentCoverage :
