@@ -77,7 +77,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
                 haploidContigs.append(s)
         
         elif not confidentCoverage :
-            if len(links[0]) <= 1 and len(links[1]) <= 1  : 
+            if len(links[0]) <= 1 and len(links[1]) <= 1 and s.length > 1000  : #the length>1000 is essentialy there to ignore small dead ends
                 haploidContigs.append(s)
     
     ##do not take as haploid anchors all contigs which are implicated in a knot by both ends
@@ -116,7 +116,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
         #try to know what haploid contigs go together
         contacts = [[] for i in range(len(list_of_knots))]
         #while not sure :
-        print("Finished determining the list of knots. Now determining pairs of single-copy contigs that should be linked through other contigs.")
+        print("Finished determining the list of knots, there are ", len(list_of_knots), " of them. Now determining pairs of single-copy contigs that should be linked through other contigs.")
         solvedKnots, rien1, rien2, sure = match_haploidContigs(segments, names, normalInteractions, list_of_neighbors, list_of_knots, contacts, knotOfContig, haploidContigs, haploidContigsNames, copiesnumber, verbose)  
         print("Finished matching haploid contigs, now we'll move on to  determining the paths linking them")
         

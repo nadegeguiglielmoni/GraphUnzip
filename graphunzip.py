@@ -118,6 +118,13 @@ def parse_args_unzip() :
         action="store_true",
         help="""[default] Proposes the best untangling it can get (but other equivalent may exist). Only use this option if the contig coverage information of the graph can be trusted""",
     )
+    # groupBehavior.add_argument(
+    #     "-s",
+    #     "--clean",
+    #     required = False,
+    #     default=1000,
+    #     help="""Removes small dead-ends shorter than this parameter, which are usually assembly artefacts [default: 1000]""",
+    # )
     
     return parser.parse_args(sys.argv[2:])
 
@@ -157,7 +164,7 @@ def parse_args_HiC():
         "-F", "--fragments", required=True, help="""Fragments list (required)"""
     )
     parser.add_argument(
-        "--HiC_IM", required=True, help="""Output file for the Hi-C interaction matrix (required)"""
+        "-h","--HiC_IM", required=True, help="""Output file for the Hi-C interaction matrix (required)"""
     )
     
     return parser.parse_args(sys.argv[2:])
@@ -257,6 +264,8 @@ def main():
         # dbgDir = args.debug 
         merge = not args.dont_merge
         reliableCoverage = not args.conservative
+        
+        #clean = args.clean
         
         # Loading the data
         print("Loading the GFA file")
