@@ -54,7 +54,7 @@ graphunzip.py linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g as
 ```
 #let's unzip our gfa using linked-reads, Hi-C and long reads :
 
-graphunzip.py -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_interactionmatrix.txt -l longreads_aligned_on_gfa.gaf -o assembly_unzipped.gfa
+graphunzip.py unzip -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_interactionmatrix.txt -l longreads_aligned_on_gfa.gaf -o assembly_unzipped.gfa
 
 ```
 
