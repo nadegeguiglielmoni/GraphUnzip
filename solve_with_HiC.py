@@ -63,6 +63,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
         refCoverage = 1
     
     ##give a first estimation of the haploid contigs
+    refLengths = [] #to give an order of magnitude of the length of the contigs
     for se, s in enumerate(segments) :
     
         #to be deemed haploid, a segment must have at most one connection at each of its end plus be equally or less covered thant neighboring contigs
@@ -73,25 +74,28 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
                 m1 = max([i.depth for i in links[0]])
             if len(links[1]) > 0 :
                 m2 = max([i.depth for i in links[1]])
-            if s.depth < 1.5 * max(m1, m2) and s.length > 1000  : #the length>1000 is essentialy there to ignore small dead ends
+            if s.depth < 1.5 * max(m1, m2) and (s.length > 1000 or (m1>0 and m2>0)) : #the second condition is there to ignore small dead ends
                 haploidContigs.append(s)
+                refLengths += [s.length]
         
         elif not confidentCoverage :
-            if len(links[0]) <= 1 and len(links[1]) <= 1 and s.length > 1000  : #the length>1000 is essentialy there to ignore small dead ends
+            if len(links[0]) <= 1 and len(links[1]) <= 1 and (s.length > 1000 or (len(links[0])>0 and len(links[1])>0))  : #the second condition is there to ignore small dead ends
                 haploidContigs.append(s)
-    
+                refLengths += [s.length]
+                
+    refLength = np.mean(refLengths)
+                
     ##do not take as haploid anchors all contigs which are implicated in a knot by both ends
     haploidContigs_set = set(haploidContigs)
     toDelete = []
     for segment in haploidContigs_set :
-        common_contigs = compute_commonContigs(segment, [segment, segment], [0,1], min(3*segment.length, 1000000))
-        if len(common_contigs) > len(segment.names) :
+        common_contigs = compute_commonContigs(segment, [segment, segment], [0,1], refLength)
+        if len(common_contigs) > len(segment.names) : #i.e. there are more common contigs than those in segment.names
             toDelete += [segment]
     for i in toDelete :
         haploidContigs_set.remove(i)
     haploidContigs = list(haploidContigs_set)
-    
-    
+        
     #now all haploid contigs have been determined    
     haploidContigs.sort(key= lambda x: x.length, reverse = True)
     
@@ -837,13 +841,15 @@ def untangle_knots(untangled_paths, segments, haploidContigs)    :
     newsegments = merge_adjacent_contigs(newsegments)
     
     #now go through all contigs and create a new haploidContigs list
+    
+    
     haps = set(haploidContigs)
-    pastSegments = set([i.ID for i in segments])
+    pastSegments = set([i for i in segments])
 
     stillHaploids = [] 
     for s, seg in enumerate(newsegments) :
         if (seg in haps or seg not in pastSegments) and (len(seg.links[0]) == 1 or len(seg.links[1]) == 1 or seg.length > min(np.min([i.length for i in seg.links[0]], initial=seg.length),np.min([i.length for i in seg.links[1]], initial=seg.length))) : #if seg is not in pastsegment, it has been created thus is haploid (if it is long enough or has 1 link at one of its ends)
-            
+                
             stillHaploids += [seg]
             
     #now all haploid contigs have been determined 
