@@ -284,7 +284,7 @@ def main():
         if someDepth0 == len(segments) and reliableCoverage :
             print("WARNING: could not read coverage information in the input GFA. Coverage information for each contig is highly recommended. Continuing nevertheless, switching to --conservative mode")
             conservative = True
-        elif reliableCoverage :
+        elif someDepth0>0 and reliableCoverage :
             print("WARNING: ", someDepth0, " contigs out of ", len(segments), " had no coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
 
         
