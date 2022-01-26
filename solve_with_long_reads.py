@@ -27,7 +27,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     ##There are two phases : first build consensus with approximate haploid contigs. Detect the incoherence, obtain a reliable haploid list and do that all over again
     
     #first phase : determine all contigs that look haploid, and sort them by length
-    supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file    
+    #supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file    
     #print("multiplicity of 95 : ", multiplicities[names['edge_95']])
     #print(multiplicities)
     # haploidContigs = []

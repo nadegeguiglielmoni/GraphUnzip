@@ -116,7 +116,7 @@ def parse_args_unzip() :
         "-b",
         "--bold",
         action="store_true",
-        help="""[default] Proposes the best untangling it can get (but other equivalent may exist). Only use this option if the contig coverage information of the graph can be trusted""",
+        help="""[default] Proposes the best untangling it can get (but other equivalent may exist). Use this option if the contig coverage information of the graph can be trusted""",
     )
     # groupBehavior.add_argument(
     #     "-s",
@@ -275,6 +275,18 @@ def main():
         if len(segments) == 0 :
             print("ERROR: could not read the GFA")
             sys.exit()
+            
+        someDepth0 = 0
+        for s in segments :
+            if s.depth == 0:
+                someDepth0 += 1
+            
+        if someDepth0 == len(segments) and reliableCoverage :
+            print("WARNING: could not read coverage information in the input GFA. Coverage information for each contig is highly recommended. Continuing nevertheless, switching to --conservative mode")
+            conservative = True
+        elif reliableCoverage :
+            print("WARNING: ", someDepth0, " contigs out of ", len(segments), " had no coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
+
         
         interactionMatrix = sparse.csr_matrix((len(segments), len(segments)))
         tagInteractionMatrix = sparse.csr_matrix((len(segments), len(segments)))
@@ -326,7 +338,7 @@ def main():
         ##Moving to the actual unzipping of the graph
         
         supported_links2 = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links considering the topography of the graph
-        refHaploidy, multiplicities = determine_multiplicity(segments, names, supported_links2) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
+        refHaploidy, multiplicities = determine_multiplicity(segments, names, supported_links2, reliableCoverage) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
         
         #As a first step, use only the long reads, if available
         if uselr :
