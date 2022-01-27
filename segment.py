@@ -156,6 +156,9 @@ class Segment:
     def divide_depths(self, n) : #when duplicating a segment, you need to lower the coverage of all replicas
         for i in range (len(self._depths)) :
             self._depths[i] /= n
+            
+    def length1(self): #use this function to set length of a segment to 1 (instead of 0, mostly)
+        self._lengths = [max(1, i) for i in self._lengths]
                     
     # properties
     

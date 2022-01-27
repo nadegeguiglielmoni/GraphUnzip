@@ -277,9 +277,14 @@ def main():
             sys.exit()
             
         someDepth0 = 0
+        someLength0 = 0
         for s in segments :
             if s.depth == 0:
+                print("WARNING: contig ", s.names, " has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
                 someDepth0 += 1
+            if s.length == 0 :
+                s.length1()
+                print("WARNING: contig ", s.names, " has length = 0. This might infer in handling the coverage")
             
         if someDepth0 == len(segments) and reliableCoverage :
             print("WARNING: could not read coverage information in the input GFA. Coverage information for each contig is highly recommended. Continuing nevertheless, switching to --conservative mode")
