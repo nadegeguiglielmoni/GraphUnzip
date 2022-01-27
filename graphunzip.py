@@ -164,7 +164,7 @@ def parse_args_HiC():
         "-F", "--fragments", required=True, help="""Fragments list (required)"""
     )
     parser.add_argument(
-        "-H","--HiC_IM", required=True, help="""Output file for the Hi-C interaction matrix (required)"""
+        "-i","--HiC_IM", required=True, help="""Output file for the Hi-C interaction matrix (required)"""
     )
     
     return parser.parse_args(sys.argv[2:])

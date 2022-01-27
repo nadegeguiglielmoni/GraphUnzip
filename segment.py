@@ -104,10 +104,11 @@ class Segment:
     
     def get_depth(self):
         sumdepth = 0
-        sumlength = 0
+        sumlength = 1 #1 and not 0 to be sure not to divide by 0
         for i in range(len(self._depths)) :
             sumdepth += self._depths[i]*self._lengths[i]
             sumlength += self._lengths[i]
+            
         return sumdepth / sumlength
     
     def full_name(self) :
