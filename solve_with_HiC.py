@@ -61,6 +61,7 @@ def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confiden
         refCoverage = totalDepth/totalLength
     else :
         refCoverage = 1
+        
     
     ##give a first estimation of the haploid contigs
     refLengths = [] #to give an order of magnitude of the length of the contigs
