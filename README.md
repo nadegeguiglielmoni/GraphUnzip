@@ -167,7 +167,7 @@ tar -xzf SPAdes-3.15.3-Linux.tar.gz
  
 Run the short read assembler. If you are using SPAdes,
 ```
-SPAdes-3.15.3-Linux/bin/spades.py --s short_reads.fastq -o short_read_assembly
+SPAdes-3.15.3-Linux/bin/spades.py --s short_reads.fastq -o short_read_assembly 
 ```
 This is in case the short reads are unpaired. If using another type of library or if you want to tune other options, please refer to `spades.py --help`.
 

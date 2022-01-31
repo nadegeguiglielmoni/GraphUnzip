@@ -109,14 +109,21 @@ def parse_args_unzip() :
         "-c",
         "--conservative",
         action="store_true",
-        help="""Output very robust contigs. Use this option if the coverage information of the graph is not reliable""",
+        help="""(Hi-C only) Output very robust contigs. Use this option if the coverage information of the graph is not reliable""",
     )
     
     groupBehavior.add_argument(
         "-b",
         "--bold",
         action="store_true",
-        help="""[default] Proposes the best untangling it can get (but other equivalent may exist). Use this option if the contig coverage information of the graph can be trusted""",
+        help="""(Hi-C only)[default] Proposes the best untangling it can get (can be misled by approximate coverage information). Use this option if the contig coverage information of the graph can be trusted""",
+    )
+    
+    groupBehavior.add_argument(
+        "-e",
+        "--exhaustive",
+        action="store_true",
+        help="""(long reads only) All links not found in the .gaf will be removed""",
     )
     # groupBehavior.add_argument(
     #     "-s",
@@ -264,6 +271,7 @@ def main():
         # dbgDir = args.debug 
         merge = not args.dont_merge
         reliableCoverage = not args.conservative
+        exhaustive = args.exhaustive
         
         #clean = args.clean
         
@@ -280,7 +288,8 @@ def main():
         someLength0 = 0
         for s in segments :
             if s.depth == 0:
-                print("WARNING: contig ", s.names, " has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
+                if reliableCoverage :
+                    print("WARNING: contig ", s.names, " has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
                 someDepth0 += 1
             if s.length == 0 :
                 s.length1()
@@ -347,7 +356,7 @@ def main():
         
         #As a first step, use only the long reads, if available
         if uselr :
-            segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, refHaploidy, multiplicities)
+            segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, refHaploidy, multiplicities, exhaustive)
         
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 :

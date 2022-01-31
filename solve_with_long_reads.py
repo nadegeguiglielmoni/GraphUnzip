@@ -20,9 +20,9 @@ import time
 import segment as sg
 
 #Master function of the file
-#Input : initial gfa (as a list of segments), a GAF file with long reads mapped to the segments, names (which is an index numbering the contig), multiplicity : the pre-computed ploidy of each contig (as numbered in names)
+#Input : initial gfa (as a list of segments), a GAF file with long reads mapped to the segments, names (which is an index numbering the contig), multiplicity : the pre-computed ploidy of each contig (as numbered in names), exhaustive : if you want to delete all links not found in the .gaf
 #Output : new gfa (as a list of segments) corrected with long reads, and modified copiesnumber (taking into account contigs that have been duplicated)
-def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_links2, refHaploidy, multiplicities):
+def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_links2, refHaploidy, multiplicities, exhaustive):
         
     ##There are two phases : first build consensus with approximate haploid contigs. Detect the incoherence, obtain a reliable haploid list and do that all over again
     
@@ -82,6 +82,17 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     bridges = [[[],[]] for i in range(len(haploidContigs))] #bridges is a list inventoring at index haploidCOntigsNames[seg.names[0]] all the links left and right of the contig, supported by the gaf
     minimum_supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #minimum_supported links is the list of all links between different contigs found at least once in the gaf file
     inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) 
+    
+    #if exhaustive, delete all links not found in the .gaf
+    if exhaustive : 
+        for s in segments :
+            for end in range(2):
+                index = 0
+                while index < len(s.links[end]) :
+                    if minimum_supported_links[2*names[s.names[0]]+end, 2*names[s.links[end][index].names[0]]+s.otherEndOfLinks[end][index]] == 0 :
+                        sg.delete_link(s, end, s.links[end][index], s.otherEndOfLinks[end][index], warning = True)
+                    else :
+                        index += 1
     
     #now, from all the bridges, build consensus bridges
     consensus_bridges = [['',''] for i in range(len(haploidContigs))] #consensus bridge is essentially the same as bridges, except there is only one bridge left at each side for each contig
@@ -203,10 +214,6 @@ def determine_haploid_contigs(lines, segments, names) :
 #input : a list of alignments of a gaf file
 #output : the completed bridges list, with for each haploid contig a list of what was found left and right of the contig. 
 def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) :
-# =======
-# #output : the completed bridges list, with for each haploid contig a list of what was found left and right of the contig
-# def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) :
-# >>>>>>> master
     
     
     for l, line in enumerate(lines) :      
