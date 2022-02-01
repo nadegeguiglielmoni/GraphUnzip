@@ -28,7 +28,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     
     #first phase : determine all contigs that look haploid, and sort them by length
     #supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file    
-    #print("multiplicity of 95 : ", multiplicities[names['edge_95']])
+    # print("multiplicity of 2: ", multiplicities[names['2']])
     #print(multiplicities)
     # haploidContigs = []
     # for se, s in enumerate(segments) :
@@ -99,9 +99,8 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     print("Building consensus bridges from all the long reads")
 
     haploidContigs, haploidContigsNames, consensus_bridges = build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, haploidContigsNames)
-    print("Done building consensus bridges")
+    print("Done building consensus bridges                 ")
 
-    #print("Consensus bridge of contig 223445 : ", consensus_bridges[haploidContigsNames['223445']])
     
     bridges = []
         
@@ -123,7 +122,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
         
         if not sure_haploids :
             print("Out of ", leng, " supposed single-copy contigs, ", leng-len(haploidContigs), " were not actually haploid. Recomputing until all the single-copy contigs are robust")
-
+            
     #from the consensus bridges, mark all links that are supported by the long reads
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file, and in how many different consensus
     compute_supported_links(supported_links, consensus_bridges, haploidContigsNames, haploidContigs, longContigs, names)
@@ -155,7 +154,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
 
 
 #input : all aligned long reads
-#output : A list of "haploid" contigs, i.e. contigs that have at most one possible other contig right and left
+#output : A list of "haploid" contigs, i.e. contigs that have at most one possible other contig right and left AND THAT ARE LONG ENOUGH, BECAUSE SHORT CONTIGS ARE USELESS
 def determine_haploid_contigs(lines, segments, names) :
     
     #haploidContigsIdx = set([i for i in range(len(segments))]) #list of the idx of all haploid contigs : we'll whittle it down
@@ -195,10 +194,10 @@ def determine_haploid_contigs(lines, segments, names) :
     
     haploidContigs = []
     for se, nei in enumerate(neighborLeftRight) :
-       
-        if (len(nei[0]) ==0 or max(nei[0].values()) > 0.9 * sum(nei[0].values())) and (len(nei[1])==0 or max(nei[1].values()) > 0.9 * sum(nei[1].values())) :
-            
-            haploidContigs += [segments[se]]
+        if segments[se].length > 500 : #that's because too short contigs cause trouble (in great part because erroneous contigs are often very short)
+            if (len(nei[0]) ==0 or max(nei[0].values()) > 0.9 * sum(nei[0].values())) and (len(nei[1])==0 or max(nei[1].values()) > 0.9 * sum(nei[1].values())) :
+                
+                haploidContigs += [segments[se]]
         
        
     haploidContigs.sort(key= lambda x: x.length, reverse = True)
@@ -324,13 +323,17 @@ def build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, h
 
             while len(kept_reads) > 0 :
                 
+
                 candidate2 = [localContigs[end][i][pos] for i in kept_reads]
                 candidate1 = [localOrientations[end][i][pos] for i in kept_reads]
-                                
+                
+                # if '11' in haploidContigs[c].names or '93' in haploidContigs[c].names :
+                #     print("candidates : ", haploidContigs[c].names[0], " : ", candidate2)
+                
                 cons1 = Counter(candidate1).most_common(1)[0]
                 cons2 = Counter(candidate2).most_common(1)[0]
                                 
-                if (cons1[1] > 0.8*len(kept_reads) or (cons1[1]>=2 and cons1[1] == len(kept_reads)-1)) and (cons2[1] > 0.8*len(kept_reads) or (cons2[1]>=2 and cons2[1] == len(kept_reads)-1)) : #consensus is defined there as a 80% of the propositions agreeing or only 1 proposition disagreeing
+                if cons1[1]>1 and (cons1[1] > 0.5*len(candidate1) or (cons1[1]>=2 and cons1[1] == len(candidate1)-1)) and (cons2[1] > 0.5*len(candidate1) or (cons2[1]>=2 and cons2[1] == len(candidate1)-1)) : #consensus is defined there as a 50% of the propositions agreeing or only 1 proposition disagreeing
                 
                     if cons1[0] == '*' :
                         break
@@ -360,7 +363,7 @@ def build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, h
                     #     break
                
                 else : #if there is no consensus let's stop
-                    # if "11832294" in haploidContigs[c].names :
+                    # if "11" in haploidContigs[c].names :
                     #     print("There are no consensus there: ", candidate1, candidate2)
                     break
                 
@@ -442,6 +445,22 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
     sure_haploids = True
     not_actually_haploid = [] #a list of not actually haploid contigs among the haploidContigs
     
+    #create dict firstHapIndices, indicating for each end the index of first haploid contig, -1 if there is none
+    firstHapIndices = {}
+    for c in range(len(consensus_bridges)) :
+        for end in range(2) :
+            
+            contigs = re.split('[><]' , consensus_bridges[c][end])
+            orientations = "".join(re.findall("[<>]", consensus_bridges[c][end]))
+            del contigs[0] #because the first element is always ''
+            
+            firstHapIndices[2*c+end] = -1
+            for co in range(len(contigs)):
+                if contigs[co] in haploidContigsNames :
+                    firstHapIndices[2*c+end] = co
+                    break
+            
+    
     for c in range(len(consensus_bridges)) :
         
         for end in range(2) :
@@ -451,14 +470,10 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
                 contigs = re.split('[><]' , consensus_bridges[c][end])
                 orientations = "".join(re.findall("[<>]", consensus_bridges[c][end]))
                 del contigs[0] #because the first element is always ''
+
+                firstHapIdx = firstHapIndices[2*c+end]
                 
-                firstHapIdx = -10000
-                for co in range(len(contigs)):
-                    if contigs[co] in haploidContigsNames :
-                        firstHapIdx = co
-                        break
-                
-                if firstHapIdx != -10000 : #in case there is a full bridge
+                if firstHapIdx >= 0 : #in case there is a full bridge
                     #check if the two bridges are coherent
                     coherent = False
                     otherEnd = 0
@@ -472,12 +487,17 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
                     if len(symmetrical)>firstHapIdx+1 and haploidContigs[c].names[0] == symmetrical[firstHapIdx+1] : #+1 because the first element of symmetrical is always ''
                         coherent = True
                         
+                    #if the symmetrical bridge does not lead anywhere, take this one as the truth
+                    if firstHapIndices[2*haploidContigsNames[contigs[firstHapIdx]]+otherEnd] == -1 :
+                        coherent = True
+                        firstHapIndices[2*haploidContigsNames[contigs[firstHapIdx]]+otherEnd] == -2 #you won't be able to come here twice, it would mean a diploid contig
+                        
                     if not coherent :
                         
                         #check if the incoherence is not due to being on a very weakly supported (and probably false) path
-                        # if all([i not in haploidContigsNames for i in symmetrical]) or True: #else, it means that the path is very minoritary compared to the path going to the contig making this assumption false
                         
-                            #print("two incoherent bridges between ", haploidContigs[c].names[0] , " and ", haploidContigs[haploidContigsNames[contigs[firstHapIdx]]].names[0], " : ", consensus_bridges[c][end], " vs ", consensus_bridges[haploidContigsNames[contigs[firstHapIdx]]][otherEnd])
+                        # if '11' == contigs[firstHapIdx] :
+                        #     print("two incoherent bridges between ", haploidContigs[c].names[0] , " and ", haploidContigs[haploidContigsNames[contigs[firstHapIdx]]].names[0], " : ", consensus_bridges[c][end], " vs ", consensus_bridges[haploidContigsNames[contigs[firstHapIdx]]][otherEnd])
                         not_actually_haploid += [haploidContigsNames[contigs[firstHapIdx]]]
                         sure_haploids = False
                             
@@ -737,13 +757,38 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
             
             if len(seg.links[1-end]) == 0 and len(seg.links[end]) == 1 :
 
+                neighbor = seg.links[end][0]
+                neighborEnd = seg.otherEndOfLinks[end][0]
                 #print("Checking if ", seg.names, " is a tip")
-                if any([extended_length(i, seg.links[end][0].otherEndOfLinks[seg.otherEndOfLinks[end][0]][e], 10*seg.length, 30) for e,i in enumerate(seg.links[end][0].links[seg.otherEndOfLinks[end][0]])]) : #this means we're in a very short dead end
+                if any([extended_length(i, neighbor.otherEndOfLinks[neighborEnd][e], 10*seg.length, 30) for e,i in enumerate(seg.links[end][0].links[seg.otherEndOfLinks[end][0]])]) : #this means we're in a very short dead end
                                     
                     if all([i not in haploidContigsNames for i in seg.names]) : #then it means it's probably an error in the determination of the multiplicity
                     
                         sg.delete_link(seg, end, seg.links[end][0], seg.otherEndOfLinks[end][0])
                         toDelete += [s]
+                        
+                else : #if this contig is a replica of a parallel contig, merge both together
+                    
+                    for n2, neighbor2 in enumerate(neighbor.links[neighborEnd]) :
+                        
+                        otherEnd2 = neighbor.otherEndOfLinks[neighborEnd][n2]
+                        if neighbor2.length > seg.length : #if we're not looking at the same contig
+                        
+                            #see if it's parallel to the dead end, i.e. has the same contigs in the same order
+                            same = True
+                            for co in range(len(seg.names)) :
+                                nameParallel1 = neighbor2.names[ otherEnd2*(len(neighbor2.names)-1) + (-2*otherEnd2+1)*co ]
+                                nameParallel2 = seg.names[ end*(len(seg.names)-1) + (-2*end+1)*co ]
+                                if nameParallel1 != nameParallel2 :
+                                    same = False
+                                    break
+                                
+                            if same :
+                                # print("Found two parallels contigs : ", seg.names, neighbor2.names)
+                                neighbor2.multiply_end_depths(2, otherEnd2, len(seg.names))
+                                sg.delete_link(seg, end, seg.links[end][0], seg.otherEndOfLinks[end][0])
+                                toDelete += [s]
+                        
     
     for i in toDelete[::-1]:
         del segments[i]

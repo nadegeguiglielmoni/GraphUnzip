@@ -157,6 +157,10 @@ class Segment:
         for i in range (len(self._depths)) :
             self._depths[i] /= n
             
+    def multiply_end_depths(self, n, end, numberOfContigs) : #this fucntion is useful when merging a wrongly duplicated dead end
+        for co in range(numberOfContigs) :
+           self._depths[end*(len(self._depths)-1) + (-2*end+1)*co ]
+            
     def length1(self): #use this function to set length of a segment to 1 (instead of 0, mostly)
         self._lengths = [max(1, i) for i in self._lengths]
                     

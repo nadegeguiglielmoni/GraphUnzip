@@ -370,7 +370,7 @@ def main():
             
             print("WARNING: all interaction matrices are empty, GraphUnzip does not do anything")
         
-        print("\nDone untangling, now merging all contigs that can be merged")
+        print("Done untangling, now merging all contigs that can be merged")
         merge_adjacent_contigs(segments)
 
             
