@@ -11,6 +11,7 @@ import input_output as io
 from transform_gfa import gfa_to_fasta
 from finish_untangling import merge_adjacent_contigs
 from solve_with_long_reads import bridge_with_long_reads
+from solve_with_long_reads2 import bridge_with_long_reads2
 from solve_with_HiC import solve_with_HiC
 from determine_multiplicity import determine_multiplicity
 #from segment import check_if_all_links_are_sorted
@@ -145,7 +146,7 @@ def parse_args_linked():
     parser.add_argument("-g", "--gfa_graph", required=True,  help="""GFA file that will be untangled (required)""")
     
     parser.add_argument(
-        "-p"
+        "-p",
         "--linked_reads_IM", required=True, help = """Output file for the linked-read interaction matrix (required)""")
     
     parser.add_argument(
@@ -357,6 +358,7 @@ def main():
         #As a first step, use only the long reads, if available
         if uselr :
             segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, refHaploidy, multiplicities, exhaustive)
+            #segments = bridge_with_long_reads2(segments, names, lrFile, reliableCoverage, cn, verbose)
         
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 :

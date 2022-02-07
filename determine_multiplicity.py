@@ -6,9 +6,9 @@ Created on Fri Oct  8 13:02:36 2021
 @author: rfaure
 """
 
-#main function of the file : tries to estimate how many copies of each contig is actually present in the actual assembly, based only on the topology of the graph and the coverage
+#main function of the file : tries to estimate how many copies of each contig is actually present in the actual assembly, based on the topology of the graph and the coverage
 #input : a gfa (as a list of segments), with mandatory coverage information ; names (to know at what index to put each contig)
-#output : computed_multiplicity, which is a list containing the theoretical multiplicity of contig 'a' at position names[a]
+#output : computed_multiplicity, which is a list containing the theoretical multiplicity of contig 'a' at position names[a], as well as updated supported_links, telling which links actually exist
 def determine_multiplicity(segments, names, supported_links, reliable_coverage=True) :
 
     computed_multiplicity = [0 for i in range(len(segments))]
@@ -19,7 +19,7 @@ def determine_multiplicity(segments, names, supported_links, reliable_coverage=T
     for s in segments :
         
         links = s.get_links()
-        if len(links[0]) <= 1 and len(links[1]) <= 1 : #if the contig has strictly 1 neighbor at each end we can suppose it is haploid
+        if len(links[0]) <= 1 and len(links[1]) <= 1 : #if the contig has less than 1 neighbor at each end we can suppose it is haploid
         
             weightedNumberOfRefContigs += s.length
             refCoverages += s.length * s.depths[0]
@@ -31,7 +31,7 @@ def determine_multiplicity(segments, names, supported_links, reliable_coverage=T
         refCoverage = 1
         reliable_coverage = False
         
-    if reliable_coverage :
+    if not reliable_coverage :
         refCoverage = 1
         
     #then inventoriate all haploid contigs

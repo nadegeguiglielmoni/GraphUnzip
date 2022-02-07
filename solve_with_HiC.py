@@ -33,6 +33,7 @@ sys.setrecursionlimit(MAX_RECURSION) #this may be important in find_neighbors
 
 
 #input : segments and the interactionMatrix of Hi-C contacts. Optionnaly, a list of haploid contigs obtained from the long reads algorithm.
+#output : untangled graph in the form of a list of segments
 def solve_with_HiC(segments, interactionMatrix, names, copiesnumber={}, confidentCoverage=True, verbose = False):
     
     if copiesnumber == {} :

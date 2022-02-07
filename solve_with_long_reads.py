@@ -61,7 +61,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     lines = []
     if '.gaf' in gafFile :
         print("Reading the gaf file...")
-        read_GAF(gafFile, 0.7, 0.1, lines)
+        read_GAF(gafFile, 0, 0, lines)
         print("Finished going through the gaf file.")
     elif '.tsv' in gafFile :
         print("Reading the tsv file...")
@@ -76,12 +76,14 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     #print(haploidContigsNames)
     sure_haploids = False
     
-    #inventoriate all bridges in the list bridges : sequence of contigs found in the GAF containing at least one contig of multiplicity 1. Do fill in the longContigs list while you're at it
+    #inventoriate all bridges in the list bridges : sequence of contigs found in the GAF containing at least one haploid contig. Do fill in the longContigs list while you're at it
     longContigs = [] #long contigs are contigs too long to be traversed by a long read in the gaf
     longContigs = [True for i in range(len(names))] #then all contigs that are in the middle of a read will be marked as False
     bridges = [[[],[]] for i in range(len(haploidContigs))] #bridges is a list inventoring at index haploidCOntigsNames[seg.names[0]] all the links left and right of the contig, supported by the gaf
     minimum_supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #minimum_supported links is the list of all links between different contigs found at least once in the gaf file
     inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) 
+    
+    print("Bridge 1756 : ", bridges[haploidContigsNames['1756']])
     
     #if exhaustive, delete all links not found in the .gaf
     if exhaustive : 
@@ -101,7 +103,9 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     haploidContigs, haploidContigsNames, consensus_bridges = build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, haploidContigsNames)
     print("Done building consensus bridges                 ")
 
-    
+    print("contig 1756 in haploid : ", "1756" in haploidContigsNames)
+    print("contig 1756 consensus : ", consensus_bridges[haploidContigsNames["1756"]])
+    # print("contig 2601 consensus : ", consensus_bridges[haploidContigsNames["2601"]])
     bridges = []
         
     print("Now we will determine through an iterative process what contigs of the assembly are present only once in the final genome")
@@ -122,7 +126,9 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
         
         if not sure_haploids :
             print("Out of ", leng, " supposed single-copy contigs, ", leng-len(haploidContigs), " were not actually haploid. Recomputing until all the single-copy contigs are robust")
-            
+        
+    print("contig 1756 in haploid : ", "1756" in haploidContigsNames)
+
     #from the consensus bridges, mark all links that are supported by the long reads
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file, and in how many different consensus
     compute_supported_links(supported_links, consensus_bridges, haploidContigsNames, haploidContigs, longContigs, names)
@@ -144,7 +150,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, haploidContigs, haploidContigsNames, names, supported_links2, minimum_supported_links, multiplicities, longContigs)
     
     #now remove the tips that apparently came from an overestimation in the multiplicity
-    print("Now we correct the last quirks by looking a posteriori at the graph")
+    print("Now we correct the last quirks by looking a posteriori at the graph               ")
     merge_adjacent_contigs(segments)
     trim_tips(segments, multiplicities, names, haploidContigsNames)
         
@@ -240,6 +246,9 @@ def inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigs
     
             for c, contig in enumerate(contigs) :
                 
+                if contig == "1756" :
+                    print("Found 1756 : ", line)
+                
                 if c>0 :
                     
                     or1 = '<>'.index(orientations[c-1])
@@ -320,6 +329,7 @@ def build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, h
             kept_reads = [i for i in range(len(bridges[c][end])) if bridges[c][end][i] != ""] #list keeping in mind all the reads still in the consensus
             pos = 0
             consensus = ''
+            
 
             while len(kept_reads) > 0 :
                 
@@ -327,13 +337,11 @@ def build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, h
                 candidate2 = [localContigs[end][i][pos] for i in kept_reads]
                 candidate1 = [localOrientations[end][i][pos] for i in kept_reads]
                 
-                # if '11' in haploidContigs[c].names or '93' in haploidContigs[c].names :
-                #     print("candidates : ", haploidContigs[c].names[0], " : ", candidate2)
                 
                 cons1 = Counter(candidate1).most_common(1)[0]
                 cons2 = Counter(candidate2).most_common(1)[0]
                                 
-                if cons1[1]>1 and (cons1[1] > 0.5*len(candidate1) or (cons1[1]>=2 and cons1[1] == len(candidate1)-1)) and (cons2[1] > 0.5*len(candidate1) or (cons2[1]>=2 and cons2[1] == len(candidate1)-1)) : #consensus is defined there as a 50% of the propositions agreeing or only 1 proposition disagreeing
+                if cons1[1]>0 and (cons1[1] > 0.5*len(candidate1) or (cons1[1]>=2 and cons1[1] == len(candidate1)-1)) and (cons2[1] > 0.5*len(candidate1) or (cons2[1]>=2 and cons2[1] == len(candidate1)-1)) : #consensus is defined there as a 80% of the propositions agreeing or only 1 proposition disagreeing
                 
                     if cons1[0] == '*' :
                         break
@@ -496,8 +504,8 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
                         
                         #check if the incoherence is not due to being on a very weakly supported (and probably false) path
                         
-                        # if '11' == contigs[firstHapIdx] :
-                        #     print("two incoherent bridges between ", haploidContigs[c].names[0] , " and ", haploidContigs[haploidContigsNames[contigs[firstHapIdx]]].names[0], " : ", consensus_bridges[c][end], " vs ", consensus_bridges[haploidContigsNames[contigs[firstHapIdx]]][otherEnd])
+                        if '1756' == contigs[firstHapIdx] :
+                            print("two incoherent bridges between ", haploidContigs[c].names[0] , " and ", haploidContigs[haploidContigsNames[contigs[firstHapIdx]]].names[0], " : ", consensus_bridges[c][end], " vs ", consensus_bridges[haploidContigsNames[contigs[firstHapIdx]]][otherEnd])
                         not_actually_haploid += [haploidContigsNames[contigs[firstHapIdx]]]
                         sure_haploids = False
                             
@@ -755,7 +763,7 @@ def trim_tips(segments, multiplicities, names, haploidContigsNames):
         
         for end in range(2) :
             
-            if len(seg.links[1-end]) == 0 and len(seg.links[end]) == 1 :
+            if len(seg.links[1-end]) == 0 and len(seg.links[end]) == 1 and seg.length < 2000 :
 
                 neighbor = seg.links[end][0]
                 neighborEnd = seg.otherEndOfLinks[end][0]
