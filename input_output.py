@@ -403,7 +403,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
         
         #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C). Also store that information in a dictionary
         if rename_contigs :
-            fcontigs = open('/'.join(exportFile.split('/')[:-1])+'supercontigs.txt', 'w') 
+            fcontigs = open('/'.join(exportFile.split('/')[:-1])+'/supercontigs.txt', 'w') 
 
             supercontigs = {}
             for s, segment in enumerate(listOfSegments):
