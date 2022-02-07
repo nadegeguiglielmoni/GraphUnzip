@@ -83,7 +83,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     minimum_supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #minimum_supported links is the list of all links between different contigs found at least once in the gaf file
     inventoriate_bridges(lines, bridges, minimum_supported_links, haploidContigsNames, longContigs, names, segments) 
     
-    print("Bridge 1756 : ", bridges[haploidContigsNames['1756']])
+    # print("Bridge 1756 : ", bridges[haploidContigsNames['1756']])
     
     #if exhaustive, delete all links not found in the .gaf
     if exhaustive : 
@@ -103,8 +103,8 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     haploidContigs, haploidContigsNames, consensus_bridges = build_consensus_bridges(consensus_bridges, bridges, names, haploidContigs, haploidContigsNames)
     print("Done building consensus bridges                 ")
 
-    print("contig 1756 in haploid : ", "1756" in haploidContigsNames)
-    print("contig 1756 consensus : ", consensus_bridges[haploidContigsNames["1756"]])
+    # print("contig 1756 in haploid : ", "1756" in haploidContigsNames)
+    # print("contig 1756 consensus : ", consensus_bridges[haploidContigsNames["1756"]])
     # print("contig 2601 consensus : ", consensus_bridges[haploidContigsNames["2601"]])
     bridges = []
         
@@ -127,7 +127,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
         if not sure_haploids :
             print("Out of ", leng, " supposed single-copy contigs, ", leng-len(haploidContigs), " were not actually haploid. Recomputing until all the single-copy contigs are robust")
         
-    print("contig 1756 in haploid : ", "1756" in haploidContigsNames)
+    #print("contig 1756 in haploid : ", "1756" in haploidContigsNames)
 
     #from the consensus bridges, mark all links that are supported by the long reads
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file, and in how many different consensus
