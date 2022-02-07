@@ -11,7 +11,7 @@ import input_output as io
 from transform_gfa import gfa_to_fasta
 from finish_untangling import merge_adjacent_contigs
 from solve_with_long_reads import bridge_with_long_reads
-from solve_with_long_reads2 import bridge_with_long_reads2
+#from solve_with_long_reads2 import bridge_with_long_reads2
 from solve_with_HiC import solve_with_HiC
 from determine_multiplicity import determine_multiplicity
 #from segment import check_if_all_links_are_sorted
