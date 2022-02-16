@@ -41,7 +41,7 @@ def determine_multiplicity(segments, names, supported_links, reliable_coverage=T
         if len(links[0]) <= 1 and len(links[1]) <= 1 and (round(s.depths[0] / refCoverage) <= 1 or refCoverage == 1): #if the contig has 1 neighbor at each end we can suppose it is haploid
         
             computed_multiplicity[names[s.names[0]]] = 1
-       
+                   
     #now infer greedily the coverage of contigs next to haploid ones
 
     s = 0 #s is the index of the segment we're looking at

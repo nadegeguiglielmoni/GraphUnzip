@@ -179,6 +179,8 @@ def linkedReads_interactionMatrix(sam, names):
                 contig = names[ls[2]]
                 
                 ls = line.strip('\n').split('BX:Z:')
+                if len(ls) == 1 :
+                    ls = line.strip('\n').split('BC:Z:')
                 if len(ls) > 1 :
                     tag = ls[1].split('\t')[0]
                     
@@ -195,6 +197,8 @@ def linkedReads_interactionMatrix(sam, names):
                     if l < 10 :
                         print("Barcode could not be extracted from line ", line, ", ignoring the line, are you sure the BX:Z: tags are there ?")
                         l += 1 #just print 10 such lines, the user has understood
+                    if l==9 :
+                        print("Other such lines with unextratable barcodes are present, but I will stop displaying them, I think you get the idea")
     
     #now convert contigsInTag into an interaction Matrix
     print(contigsInTag)
@@ -403,7 +407,11 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
         
         #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C). Also store that information in a dictionary
         if rename_contigs :
-            fcontigs = open('/'.join(exportFile.split('/')[:-1])+'/supercontigs.txt', 'w') 
+            splitName = exportFile.split('/')[:-1]
+            if len(splitName) > 0 :
+                fcontigs = open('/'.join(splitName)+'supercontigs.txt', 'w') 
+            else :
+                fcontigs = open('supercontigs.txt', 'w') 
 
             supercontigs = {}
             for s, segment in enumerate(listOfSegments):
