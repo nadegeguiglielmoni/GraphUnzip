@@ -357,7 +357,7 @@ def main():
 
         #As a first step, use only the long reads, if available
         if uselr :
-            segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, refHaploidy, multiplicities, exhaustive)
+            segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, multiplicities, exhaustive)
             #segments = bridge_with_long_reads2(segments, names, lrFile, reliableCoverage, cn, verbose)
         
         #As a second step, use Hi-C and/or linked reads 

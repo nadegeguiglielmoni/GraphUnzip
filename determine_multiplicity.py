@@ -13,7 +13,7 @@ def determine_multiplicity(segments, names, supported_links, reliable_coverage=T
 
     computed_multiplicity = [0 for i in range(len(segments))]
     
-    #first compute the 'reference haploid coverage', the average coverage for all reads with axactly one neighbors at each end
+    #first compute the 'reference haploid coverage', the average coverage for all reads with exactly one neighbors at each end
     refCoverages = 0
     weightedNumberOfRefContigs = 1 #1 and not 0 to be sure not to divide by 0
     for s in segments :
@@ -28,7 +28,6 @@ def determine_multiplicity(segments, names, supported_links, reliable_coverage=T
     refCoverage = refCoverages / weightedNumberOfRefContigs
     
     if (refCoverage == 1 or refCoverage == 0) and reliable_coverage :
-        refCoverage = 1
         reliable_coverage = False
         
     if not reliable_coverage :

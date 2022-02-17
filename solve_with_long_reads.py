@@ -23,40 +23,7 @@ import segment as sg
 #Master function of the file
 #Input : initial gfa (as a list of segments), a GAF file with long reads mapped to the segments, names (which is an index numbering the contig), multiplicity : the pre-computed ploidy of each contig (as numbered in names), exhaustive : if you want to delete all links not found in the .gaf
 #Output : new gfa (as a list of segments) corrected with long reads, and modified copiesnumber (taking into account contigs that have been duplicated)
-def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_links2, refHaploidy, multiplicities, exhaustive):
-        
-
-    ##There are two phases : first build consensus with approximate haploid contigs. Detect the incoherence, obtain a reliable haploid list and do that all over again
-    
-    #first phase : determine all contigs that look haploid, and sort them by length
-    #supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file    
-    # print("multiplicity of 2: ", multiplicities[names['2']])
-    #print(multiplicities)
-    # haploidContigs = []
-    # for se, s in enumerate(segments) :
-        
-    #     if multiplicities[se] == 1 :
-    #     #to be deemed haploid, a segment must have at most one connection at each of its end plus be equally or less covered thant neighboring contigs
-    #     #if depth could not be read, all contigs will be supposed haploid and we'll iteratively correct this assumption in a later phase
-    #         links = s.links
-    #         if round(s.depths[0]/refHaploidy) == 1 :
-    #             haploidContigs.append(s)
-    #         elif len(links[0]) == 1 and len(links[1]) == 1 :# and s.depths[0] < 1.5*links[0][0].depths[0] and s.depths[0] < 1.5*links[1][0].depths[0] : 
-    #             haploidContigs.append(s)
-    #         elif len(links[0]) == 1 and len(links[1]) == 0  : #and s.depths[0] < 1.5*links[0][0].depths[0] : 
-    #             haploidContigs.append(s)
-    #         elif len(links[0]) == 0 and len(links[1]) == 1 : # and s.depths[0] < 1.5*links[1][0].depths[0] : 
-    #             haploidContigs.append(s)
-        
-    
-    # haploidContigs.sort(key= lambda x: x.length, reverse = True)
-    
-    # haploidContigsNames = {} #contains the index of each contig (identified by its name) in the haploidContigs list
-    # index = 0
-    # for s in haploidContigs :
-    #     haploidContigsNames[s.names[0]] = index
-    #     index += 1
-    
+def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_links2, multiplicities, exhaustive):
     
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file
     
