@@ -12,7 +12,8 @@ import os.path #to check the existence of files
 import pickle #for writing files and reading them
 import re #to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
 import shutil #to remove directories
-import sys
+import sys #to exit when there is an error and to set recursion limit
+
 
 from segment import Segment
 from segment import compute_copiesNumber
@@ -106,6 +107,8 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
     if unknowncontacts != 0 :
         print('There are ', unknowncontacts, ' out of ', n, ' contacts I did not manage to map : you may want to check if the names of the contigs are consistent throughout your files')
         
+    interactionMatrix.tocsr()
+    
     return interactionMatrix
 
 #input : GAF file (outputted by graphaligner) and parameters telling which line are deemed informative
@@ -176,6 +179,8 @@ def linkedReads_interactionMatrix(sam, names):
                 contig = names[ls[2]]
                 
                 ls = line.strip('\n').split('BX:Z:')
+                if len(ls) == 1 :
+                    ls = line.strip('\n').split('BC:Z:')
                 if len(ls) > 1 :
                     tag = ls[1].split('\t')[0]
                     
@@ -192,6 +197,8 @@ def linkedReads_interactionMatrix(sam, names):
                     if l < 10 :
                         print("Barcode could not be extracted from line ", line, ", ignoring the line, are you sure the BX:Z: tags are there ?")
                         l += 1 #just print 10 such lines, the user has understood
+                    if l==9 :
+                        print("Other such lines with unextratable barcodes are present, but I will stop displaying them, I think you get the idea")
     
     #now convert contigsInTag into an interaction Matrix
     print(contigsInTag)
@@ -260,7 +267,7 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
             extra_tags = ''
             depth = ''
             for f in sline[3:] :
-                if 'dp' in f or 'DP' in f :
+                if 'dp' in f or 'DP' in f or 'KC' in f or 'RC' in f:
                     depth = f
                 else :
                     extra_tags += f + '\t'
@@ -280,7 +287,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
     
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
     noOffsets = False
-    print('Offsets  : ', offsetsFile)
+    #print('Offsets : ', offsetsFile)
     if offsetsFile == "" :
         noOffsets = True
         offsetsFile = gfaFile.strip('.gfa') + '_offsets.pickle'
@@ -307,7 +314,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
         
         #print(line_offset)
  
-    print('Line_offsets computed, launching proper writing of the new GFA')
+    #print('Line_offsets computed, launching proper writing of the new GFA')
     #Now that the preliminary work is done, start writing the new gfa file    
 
     # now sort the segments by length, to output at the beginning of the files the longests fragments
@@ -334,11 +341,13 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 f.write("S\t" + contig + "-" + str(segment.copiesnumber[c]) + "\t")
                 if gfaFile != "":
                     sequence, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
+                    #print("Here is the depth I got : ", depth)
                     if depth == '':
                         f.write(sequence + '\t'+ extra_tags +"\n")
                     else :
-                        #newdepth = str(float(depth.split(':')[-1])/copies[contig])
-                        f.write(sequence + '\tDP:f:'+ str(segment.depths[c]) + '\t' + extra_tags + '\n')
+                        
+                        newdepth = str(float(depth.split(':')[-1])/copies[contig])
+                        f.write(sequence + '\t' + ":".join(depth.split(':')[:-1]) + ":" + newdepth + '\t' + extra_tags + '\n')
                 else:
                     f.write("*\n")
     
@@ -398,7 +407,11 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
         
         #open a file recording which contigs correspond to which supercontigs (with lines such as supercontig_1 contig_A_contig_B_contig_C). Also store that information in a dictionary
         if rename_contigs :
-            fcontigs = open('/'.join(exportFile.split('/')[:-1])+'supercontigs.txt', 'w') 
+            splitName = exportFile.split('/')[:-1]
+            if len(splitName) > 0 :
+                fcontigs = open('/'.join(splitName)+'supercontigs.txt', 'w') 
+            else :
+                fcontigs = open('supercontigs.txt', 'w') 
 
             supercontigs = {}
             for s, segment in enumerate(listOfSegments):
@@ -483,7 +496,7 @@ def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fas
                 offset += len(line)
             
  
-    print('Line_offsets computed, launching writing of the fasta')
+    #print('Line_offsets computed, launching writing of the fasta')
     #Now that the preliminary work is done, start writing the new fasta file    
 
     f = open(exportFile, "w")
@@ -546,14 +559,20 @@ def load_gfa(file):
     for line in gfa_read:
         if line[0] == "S":
             l = line.strip('\n').split("\t")
-            cov = 1
+            cov = 0
             
             for element in l :
                 if 'dp' in element[:2] or 'DP' in element[:2] :
                     try :
-                       cov = float(element[5:])
+                       cov = float(element.split(":")[-1])
                     except:
-                        nothing = 0
+                        pass
+                        
+                elif 'RC' in element[:2] or 'KC' in element[:2] :
+                    try :
+                       cov = float(element.split(":")[-1])/len(l[2])
+                    except:
+                        pass
             
             s = Segment([l[1]], [1], [len(l[2])], readCoverage = [cov])
             segments.append(s)
