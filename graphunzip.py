@@ -339,10 +339,10 @@ def main():
             
         if not( useHiC or uselr or useTag) :
             
-            print("ERROR: You should provide to unzip long reads mapped in GAF format and/or interaction matrices, using either --HiCinteractions (-i) or --linkedReadsInteractions (-k). If you do not have them, you can create them using the HiC-IM, long-reads-IM or linked-reads-IM commands")
+            print("ERROR: You should provide to unzip long reads mapped in GAF format and/or interaction matrices, using either --HiCinteractions (-i) or --linkedReadsInteractions (-k). If you do not have them, you can create them using the HiC-IM or linked-reads-IM commands")
             sys.exit()
 
-        print("Everything loaded, moving on to untangling the graph")
+        print("================\n\nEverything loaded, moving on to untangling the graph\n\n================")
         
         #creating copiesnuber (cn), a dictionnary inventoring how many times 
         cn = {}
@@ -357,23 +357,30 @@ def main():
 
         #As a first step, use only the long reads, if available
         if uselr :
+            print("\n*Untangling the graph using long reads*\n")
             segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, multiplicities, exhaustive)
             #segments = bridge_with_long_reads2(segments, names, lrFile, reliableCoverage, cn, verbose)
+            print("Merging contigs that can be merged...")
+            merge_adjacent_contigs(segments)
+            print("\n*Done untangling the graph using long reads*\n")
         
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 :
+            print("\n*Untangling the graph using Hi-C*\n")
             segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
-            print("Done untangling the graph")
+            print("Merging contigs that can be merged...")
+            merge_adjacent_contigs(segments)
+            print("\n*Done untangling the graph using Hi-C*\n")
         
         elif tagInteractionMatrix.count_nonzero() > 0 :
             segments = solve_with_HiC(segments, tagInteractionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
+            print("Merging contigs that can be merged...")
+            merge_adjacent_contigs(segments)
 
         elif not uselr :
             
             print("WARNING: all interaction matrices are empty, GraphUnzip does not do anything")
         
-        print("Done untangling, now merging all contigs that can be merged")
-        merge_adjacent_contigs(segments)
 
             
         # now exporting the output  

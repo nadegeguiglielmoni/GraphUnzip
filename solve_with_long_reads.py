@@ -561,6 +561,11 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
 #output: a list of segment where all the bridges have been built          
 def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, haploidContigs, haploidContigsNames, names, supported_links, minimum_supported_links, multiplicities, longContigs) :  
     
+    for b in non_overlapping_bridges :
+        if '<edge_210' in b[0] or '<edge_210' in b[1]:
+            
+            print("Here is the bridge with 210 : ", b)
+    
     #compute the minimum multiplicity of each contig, so that there are enough contigs to build all bridges, even when the depth suggests otherwise
     #first check with supported links
     for s, seg in enumerate(segments) :
@@ -718,13 +723,6 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
                             #     print([s.names for s in segments[-1].links[0]])
                             #     print([s.names for s in segments[-1].links[1]])
                                     
-                        # elif c == len(contigs)-1 and longContigs[names[contigs[c]]] and alreadyDuplicated[names[contigs[-1]]] == 1 - end1 : #if the contig has already been duplicated from the other side 
-
-                        #     if newContigsIndices[-1] != oldContigsIndices[c-1]: #only need to add links if you just duplicated
-
-                        #         for alreadyDuplicatedContig in segments[oldContigsIndices[c-1]].links[end0] :
-                        #             if alreadyDuplicatedContig.names[0] == contigs[c]:
-                        #                 sg.add_link(segments[newContigsIndices[-1]] , end0, alreadyDuplicatedContig, end1, CIGAR)
 
                         elif c == len(contigs)-1 : #we're at the end of the bridge
                             supported_links[names[contigs[c]]*2+end1 , names[contigs[c-1]]*2+end0] -= 1

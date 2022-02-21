@@ -83,12 +83,11 @@ optional arguments:
 Input of GraphUnzip:
   -g GFA, --gfa GFA     GFA file to phase
   -i HICINTERACTIONS, --HiCinteractions HICINTERACTIONS
-                        File containing the Hi-C interaction matrix from HiC-IM [default: None]
+                        File containing the Hi-C interaction matrix from HiC-IM [optional]
   -k LINKEDREADSINTERACTIONS, --linkedReadsInteractions LINKEDREADSINTERACTIONS
-                        File containing the linked-reads interaction matrix from linked-reads-IM [default:
-                        None]
+                        File containing the linked-reads interaction matrix from linked-reads-IM [optional]
   -l LONGREADS, --longreads LONGREADS
-                        Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format)
+                        Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) [optional]
 
 Output of GraphUnzip:
   -o OUTPUT, --output OUTPUT
@@ -97,15 +96,13 @@ Output of GraphUnzip:
                         Optional fasta output [default: None]
 
 Behavior of GraphUnzip:
-  -c, --conservative    Output very robust contigs. Use this option if the coverage information of the graph is
-                        not reliable
-  -b, --bold            [default] Proposes the best untangling it can get (but other equivalent may exist).
-                        Only use this option if the contig coverage information of the graph can be trusted
+  -c, --conservative    (Hi-C only) Output very robust contigs. Use this option if the coverage information of the graph is not reliable
+  -b, --bold            (Hi-C only)[default] Proposes the best untangling it can get (can be misled by approximate coverage information). Use this option if the contig coverage information of the graph can be trusted
+  -e, --exhaustive      (long reads only) All links not found in the .gaf will be removed
 
 Other options:
   -v, --verbose
-  -r, --dont_rename     Use if you don't want to name the resulting supercontigs with short names but want to
-                        keep the names of the original contigs
+  -r, --dont_rename     Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs
   --dont_merge          If you don't want the output to have all possible contigs merged
 
 ```

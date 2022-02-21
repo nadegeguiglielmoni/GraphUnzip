@@ -763,7 +763,7 @@ def untangle_knots(untangled_paths, segments, haploidContigs)    :
             contigs = split('[><]' , path)
             orientations = "".join(findall("[<>]", path))
             del contigs[0] #because it is always ''
-            
+                        
             newContigsIndices = [fullnames[contigs[0]]]
             
             for c, contigName in enumerate(contigs) :
