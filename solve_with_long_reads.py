@@ -127,7 +127,8 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     #now remove the tips that apparently came from an overestimation in the multiplicity
     print("Now we correct the last quirks by looking a posteriori at the graph               ")
     merge_adjacent_contigs(segments)
-    trim_tips(segments, multiplicities, names, haploidContigsNames, supported_links2)
+    trim_tips(segments, multiplicities, names, haploidContigsNames, supported_links2, exhaustive)
+    
         
     #print(non_overlapping_bridges)
     
@@ -561,11 +562,6 @@ def merge_bridges(non_overlapping_bridges, consensus_bridges, haploidContigsName
 #output: a list of segment where all the bridges have been built          
 def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, haploidContigs, haploidContigsNames, names, supported_links, minimum_supported_links, multiplicities, longContigs) :  
     
-    for b in non_overlapping_bridges :
-        if '<edge_210' in b[0] or '<edge_210' in b[1]:
-            
-            print("Here is the bridge with 210 : ", b)
-    
     #compute the minimum multiplicity of each contig, so that there are enough contigs to build all bridges, even when the depth suggests otherwise
     #first check with supported links
     for s, seg in enumerate(segments) :
@@ -598,7 +594,7 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
     l = len(segments)
     for se in range(l) :
         
-        if (se)%1000 == 0 :
+        if (se)%100 == 0 :
             print("Processed ", se, " contigs out of ", l, ", while untangling with long reads", end = '\r')
         s = segments[se]
          
@@ -791,33 +787,34 @@ def unzip_graph_with_bridges(segments, non_overlapping_bridges, copiesnumber, ha
       
 #input : the graph of segments as well as the list of multiplicities
 #output : the graph where the dubious tips have been deleted (those where multiplicity has been overestimated). Segments that have no supported links left and right are disconnected (which they weren't before because of dead ends creation)
-def trim_tips(segments, multiplicities, names, haploidContigsNames, supported_links):
+def trim_tips(segments, multiplicities, names, haploidContigsNames, supported_links, exhaustive):
     
     # detach contigs that are totally unsupported (sometimes misassembled contigs are connected to the graph but totally unsupported : they remain there because we did not want to create dead ends)
-    for s, seg in enumerate(segments):
-        
-        if len(seg.names) == 1 : #our only target here is misassembled contigs
-            someSupported = False
-            for end in range(2) :
-                
-                # if multiplicities[s] < len(seg.links[end]):
-                
-                #if some links are supported and some aren't, delete those who aren't
-                for n, neighbor in enumerate(seg.links[end]) :
-                    
-                    otherEnd = seg.otherEndOfLinks[end][n]
-                    
-                    if supported_links[2*names[seg.names[0]]+end, 2*names[neighbor.names[0]]+otherEnd] == 1 : #this is supported
-                        someSupported = True
-                    if len(neighbor.links[otherEnd]) == 1 : #let's not create extra dead ends
-                        someSupported = True
-                
-                
-            if not someSupported :
+    if exhaustive :
+        for s, seg in enumerate(segments):
+            
+            if len(seg.names) == 1 : #our only target here is misassembled contigs
+                someSupported = False
                 for end in range(2) :
+                    
+                    # if multiplicities[s] < len(seg.links[end]):
+                    
+                    #if some links are supported and some aren't, delete those who aren't
                     for n, neighbor in enumerate(seg.links[end]) :
+                        
                         otherEnd = seg.otherEndOfLinks[end][n]
-                        sg.delete_link(seg, end, neighbor, otherEnd)
+                        
+                        if supported_links[2*names[seg.names[0]]+end, 2*names[neighbor.names[0]]+otherEnd] == 1 : #this is supported
+                            someSupported = True
+                        if len(neighbor.links[otherEnd]) == 1 : #let's not create extra dead ends
+                            someSupported = True
+                    
+                    
+                if not someSupported :
+                    for end in range(2) :
+                        for n, neighbor in enumerate(seg.links[end]) :
+                            otherEnd = seg.otherEndOfLinks[end][n]
+                            sg.delete_link(seg, end, neighbor, otherEnd)
                         
                         
     #now trim tips, i.e. delete suspicious dead ends
