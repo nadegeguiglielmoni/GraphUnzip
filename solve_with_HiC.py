@@ -674,7 +674,7 @@ def dispatch_contigs(touchedContigs, contacts, interactionMatrix, names, haploid
         totalInteraction = np.sum(sortedInteractions[:lastPossiblePath+1])
         
 
-        for p in touchedContigs[intercontig] :
+        for p in touchedContigs[intercontig] : #iterate through the paths on which this contig may be
             if totalInteraction > 0 :
                 if interaction_with_path[p] >= limit : #all the other paths cannot be served anyway
                     estimate = round(multiplicity*interaction_with_path[p]/totalInteraction) #the number of times we expect to find this intermediary in this path
@@ -688,7 +688,9 @@ def dispatch_contigs(touchedContigs, contacts, interactionMatrix, names, haploid
         #now compute the hard limit, if it exists :
         if confidentCoverage :
             if intercontig.length > 100000 :
-                hardlimits[intercontig] = int(1.3*estimate)
+                hardlimits[intercontig] = max(multiplicity, int(1.3*intercontig.depth / refCoverage))
+                # if any(['edge_344' in i for i in intercontig.names]) :
+                #     print("Hard limit of edge 344 is : ", hardlimits[intercontig], '                            ')
             
         # if 'edge_101' in intercontig.names :
         #     print("Here is the repartition of contig 111 ", repartitionOfContigs[intercontig], " among the paths ", contacts)
@@ -707,11 +709,12 @@ def dispatch_contigs(touchedContigs, contacts, interactionMatrix, names, haploid
                     
     return repartitionOfContigs, hardlimits
   
-#input : a list of decisions that can be made for each path and the ideal repartition of intermediary contigs
+#input : a list of decisions that can be made for each path and the ideal repartition of intermediary contigs. All this within a knot
 #output : a proposition of a set of good paths to untangle the knot 
 def find_best_paths(alldecisions, repartitionOfContigs, hardlimits, segments, contacts, haploidContigs) :
     
     resultPaths = []
+    intercontigCount = {i:0 for i in repartitionOfContigs.keys()} #to count how many times each intercontig appears, to see if we violated a hard limit
     for p, path in enumerate(contacts) :
         
         segment1 = haploidContigs[path[0]//2]
@@ -725,7 +728,7 @@ def find_best_paths(alldecisions, repartitionOfContigs, hardlimits, segments, co
             best_path_coming_from_there[(intermediary,0)] = (-10000000000, '', {i:0 for i in repartitionOfContigs.keys()})
             best_path_coming_from_there[(intermediary,1)] = (-10000000000, '', {i:0 for i in repartitionOfContigs.keys()})
         best_path_coming_from_there[(segment1, 1-end1)] = (-10000000000, '', {i:0 for i in repartitionOfContigs.keys()})
-        best_path_coming_from_there[(segment2, end2)] = (0, '<>'[end2]+segment2.full_name(), {i:0 for i in repartitionOfContigs.keys()}) #this is the start point of the exploration
+        best_path_coming_from_there[(segment2, end2)] = (0, '<>'[end2]+segment2.full_name()+str(int(segment2.ID*1000)), {i:0 for i in repartitionOfContigs.keys()}) #this is the start point of the exploration
             
         list_of_new_paths_to_check = [(segment2, end2)] #start from there
         while len(list_of_new_paths_to_check) > 0 :
@@ -748,13 +751,13 @@ def find_best_paths(alldecisions, repartitionOfContigs, hardlimits, segments, co
                     else : #if we have no information on this contig, the contig is weightless
                         potentialScore = best_path_coming_from_there[(segment,end)][0]
                     
-                    if potentialScore > best_path_coming_from_there[(neighbor, 1-otherEnd)][0] : #and not (neighbor in hardlimits and best_path_coming_from_there[(segment,end)][2][neighbor] + 1 > hardlimits[neighbor]): #be careful not to violate haredlimits
+                    if potentialScore > best_path_coming_from_there[(neighbor, 1-otherEnd)][0] :
                         
                         if neighbor.ID != segment1.ID or otherEnd != end1 :
                             new_list_of_new_paths_to_check += [(neighbor, 1-otherEnd)]
                             list_of_check_scores += [potentialScore]
                         
-                        newpath = best_path_coming_from_there[(segment, end)][1] + '<>'[1-otherEnd] + neighbor.full_name()
+                        newpath = best_path_coming_from_there[(segment, end)][1] + '<>'[1-otherEnd] + neighbor.full_name() + str(int(neighbor.ID*1000))
                         #newdict = {i:best_path_coming_from_there[(segment,end)][2][i] for i in repartitionOfContigs.keys()}
                         newdict = best_path_coming_from_there[(segment,end)][2].copy()
                         newdict[neighbor] += 1
@@ -764,10 +767,20 @@ def find_best_paths(alldecisions, repartitionOfContigs, hardlimits, segments, co
             best_paths.sort(reverse = True, key = lambda x : list_of_check_scores[x])
             list_of_new_paths_to_check = [new_list_of_new_paths_to_check[i] for i in best_paths[:1000]] #only explore the 1000 best paths, it is largely sufficient
         
-        if not best_path_coming_from_there[(segment1, 1-end1)][0] == -10000000000 : #that would mean a hard limit has been violated
-            resultPaths += [best_path_coming_from_there[(segment1, 1-end1)][1]]
+        resultPaths += [best_path_coming_from_there[(segment1, 1-end1)][1]]
         
+        #count the contigs (for hard limits) :
+            
+        counts = best_path_coming_from_there[(segment1, 1-end1)][2]
+        for c in counts.keys() :
+            intercontigCount[c] += counts[c]
+            
         #print("Best path to go from ", segment2.names, " to ", segment1.names, " is ", resultPaths[-1])
+    
+    #check if any hard limit has not been violated. If one has, declare the knot unsolved
+    for c in intercontigCount.keys() :
+        if c in hardlimits and intercontigCount[c] > hardlimits[c] : #oops
+            return []
     
     return resultPaths
 
@@ -777,7 +790,7 @@ def untangle_knots(untangled_paths, segments, haploidContigs, confidentCoverage)
     
     fullnames = {}
     for s, seg in enumerate(segments) :
-        fullnames[seg.full_name()] = s
+        fullnames[seg.full_name()+str(int(seg.ID*1000))] = s
         
     numberOfSegments_start = len(segments)
         
@@ -878,8 +891,8 @@ def untangle_knots(untangled_paths, segments, haploidContigs, confidentCoverage)
                     add_link(segments[-1], end1, segments[newContigsIndices[c-1]], end0, CIGAR)
                     
                     #now that we have created another contig, the old one should be deleted at the end
-                    toDelete.add(segments[fullnames[contig.full_name()]])
-                    if len(segments[fullnames[contig.full_name()]].links[0]) + len(segments[fullnames[contig.full_name()]].links[1]) > 0 : #if it's = 0, it touches both ends and thus the contig was reconstructed identically 
+                    toDelete.add(segments[fullnames[contig.full_name()+str(int(contig.ID*1000))]])
+                    if len(segments[fullnames[contig.full_name()+str(int(contig.ID*1000))]].links[0]) + len(segments[fullnames[contig.full_name()+str(int(contig.ID*1000))]].links[1]) > 0 : #if it's = 0, it touches both ends and thus the contig was reconstructed identically 
                         go_on += 1
                     
                 elif c>0 and c == len(contigs) -1 : #then do not duplicate the segment, but do link it
