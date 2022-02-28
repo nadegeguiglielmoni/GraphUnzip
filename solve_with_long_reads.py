@@ -37,7 +37,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
         read_TSV(gafFile, names, lines)
         print("Finished going through the tsv file.")
     else :
-        print("ERROR: input format of mapped read not recognized. It should be .gfa or .gpa")
+        print("ERROR: input format of mapped read not recognized. It should be .gaf (from GraphAligner) or .tsv (from SPAligner)")
         sys.exit()
     
     #determine an approximate list of contigs that look haploid

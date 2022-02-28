@@ -586,7 +586,7 @@ def load_gfa(file):
 
     gfa_read.close()
     
-    delete_links_present_twice(segments)
+    #delete_links_present_twice(segments)
 
     return segments, names
 

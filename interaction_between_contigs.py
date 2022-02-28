@@ -82,6 +82,8 @@ def compute_commonContigs(segment, candidateSegments, listOfNeighborEnds, depth)
         listOfTouchedContig += [set()]
         for comm in vicinityContigs :
             listOfTouchedContig[-1].add(comm.split('$:')[0])
+        # if '259' in candidateSegments[n].names :
+        #     print("interac 259 : ", listOfTouchedContig[-1])
         
     commonContigs = set.intersection(*listOfTouchedContig)
     
@@ -95,11 +97,10 @@ def compute_commonContigs(segment, candidateSegments, listOfNeighborEnds, depth)
 def propagate_vicinity(segment, endOfSegment, vicinityContigs, depth, limitDepth, recursionDepth, recursionLimit) :
     
     if depth > limitDepth or recursionDepth >= recursionLimit :
-        return 0
+        pass
     else :
         for name in segment.names :
             vicinityContigs.add(name+"$:"+str(endOfSegment)+"$:"+str(segment.ID))
         for n, neighbor in enumerate(segment.links[1-endOfSegment]):
             if neighbor.names[0]+"$:"+str(segment.otherEndOfLinks[1-endOfSegment][n])+"$:"+str(neighbor.ID) not in vicinityContigs :
                 propagate_vicinity(neighbor, segment.otherEndOfLinks[1-endOfSegment][n], vicinityContigs, depth+segment.length , limitDepth, 1+recursionDepth, recursionLimit)
-        return 0

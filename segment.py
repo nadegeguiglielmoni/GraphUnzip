@@ -614,12 +614,15 @@ def check_if_all_links_are_sorted(listOfSegments) :
 #funtion to delete links that are present twice in the graph (often because they are present twice in the gfa)
 def delete_links_present_twice(segments):
     
-
+    #print("Remove link present twice")
+    removed = 0
+    total = 0
     for segment in segments :
         toBeRemoved = []
         for endOfSegment in range(2) :
             
             for n1 in range(len(segment.links[endOfSegment])-1) :
+                total += 1
                 
                 for n2 in range(n1+1, len(segment.links[endOfSegment])) :
                     
@@ -627,9 +630,12 @@ def delete_links_present_twice(segments):
                         
                         segment.links[endOfSegment][n2].remove_end_of_link(segment.otherEndOfLinks[endOfSegment][n2], segment, endOfSegment)
                         toBeRemoved += [[endOfSegment, segment.links[endOfSegment][n2], segment.otherEndOfLinks[endOfSegment][n2]]]
-
+                        removed += 1
+                    
         for r in toBeRemoved :
             segment.remove_end_of_link(r[0], r[1], r[2])
+            
+    #print("Removed ", removed , " links out of ", total, " because they were redundant")
 
 
 ## A few lines to test the functions of the file

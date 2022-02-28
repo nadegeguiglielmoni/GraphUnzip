@@ -24,6 +24,10 @@ def determine_multiplicity(segments, names, supported_links, reliable_coverage=T
             weightedNumberOfRefContigs += s.length
             refCoverages += s.length * s.depths[0]
 
+    #make an exception for over-complicated graphs : all multiplicities of one
+    if len(segments) > 100 and refCoverages == 0 :
+        return 1, [1 for i in range(len(segments))]
+
     #print(len(segments), refCoverages, weightedNumberOfRefContigs)
     refCoverage = refCoverages / weightedNumberOfRefContigs
     
