@@ -12,7 +12,7 @@ Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/l
 
 ## Installation
 
-`GraphUnzip` requires python3 with numpy and scipy, you can install them using `pip install`.
+`GraphUnzip` requires python3 with numpy and scipy, you can install them using `pip install`. To use linked reads you'll also need pysam.
 `GraphUnzip` requires no installation. To run `GraphUnzip`, clone this repo using `git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git`, and simply run `graphunzip.py`
 
 ## Usage

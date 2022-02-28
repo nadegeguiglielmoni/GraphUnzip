@@ -122,7 +122,7 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
               
     solvedKnots = [0]  
     go_on = 1
-    limit = 2
+    limit = 10
     limit_counter = 0
     while go_on > 0 and limit_counter < limit: 
         
@@ -537,7 +537,7 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
     
     for kn, k in enumerate(solvedKnots) :
         
-        print("Found the path for ", float(kn)/len(solvedKnots), "% of the knots", end = '\r')
+        print("Found the path for ", float(kn)/len(solvedKnots)*100, "% of the knots", end = '\r')
         
         untangled_paths += [[]]
         

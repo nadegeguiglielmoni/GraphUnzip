@@ -118,7 +118,7 @@ def read_GAF(gafFile,similarity_threshold, whole_mapping_threshold, lines) : #a 
     gaf = open(gafFile, 'r')
     
     for line in gaf :
-        ls = line.split('\t')
+        ls = line.strip('\n').split('\t')
         path = ls[5] # in GAF format, the 6th column is the path on which the read matched
         
 
@@ -137,7 +137,7 @@ def read_TSV(tsv_file, names, lines):
     tsv = open(tsv_file, 'r')
     
     for line in tsv :
-        ls = line.split('\t')
+        ls = line.strip('\n').split('\t')
         
         alns = ls[6].split(';')
         
@@ -161,60 +161,52 @@ def read_TSV(tsv_file, names, lines):
     
 def linkedReads_interactionMatrix(sam, names):
     
-    interactionMatrix = sparse.dok_matrix((len(names), len(names)))
+    import pysam
     
+    interactionMatrix = sparse.dok_matrix((len(names), len(names)))
     contigsInTag = []
     tags = {}
     numbertag = 0
-    
-    f = open(sam)
+    samfile = pysam.AlignmentFile(sam, "r") # For bam files need to be indexed (faster access)!
+    # NOTE: names can also be found in samfile.reference_names from the .BAM header
+
+    possible_tags = ["BX", "BC"]
     l = 0
-        
-    for line in f :
-        
-        if '@' not in line[0] : #we check that the line is not a part of a header but actual alignment
-        
-            ls = line.split('\t')
-            if ls[2] in names : #that means it matched to a contig in the graph
-                contig = names[ls[2]]
-                
-                ls = line.strip('\n').split('BX:Z:')
-                if len(ls) == 1 :
-                    ls = line.strip('\n').split('BC:Z:')
-                if len(ls) > 1 :
-                    tag = ls[1].split('\t')[0]
-                    
-                    if tag in tags :
-                        contigsInTag[tags[tag]].append(contig)
-                        
-                    else :
-                        tags[tag] = numbertag
-                        contigsInTag += [[contig]]
-                        
-                        numbertag += 1
-                    
-                else:
-                    if l < 10 :
-                        print("Barcode could not be extracted from line ", line, ", ignoring the line, are you sure the BX:Z: tags are there ?")
-                        l += 1 #just print 10 such lines, the user has understood
-                    if l==9 :
-                        print("Other such lines with unextratable barcodes are present, but I will stop displaying them, I think you get the idea")
-    
-    #now convert contigsInTag into an interaction Matrix
-    print(contigsInTag)
+    # NOTE: for a bam file, the reads are NOT read in the order they come up in the file but ordered by reference seq
+    for record in samfile.fetch() :
+        # no need to check for header, it is parsed in the AlignmentFile object
+        ref_name = record.reference_name
+
+        if ref_name in names : #that means it matched to a contig in the graph
+            contig = names[ref_name]
+
+            barcode = None
+            for tag in possible_tags :
+                if not record.has_tag(tag) :
+                    continue
+                else :
+                    barcode = record.get_tag(tag)
+                    #print(barcode)
+                    break
+            else : # in case barcode is not found (no break statement reached in for loop)
+                if l < 10 :
+                    print("Barcode could not be extracted from record ", record, ", ignoring...")
+                    l += 1
+                if l == 9 :
+                    print("Other such lines with unextratable barcodes are present, but I will stop displaying them, I think you get the idea")
+                continue # continue the for record loop
+
+            if barcode in tags :
+                contigsInTag[tags[barcode]].append(contig)
+            else :
+                tags[tag] = numbertag
+                contigsInTag += [[contig]]
+                numbertag += 1
+
     for t in contigsInTag :
         for i in range(len(t)) :
-            
             for j in range(len(t)) :
-                
                 interactionMatrix[t[i],t[j]] += 1
-
-    # for i in range (len(names)) :
-    #     
-    #     for j in range(len(names)) :
-    #         
-    #         print(interactionMatrix[i,j])
-    #     print()
     
     return interactionMatrix
 

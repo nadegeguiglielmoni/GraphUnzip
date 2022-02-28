@@ -359,7 +359,6 @@ def main():
         if uselr :
             print("\n*Untangling the graph using long reads*\n")
             segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, multiplicities, exhaustive)
-            #segments = bridge_with_long_reads2(segments, names, lrFile, reliableCoverage, cn, verbose)
             print("Merging contigs that can be merged...")
             merge_adjacent_contigs(segments)
             print("\n*Done untangling the graph using long reads*\n")
