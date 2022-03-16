@@ -518,6 +518,8 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
     if self_loop_CIGAR != '' :
         add_link(newSegment, 0, newSegment, 1, self_loop_CIGAR)
 
+
+
 #function creating a link between two ends of contigs, OUTSIDE of the class
 def add_link(segment1, end1, segment2, end2, CIGAR = '*'):
     segment1.add_end_of_link(end1, segment2, end2, CIGAR)

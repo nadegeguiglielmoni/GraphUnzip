@@ -23,7 +23,7 @@ import segment as sg
 #Master function of the file
 #Input : initial gfa (as a list of segments), a GAF file with long reads mapped to the segments, names (which is an index numbering the contig), multiplicity : the pre-computed ploidy of each contig (as numbered in names), exhaustive : if you want to delete all links not found in the .gaf
 #Output : new gfa (as a list of segments) corrected with long reads, and modified copiesnumber (taking into account contigs that have been duplicated)
-def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_links2, multiplicities, exhaustive):
+def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_links2, multiplicities, exhaustive, extract=False):
     
     supported_links = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links is the list of the links between different contigs found in the gaf file
     
@@ -39,6 +39,7 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     else :
         print("ERROR: input format of mapped read not recognized. It should be .gaf (from GraphAligner) or .tsv (from SPAligner)")
         sys.exit()
+        
     
     #determine an approximate list of contigs that look haploid
     haploidContigs, haploidContigsNames = determine_haploid_contigs(lines, segments, names)
@@ -55,15 +56,24 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     # print("Bridge 1756 : ", bridges[haploidContigsNames['1756']])
     
     #if exhaustive, delete all links not found in the .gaf
+    #if we're in "extract" mode, all contigs that are not present in the gafFile can be deleted
+    toDeleteExtract = set()
     if exhaustive : 
         for s in segments :
+            contigConfirmed = False
             for end in range(2):
                 index = 0
                 while index < len(s.links[end]) :
                     if minimum_supported_links[2*names[s.names[0]]+end, 2*names[s.links[end][index].names[0]]+s.otherEndOfLinks[end][index]] == 0 :
                         sg.delete_link(s, end, s.links[end][index], s.otherEndOfLinks[end][index], warning = True)
                     else :
-                        index += 1
+                        index += 1  
+                        contigConfirmed = True
+                        
+            if extract and not contigConfirmed :
+                toDeleteExtract.add(s)
+                
+                
     
     #now, from all the bridges, build consensus bridges
     consensus_bridges = [['',''] for i in range(len(haploidContigs))] #consensus bridge is essentially the same as bridges, except there is only one bridge left at each side for each contig
@@ -128,6 +138,18 @@ def bridge_with_long_reads(segments, names, copiesnumber, gafFile, supported_lin
     print("Now we correct the last quirks by looking a posteriori at the graph               ")
     merge_adjacent_contigs(segments)
     trim_tips(segments, multiplicities, names, haploidContigsNames, supported_links2, exhaustive)
+    
+    
+    #if extract, delete all the segments that are not in the gaf file
+    if extract :
+        index = 0
+        while index < len(segments) :
+            s = segments[index]
+            if s in toDeleteExtract :
+                s.cut_all_links()
+                del segments[index]
+            else :
+                index += 1
     
         
     #print(non_overlapping_bridges)

@@ -28,9 +28,53 @@ import time
 def parse_args_command() :
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", help="Either unzip, HiC-IM (to prepare Hi-C data) or linked-reads-IM (to prepare linked reads data)")
+    parser.add_argument("command", help="Either unzip, extract, HiC-IM (to prepare Hi-C data) or linked-reads-IM (to prepare linked reads data)")
     
     return parser.parse_args(sys.argv[1:2])
+
+
+def parse_args_extract():
+    """ 
+	Gets the arguments from the command line.
+	"""
+
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("-g", "--gfa", required=True,  help="""GFA file from which the assembly will be extracted (required)""")
+    
+    parser.add_argument(
+        "-l",
+        "--genome", required=True, help="""Genome mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) (required)""")
+    
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=False,
+        default="output.gfa",
+        help="""Output the GFA assemby of the genome [default: output.gfa]""",
+    )
+    parser.add_argument(
+        "-f",
+        "--fasta_output",
+        required=False,
+        default="None",
+        help="""Optional fasta output [default: None]""",
+    )
+    
+    parser.add_argument(
+        "-r",
+        "--dont_rename",
+        action="store_true",
+        help="""Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs""")
+    
+    parser.add_argument(
+        "--dont_merge",
+        required=False,
+        action="store_true",
+        help="""If you don't want the output to have all possible contigs merged""",
+    )
+    
+    return parser.parse_args(sys.argv[2:])
 
 def parse_args_unzip() :
     
@@ -252,6 +296,53 @@ def main():
         print("Exporting barcoded interaction matrix as ", outputIMT)
         with open(outputIMT, "wb") as o:
             pickle.dump(tagInteractionMatrix, o)
+            
+    elif command == 'extract' :
+        
+        args = parse_args_extract()
+
+        gfaFile = args.gfa
+        outFile = args.output
+        fastaFile = args.fasta_output
+        
+        lrFile = args.genome
+        
+        rename = not args.dont_rename
+        merge = not args.dont_merge
+        
+        # Loading the data
+        print("Loading the GFA file")
+        segments, names = io.load_gfa(
+            gfaFile
+        )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
+        if len(segments) == 0 :
+            print("ERROR: could not read the GFA")
+            sys.exit()
+            
+        #creating copiesnuber (cn), a dictionnary inventoring how many times each contig appears
+        cn = {}
+        for segment in segments :
+            for name in segment.names :
+                cn[name] = 1
+        
+        print("================\n\nEverything loaded, moving on to untangling the graph\n\n================")
+        
+        supported_links2 = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links considering the topography of the graph
+        refHaploidy, multiplicities = determine_multiplicity(segments, names, supported_links2, reliable_coverage=False) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
+
+        segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, multiplicities, exhaustive=True, extract=True)
+        print("Merging contigs that can be merged...")
+        merge_adjacent_contigs(segments)
+        print("\n*Done extracting the genome*\n")
+        
+        # now exporting the output  
+        print("Now exporting the result")
+        io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge, rename_contigs=rename)
+    
+        if fastaFile != "None":
+            io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)
+    
+        print("Finished in ", time.time() - t, " seconds")
 
     elif command == 'unzip' :
         
@@ -344,7 +435,7 @@ def main():
 
         print("================\n\nEverything loaded, moving on to untangling the graph\n\n================")
         
-        #creating copiesnuber (cn), a dictionnary inventoring how many times 
+        #creating copiesnuber (cn), a dictionnary inventoring how many times each contig appears
         cn = {}
         for segment in segments :
             for name in segment.names :
