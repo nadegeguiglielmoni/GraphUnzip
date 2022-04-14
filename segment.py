@@ -188,8 +188,8 @@ class Segment:
 
     #other functions that handle segments
     
-    #function which goals is to return the intensity of Hi-C contacts between another segment and this one
-    def interaction_with_contigs(self, segment, interactionMatrix, names, copiesnumber = None, commonContigs = set(), bestSignature = 1000):
+    #function which goals is to return the intensity of Hi-C contacts between half of another segment and half of this one
+    def interaction_with_contigs(self, selfend, segment, segmentend, interactionMatrix, names, copiesnumber = None, commonContigs = set(), bestSignature = 1000):
         
         if copiesnumber == None :
             copiesnumber = [1 for i in interactionMatrix]
@@ -209,17 +209,30 @@ class Segment:
         #     return 0, 0, 1
             
         depth = 1
-        #first compute interactions with self
+        posself = 0.0
         for co, contig in enumerate(self.names) :
-                 
+            
+            posneighbor = 0.0
             for c, contigInSegment in enumerate(segment.names):
+                           
+                #ponderate the total interaction by the position in the contig
+                
+                
+                totalInteraction = interactionMatrix[names[contig]*2, names[contigInSegment]*2]\
+                    + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2]\
+                    + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2+1]\
+                    + interactionMatrix[names[contig]*2, names[contigInSegment]*2+1]
+                
                 
                 if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
-                    
-                    absoluteScore += interactionMatrix[names[contig], names[contigInSegment]]
-                    relativeScore += interactionMatrix[names[contig], names[contigInSegment]]
+                    absoluteScore += totalInteraction
+                    relativeScore += totalInteraction
                 else:
-                    absoluteScore += interactionMatrix[names[contig], names[contigInSegment]]
+                    absoluteScore += totalInteraction
+                    
+                posneighbor += segment.lengths[c]
+                
+            posself += self.lengths[co]
                                         
         # #now compute the interaction with neighbors of self 
         # endOfSegment = 1-orientation

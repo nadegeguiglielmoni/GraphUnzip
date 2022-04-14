@@ -35,9 +35,9 @@ def read_fragment_list(file, header=True):
     # parsing
     # 1: contig_id, 2: fragment_start, 3: fragment_end, 4: fragment_length
     content = [x.strip("\n").split("\t") for x in content]
-    content = [[x[1], int(x[2]), int(x[3]), int(x[4])] for x in content]
+    res = [[x[1], int(x[2]), int(x[3]), int(x[4])] for x in content]
 
-    return content
+    return res
 
 def read_info_contig(file):
 
@@ -51,6 +51,8 @@ def read_info_contig(file):
 
     return content
 
+#input : output of hicstuff
+#output : a matrix of interaction between the ends of each contig
 def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=True):  # the header refers to the hiccontactsfile
 
     print('Building the interaction matrix')
@@ -59,7 +61,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
     # 1 -> [1...N] N contigs
     # ...
     # N -> [1...N]
-    interactionMatrix = sparse.dok_matrix((len(segments), len(segments)))
+    interactionMatrix = sparse.dok_matrix((len(segments)*2, len(segments)*2))
 
 
     with open(hiccontactsfile) as f:
@@ -87,17 +89,24 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
 
         # search for the index of the contigs in names 
         if contig1 in names and contig2 in names :
-            index1 = names[contig1]
-            index2 = names[contig2]
-            
-            if index1 != index2 :
+            if fragmentList[contact[0]][1] <= segments[names[contig1]].length :  #if this fragment is more at the left of the contig
+                index1 = names[contig1]*2
+            else : #if the fragment is more at the right of the contig
+                index1 = names[contig1]*2+1
+                
+            if fragmentList[contact[1]][1] <= segments[names[contig2]].length :  #if this fragment is more at the left of the contig
+                index2 = names[contig2]*2
+            else : #if the fragment is more at the right of the contig
+                index2 = names[contig2]*2+1
+                            
+            if contig1 != contig2 :
                 # add contacts to interaction matrix
                 interactionMatrix[index1,index2] += contact[2]
                 interactionMatrix[index2,index1] += contact[2]
                 
                 #adds the HiC coverage to the right contigs
-                segments[index1].HiCcoverage += contact[2]
-                segments[index2].HiCcoverage += contact[2]
+                segments[names[contig1]].HiCcoverage += contact[2]
+                segments[names[contig2]].HiCcoverage += contact[2]
                 
         else :
             unknowncontacts += 1
@@ -215,8 +224,9 @@ def load_interactionMatrix(file, listOfSegments, names, HiC = False) :
     f = open(file, 'rb')
     interactionMatrix  = pickle.load(f)
     
-    if interactionMatrix.shape != (len(listOfSegments), len(listOfSegments)) :
-        print("ERROR: the interaction matrix provided ( ",file," ) does not seem to match with the GFA file (different number of contigs). Exiting")
+    if interactionMatrix.shape != (len(listOfSegments)*2, len(listOfSegments)*2) :
+        print("ERROR: the interaction matrix provided ( ",file," ) does not seem to match with the GFA file (different number of contigs). \
+              The format of interaction matrices have changed since April 2022: you may want to re-run graphunzip HiC-IM. Exiting")
         sys.exit(1)
     
     if HiC :

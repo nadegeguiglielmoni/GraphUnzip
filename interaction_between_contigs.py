@@ -48,9 +48,9 @@ def interactions_with_neighbors(
     
     absoluteScores = []
 
-    for c in candidateSegments:
+    for ca, c in enumerate(candidateSegments):
                 
-        absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(segment, interactionMatrix, names, copiesnumber, commonContigs, bestSignature)
+        absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(endOfSegment, segment, listOfNeighborEnds[ca], interactionMatrix, names, copiesnumber, commonContigs, bestSignature)
             
         if all([i in commonContigs for i in c.names]) :
             returnRelativeScore = False #if a contig is entirely contained in commonContigs, don't say that his score is 0, that would lead to errors
