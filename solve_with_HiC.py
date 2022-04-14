@@ -145,6 +145,13 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         print("Determining the list of all knots of the graph that I will try to solve")
         list_of_knots, list_of_neighbors, knotOfContig, haploidContigs, haploidContigsNames = determine_list_of_knots(segments, haploidContigs, haploidContigsNames, normalInteractions, names, verbose)
         
+        # for kn, knot in enumerate(list_of_knots) :
+            
+        #     for s in knot :
+        #         if 'edge_107' in haploidContigs[s//2].names :
+        #             print("\nIn the knot :", [haploidContigs[i//2].names for i in knot])
+        #             #print(untangled_paths[kn])
+        
         
         #try to know what haploid contigs go together
         contacts = [[] for i in range(len(list_of_knots))]
@@ -155,14 +162,7 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         
         
         untangled_paths = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, normalInteractions, names, confidentCoverage, verbose)
-        
-        # for kn, k in enumerate(solvedKnots) :
-            
-        #     knot = list_of_knots[k]
-        #     for s in knot :
-        #         if 'edge_128' in haploidContigs[s//2].names :
-        #             print("\nIn the knot :", [haploidContigs[i//2].names for i in knot], " ", k in solvedKnots)
-        #             print(untangled_paths[kn])
+    
         
         # for k in untangled_paths :
         #     for p in k :
@@ -432,7 +432,7 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
                 if interactions == [-1] and verbose :
                     print ("Did not manage to compute interactions from ", haploidContigs[end//2].names, " to ", [haploidContigs[i//2].names for i in list_of_neighbors[end]])
                 
-                # if 'edge_128' in haploidContigs[end//2].names or 'edge_129' in haploidContigs[end//2].names or 'edge_290' in haploidContigs[end//2].names or 'edge_289' in haploidContigs[end//2].names:
+                # if 'edge_107' in haploidContigs[end//2].names : #or 'edge_129' in haploidContigs[end//2].names or 'edge_290' in haploidContigs[end//2].names or 'edge_289' in haploidContigs[end//2].names:
                 #     print("Looking at interaction from contig ", haploidContigs[end//2].full_name(), " and here are its interactions: ", interactions, k)
                 
                 m = max(interactions)
@@ -472,7 +472,7 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
                         contacts[k].remove(contact)
                 
                 solvedKnots += [k]
-                if verbose : # or any(["edge_129" in haploidContigs[i//2].names for i in knot]):
+                if verbose or any(["edge_107" in haploidContigs[i//2].names for i in knot]):
                     print("We solved knot ", [haploidContigs[i//2].names for i in knot], '\n')
                     for contact in contacts[k] :
                         print(haploidContigs[contact[0]//2].names, " -> ", haploidContigs[contact[1]//2].names)
@@ -561,11 +561,14 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
             confidentUntangle = confidentUntangle and not loopsInPath
             alldecisions.append(decisions)
             
-            # print("The knot is : ", [haploidContigs[i//2].names for i in knot], k)
-            # print("Here are the decisions I can make to go from contig ", haploidContigs[path[0]//2].full_name(), " to ", haploidContigs[path[1]//2].full_name())
-            # print(decisions)
-        # if 'edge_203' in haploidContigs[path[0]//2].names or 'edge_72' in haploidContigs[path[1]//2].names :
-        #     print("Path going from ", haploidContigs[path[0]//2].names, " to ", haploidContigs[path[1]//2].names, " contain a loop ", confidentUntangle)
+            if 'edge_107' in haploidContigs[path[0]//2].names or 'edge_107' in haploidContigs[path[1]//2].names :
+                print("Path going from ", haploidContigs[path[0]//2].names, " to ", haploidContigs[path[1]//2].names, " contain a loop ", loopsInPath)
+            
+                print("The knot is : ", [haploidContigs[i//2].names for i in knot], k)
+                print("Here are the decisions I can make to go from contig ", haploidContigs[path[0]//2].full_name(), " to ", haploidContigs[path[1]//2].full_name())
+                print([i[0].names[0]+":"+str(decisions[i]) for i in decisions])
+                #print(decisions)
+
 
         if not confidentUntangle and verbose :
             print("Path going from ", haploidContigs[path[0]//2].names, " to ", haploidContigs[path[1]//2].names, " contain a loop, I need to be confident about the coverage to solve this")
@@ -594,16 +597,18 @@ def find_decisions_on_path(segment1, end1, segment2, end2, haploidContigsNames, 
     loop = [False] #loop is a list of one bool : since it is a list, it is a mutable type (yes, this is very dirty)
     
     touchingSegment1 = set() #a set of tuple (contig ID, end of contig) from which it is possible to reach segment 1 
-    reachable_from_segment1(segment1, end1, haploidContigsNames, touchingSegment1, loop)
+    path = set()
+    path.add((segment1, end1))
+    reachable_from_segment1(segment1, end1, haploidContigsNames, touchingSegment1, path, loop)
         
     decisions = {} #decisions is a dict : for each end of each intermediary contig, there is a list of possible (neighbor,end), gives you all the neighbor indices you can choose to go from 2 to 1
     backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, decisions, touchedContigs, indexOfPath)
       
     return decisions, loop[0]
 
-#input : a knot and an end of segment
+#input : a knot, an end of segment, the path used to arrive there
 #output : all the segments that can be reached from segment1 and from which end (in form of a set of tuple (ID, end))
-def reachable_from_segment1(segment1, end1, haploidContigsNames, reachable, loop) :
+def reachable_from_segment1(segment1, end1, haploidContigsNames, reachable, path, loop) :
         
     for n, neighbor in enumerate(segment1.links[end1]) :
         
@@ -612,10 +617,14 @@ def reachable_from_segment1(segment1, end1, haploidContigsNames, reachable, loop
         if (neighbor.full_name(), otherEnd) not in reachable and neighbor.full_name() not in haploidContigsNames :
         
             reachable.add((neighbor.full_name(), otherEnd))
-            reachable_from_segment1(neighbor, 1-otherEnd, haploidContigsNames, reachable, loop)
+            newPath = path.copy()
+            newPath.add((neighbor, 1-otherEnd))
+            reachable_from_segment1(neighbor, 1-otherEnd, haploidContigsNames, reachable, newPath, loop)
             
         elif (neighbor.full_name(), otherEnd) in reachable :
-            loop[0] = True
+            #then check if that's not a loop, i.e. neighbor is not on path
+            if (neighbor, 1-otherEnd) in path :
+                loop[0] = True
                                 
 #input : all the contigs reachable from segment1
 #output : all the decisions with which you can go from segment2 to segment 1, and touchedContigsCompleted with indexOfPath
