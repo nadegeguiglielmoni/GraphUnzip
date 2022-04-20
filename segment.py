@@ -196,43 +196,45 @@ class Segment:
             
         absoluteScore = 0
         relativeScore = 0
-        
-        # orientation = -1 # if supercontig is directly linked to the candidates, then this variable tells us by which end
-        
-        # if segment in self.links[0]:
-        #     orientation = 0
-        # elif segment in self.links[1]:
-        #     orientation = 1
-        # else: 
-        #     print('ERROR : trying to compute an interaction but the contigs do not touch each other')
-        #     print('Looking for ', self._namesOfContigs, ' from ', segment.names)
-        #     return 0, 0, 1
+
             
         depth = 1
         posself = 0.0
+        halfself = self.length / 2
+        halfneighbor = segment.length / 2
+        
         for co, contig in enumerate(self.names) :
             
-            posneighbor = 0.0
-            for c, contigInSegment in enumerate(segment.names):
-                           
-                #ponderate the total interaction by the position in the contig
+            for endself in range(2) :
                 
+                posselfend = posself + abs(self.orientations[co]+endself-1) *self.lengths[co]
+                if  abs(selfend * self.length - posselfend) < halfself or True: 
                 
-                totalInteraction = interactionMatrix[names[contig]*2, names[contigInSegment]*2]\
-                    + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2]\
-                    + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2+1]\
-                    + interactionMatrix[names[contig]*2, names[contigInSegment]*2+1]
-                
-                
-                if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
-                    absoluteScore += totalInteraction
-                    relativeScore += totalInteraction
-                else:
-                    absoluteScore += totalInteraction
+                    posneighbor = 0.0
+                    for c, contigInSegment in enumerate(segment.names):
+                                                   
+                        for endsegment in range(2) :
+                        
+                            posneighborend = posneighbor + abs(segment.orientations[c]+endsegment-1) *segment.lengths[c]
                     
-                posneighbor += segment.lengths[c]
-                
-            posself += self.lengths[co]
+                            if abs(segmentend * segment.length - posneighborend) < halfneighbor or True:
+                                
+                            
+                                interaction = interactionMatrix[names[contig]*2+endself, names[contigInSegment]*2+endsegment]
+                                # print(self.names," ", posneighborend, " ", halfneighbor, " ", segmentend, " ",  abs(segmentend * segment.length - posneighborend) < halfneighbor , " ", segment.names)
+                                # print(interaction, " ", interactionMatrix[names[contig]*2, names[contigInSegment]*2]+interactionMatrix[names[contig]*2, names[contigInSegment]*2+1]\
+                                #       + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2+1] + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2])
+                                
+                                
+                                if contig not in commonContigs and copiesnumber[contigInSegment] <= bestSignature:
+                                    absoluteScore += interaction
+                                    relativeScore += interaction
+                                else:
+                                    absoluteScore += interaction
+                            
+                        posneighbor += segment.lengths[c]
+                    
+                posself += self.lengths[co]
                                         
         # #now compute the interaction with neighbors of self 
         # endOfSegment = 1-orientation

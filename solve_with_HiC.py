@@ -110,7 +110,7 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         haploidContigs_set.remove(i)
     haploidContigs = list(haploidContigs_set)
     
-    print("Haploid contigs are : ", [i.full_name() for i in haploidContigs])
+    #print("Haploid contigs are : ", [i.full_name() for i in haploidContigs])
     
         
     #now all haploid contigs have been determined    
@@ -472,7 +472,7 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
                         contacts[k].remove(contact)
                 
                 solvedKnots += [k]
-                if verbose or any(["edge_107" in haploidContigs[i//2].names for i in knot]):
+                if verbose :
                     print("We solved knot ", [haploidContigs[i//2].names for i in knot], '\n')
                     for contact in contacts[k] :
                         print(haploidContigs[contact[0]//2].names, " -> ", haploidContigs[contact[1]//2].names)
@@ -561,12 +561,12 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
             confidentUntangle = confidentUntangle and not loopsInPath
             alldecisions.append(decisions)
             
-            if 'edge_107' in haploidContigs[path[0]//2].names or 'edge_107' in haploidContigs[path[1]//2].names :
-                print("Path going from ", haploidContigs[path[0]//2].names, " to ", haploidContigs[path[1]//2].names, " contain a loop ", loopsInPath)
+            # if 'edge_289' in haploidContigs[path[0]//2].names or 'edge_289' in haploidContigs[path[1]//2].names :
+            #     print("Path going from ", haploidContigs[path[0]//2].names, " to ", haploidContigs[path[1]//2].names, " contain a loop ", loopsInPath)
             
-                print("The knot is : ", [haploidContigs[i//2].names for i in knot], k)
-                print("Here are the decisions I can make to go from contig ", haploidContigs[path[0]//2].full_name(), " to ", haploidContigs[path[1]//2].full_name())
-                print([i[0].names[0]+":"+str(decisions[i]) for i in decisions])
+                # print("The knot is : ", [haploidContigs[i//2].names for i in knot], k)
+                # print("Here are the decisions I can make to go from contig ", haploidContigs[path[0]//2].full_name(), " to ", haploidContigs[path[1]//2].full_name())
+                # print([i[0].names[0]+":"+str(decisions[i]) for i in decisions])
                 #print(decisions)
 
 

@@ -89,12 +89,12 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
 
         # search for the index of the contigs in names 
         if contig1 in names and contig2 in names :
-            if fragmentList[contact[0]][1] <= segments[names[contig1]].length :  #if this fragment is more at the left of the contig
+            if fragmentList[contact[0]][1] <= segments[names[contig1]].length/2 :  #if this fragment is more at the left of the contig
                 index1 = names[contig1]*2
             else : #if the fragment is more at the right of the contig
                 index1 = names[contig1]*2+1
                 
-            if fragmentList[contact[1]][1] <= segments[names[contig2]].length :  #if this fragment is more at the left of the contig
+            if fragmentList[contact[1]][1] <= segments[names[contig2]].length/2 :  #if this fragment is more at the left of the contig
                 index2 = names[contig2]*2
             else : #if the fragment is more at the right of the contig
                 index2 = names[contig2]*2+1
@@ -114,7 +114,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
         n += 1
         
     if unknowncontacts != 0 :
-        print('There are ', unknowncontacts, ' out of ', n, ' contacts I did not manage to map : you may want to check if the names of the contigs are consistent throughout your files')
+        print('WARNING: There are ', unknowncontacts, ' out of ', n, ' contacts I did not manage to map : you may want to check if the names of the contigs are consistent throughout your files')
         
     interactionMatrix.tocsr()
     
