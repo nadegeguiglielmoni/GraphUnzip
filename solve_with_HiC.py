@@ -43,7 +43,8 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
     
     #normalize the interactionMatrix
     print("Normalizing the interaction matrix")
-    normalInteractions = normalize(interactionMatrix, verbose)
+    # normalInteractions = normalize(interactionMatrix, verbose)
+    normalInteractions = interactionMatrix #DEBUG
     print("Finished normalizing the interaction matrix")
     
     #print("Interactions of contig 147 : ", [normalInteractions[names["edge_147"], i] for i in range(len(names))])
@@ -99,16 +100,16 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
                 
     
                 
-    ##do not take as haploid anchors all contigs which are implicated in a knot by both ends
-    haploidContigs_set = set(haploidContigs)
-    toDelete = []
-    for segment in haploidContigs_set :
-        common_contigs = compute_commonContigs(segment, [segment, segment], [0,1], refLength)
-        if len(common_contigs) > len(segment.names) : #i.e. there are more common contigs than those in segment.names
-            toDelete += [segment]
-    for i in toDelete :
-        haploidContigs_set.remove(i)
-    haploidContigs = list(haploidContigs_set)
+    ##do not take as haploid anchors all contigs which are implicated in a knot by both ends REMOVE THAT NOW THAT A CONTIG HAS TWO ENDS
+    # haploidContigs_set = set(haploidContigs)
+    # toDelete = []
+    # for segment in haploidContigs_set :
+    #     common_contigs = compute_commonContigs(segment, [segment, segment], [0,1], refLength)
+    #     if len(common_contigs) > len(segment.names) : #i.e. there are more common contigs than those in segment.names
+    #         toDelete += [segment]
+    # for i in toDelete :
+    #     haploidContigs_set.remove(i)
+    # haploidContigs = list(haploidContigs_set)
     
     #print("Haploid contigs are : ", [i.full_name() for i in haploidContigs])
     
@@ -137,6 +138,10 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
                         haploidContigsNames[s.full_name()] = len(haploidContigs)
                         haploidContigs.append(s)
         
+        for s in segments :
+            if '10' in s.names :
+                    print("10 is haploid: ", s.full_name() in haploidContigsNames, ", in contig : ", s.full_name())
+        
         #then move on to untangling
         
         limit_counter += 1
@@ -148,7 +153,7 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         # for kn, knot in enumerate(list_of_knots) :
             
         #     for s in knot :
-        #         if 'edge_107' in haploidContigs[s//2].names :
+        #         if '10' in haploidContigs[s//2].names :
         #             print("\nIn the knot :", [haploidContigs[i//2].names for i in knot])
         #             #print(untangled_paths[kn])
         
@@ -285,14 +290,6 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
                         break
                                 
                 knot.sort() 
-                removeThisPairOfEnds = []
-                for e in range(1,len(knot)) :
-                    if knot[e]//2 == knot[e-1]//2 :
-                        bothEndsInTheSameKnot.add(knot[e]//2)
-                        removeThisPairOfEnds.append(e)
-                for toRemove in removeThisPairOfEnds[::-1] :
-                    del knot[toRemove]
-                    del knot[toRemove-1]
                 listOfKnots += [knot]
                 # print("I found the knot of ", s.full_name(), " : ", [haploidContigs[i//2].full_name() for i in listOfKnots[-1]])
                 
@@ -300,85 +297,6 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
        
     #     if any(['edge_4' in haploidContigs[i//2].names for i in knot]) :
     #         print("Edge 176 in this knot : ", [haploidContigs[i//2].names for i in knot])  
-    
-    #once again recompute the reliable list of haploid contigs (those with both ends in the same knot eliminated)
-    index = 0
-    reliable_haploid_contigs = []
-    reliable_haploid_contigsNames = {}
-    
-    
-    # for i in haploidContigs :
-    #     if any(['edge_176' in j for j in i.names]) :
-    #         print("************ edge_176 is haploid: ", i.names)
-            
-    
-    for i in range(len(haploidContigs)) :
-        
-        if i not in bothEndsInTheSameKnot :
-            reliable_haploid_contigs += [haploidContigs[i]]
-            reliable_haploid_contigsNames[haploidContigs[i].full_name()] = index
-            index += 1
-            
-    haploidContigs = reliable_haploid_contigs
-    haploidContigsNames = reliable_haploid_contigsNames
-    
-    
-    #recompute one last time listOfneighbors
-    listOfNeighbors = [[] for i in range(len(haploidContigs)*2)]
-    for end in range(len(listOfNeighbors)) :
-        segmentsAlreadyTraversed = set()
-        listOfNeighbors[end] = find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, 100)
-        
-        #forbid l-loops. If it is the only thing possible from end, check end as non-informative (it's at least non-haploid)
-        for n, neighbor in enumerate(listOfNeighbors[end]) :
-            if neighbor//2 == end//2 and neighbor%2 == end%2 :
-                del listOfNeighbors[end][n]
-                if len(listOfNeighbors[end]) == 0 :
-                    notInformative.add(end//2)
-                    
-    #recompute one last time the list of knots
-    listOfKnots = []
-    knotOfContig = [-1 for i in range(len(haploidContigs)*2)]
-    endOfSegmentAlreadySeen = [False for i in range(len(haploidContigs)*2)]
-    for se, s in enumerate(haploidContigs):
-        
-        for end in range(2) :
-            
-            if not endOfSegmentAlreadySeen[se*2+end] : #means we're looking at a new knot
-                
-                knot = [se*2+end]
-                
-                for segIdx in knot : #knot will increase during the loop, it's normal
-                    extension = listOfNeighbors[segIdx]
-                    #print("Extensions of ", s.full_name(), " : ", [haploidContigs[i//2].full_name() for i in extension])
-                    endOfSegmentAlreadySeen[segIdx] = True
-                    knotOfContig[segIdx] = len(listOfKnots)
-
-                    if extension != [-1] : #if ==[-1], it means maxRecursionDepthDepth was hit during find_neighbors
-                    
-                        for ex in extension :
-                            if not endOfSegmentAlreadySeen[ex] :
-                                knot += [ex]
-                                knotOfContig[ex] = len(listOfKnots)
-                                endOfSegmentAlreadySeen[ex] = True
-                                #print("Extending knot from ", s.full_name(), " with: ", haploidContigs[ex//2].full_name())
-                                
-                    else : #if it hits a maxRecursion contig it is the catastrophe, the knot should not be solved
-                        for i in knot :
-                            endOfSegmentAlreadySeen[i] = False
-                        endOfSegmentAlreadySeen[se*2+end] = True
-                        knot = [se*2+end]
-                        break
-                        
-                            
-                listOfKnots += [knot]
-                
-    # for k, knot in enumerate(listOfKnots) :
-        
-    #     if any(['edge_128' in haploidContigs[i//2].names for i in knot if i%2 == 0]) :
-    #         print("Edge 128 in this knot : ", [haploidContigs[i//2].names for i in knot])  
-
-    #print("List of knots: ", [[haploidContigs[i//2].names for i in j] for j in listOfKnots])
 
     
     return listOfKnots, listOfNeighbors, knotOfContig, haploidContigs, haploidContigsNames
@@ -472,7 +390,7 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
                         contacts[k].remove(contact)
                 
                 solvedKnots += [k]
-                if verbose :
+                if verbose or ['10'] in [haploidContigs[i//2].names for i in knot] :
                     print("We solved knot ", [haploidContigs[i//2].names for i in knot], '\n')
                     for contact in contacts[k] :
                         print(haploidContigs[contact[0]//2].names, " -> ", haploidContigs[contact[1]//2].names)
@@ -836,6 +754,9 @@ def untangle_knots(untangled_paths, segments, haploidContigs, confidentCoverage)
         ##first save all the CIGARs
         for p, path in enumerate(untangled_paths[knot]) :
             
+            if ">10--1" in path or "<10--1" in path:
+                print("path : ", path)
+            
             contigs = split('[><]' , path)
             orientations = "".join(findall("[<>]", path))
             del contigs[0]
@@ -956,14 +877,14 @@ def untangle_knots(untangled_paths, segments, haploidContigs, confidentCoverage)
     newsegments = merge_adjacent_contigs(newsegments)
     
     #now go through all contigs and create a new haploidContigs list
-    
-    
     haps = set(haploidContigs)
     pastSegments = set([i for i in segments])
 
     stillHaploids = [] 
     for s, seg in enumerate(newsegments) :
-        if (seg in haps or seg not in pastSegments) and (len(seg.links[0]) == 1 or len(seg.links[1]) == 1 or seg.length > min(np.min([i.length for i in seg.links[0]], initial=seg.length),np.min([i.length for i in seg.links[1]], initial=seg.length))) : #if seg is not in pastsegment, it has been created thus is haploid (if it is long enough or has 1 link at one of its ends)
+        if '10' in seg.names :
+            print("Here is 10 : ", (seg in haps or seg not in pastSegments) and (len(seg.links[0]) == 1 or len(seg.links[1]) == 1 or seg.length > min(np.min([i.length for i in seg.links[0]], initial=0),np.min([i.length for i in seg.links[1]], initial=0))))
+        if (seg in haps or seg not in pastSegments) and (len(seg.links[0]) == 1 or len(seg.links[1]) == 1 or seg.length > min(np.min([i.length for i in seg.links[0]], initial=0),np.min([i.length for i in seg.links[1]], initial=0))) : #if seg is not in pastsegment, it has been created thus is haploid (if it is long enough or has 1 link at one of its ends)
                 
             stillHaploids += [seg]
             
