@@ -29,7 +29,10 @@ awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta 
 hicstuff pipeline -t 8 --mapping=iterative -o mapping/ -g assembly.fasta -e DpnII HiC_reads_forward.fq HiC_reads_reads_reverse.fq
 ```
 and/or 
-2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner))
+2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner)). The best is to use an old version of GraphAligner (commit `5217838b436fee4eda5824aabee99406db2a137b`) with option `--global-alginment`, elsewhise you can use a more recent version with option `--multimap-score-fraction 1`.
+```
+GraphAligner --global-alignment -x vg -f reads.fq -g graph.gfa -a longreads_aligned_on_gfa.gaf
+``` 
 and/or
 3. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get this file from barcoded reads using BWA would be:
 ```
