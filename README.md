@@ -42,6 +42,7 @@ awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta 
 bwa index assembly.fasta							#index the fasta file of the assembly
 bwa mem assembly barcoded_reads.fastq -C > reads_aligned_on_assembly.sam	#align the barcoded reads to the assembly : the -C option is very important here, to keep the barcodes in the sam file
 ```
+N.B. Linked reads support is an experimental option we added on demand from some users. It has not been extensively tested. We also expect results to be poorer than what is obtained using Hi-C or long reads.
 
 ### Running GraphUnzip
 
