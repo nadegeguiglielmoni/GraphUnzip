@@ -436,7 +436,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                 sequence = ''
                 for c, contig in enumerate(segment.names) :
                     s, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
-                    if segment.orientations[c] == 0 :
+                    if s != "*" and segment.orientations[c] == 0 :
                         s = s[::-1]
                         complement_dict = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C'}
                         s = ''.join([complement_dict[base] for base in s])
@@ -528,7 +528,7 @@ def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fas
         sequence = ''
         for c, contig in enumerate(segment.names) :
             s, depth, extra_contigs = get_contig_GFA(gfaFile, contig, line_offset[contig])
-            if segment.orientations[c] == 0 :
+            if s != "*" and segment.orientations[c] == 0 :
                 s = s[::-1]
                 complement_dict = {'A': 'T', 'C': 'G', 'T': 'A', 'G': 'C'}
                 s = ''.join([complement_dict[base] for base in s])
@@ -562,7 +562,7 @@ def load_gfa(file):
             cov = 0
             
             for element in l :
-                if 'dp' in element[:2] or 'DP' in element[:2] :
+                if 'dp' in element[:2] or 'DP' in element[:2] or 'rd' in element[:2] :
                     try :
                        cov = float(element.split(":")[-1])
                     except:

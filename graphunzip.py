@@ -290,7 +290,10 @@ def main():
         for s in segments :
             if s.depth == 0:
                 if reliableCoverage :
-                    print("WARNING: contig ", s.names, " has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
+                    if someDepth0 < 10 :
+                        print("WARNING: contig ", s.names, " has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
+                    elif someDepth0 == 10 :
+                        print("Not displaying all contigs with no coverage information, but there are more.")
                 someDepth0 += 1
             if s.length == 0 :
                 s.length1()

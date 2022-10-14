@@ -131,6 +131,9 @@ class Segment:
     def set_coverage(self, newCoverage) :
         self._HiCcoverage = newCoverage
     
+    def set_depth(self, newDepth): #mostly to handle when coverage = 0
+        self._depths = [newDepth for i in self._depths]
+    
     def freeze(self, endOfSegment): 
         self._freezed[endOfSegment] = True
   
@@ -169,7 +172,7 @@ class Segment:
     ID = property(get_id, set_id)
     HiCcoverage = property(get_coverage, set_coverage)
     depths = property(get_depths)
-    depth = property(get_depth)
+    depth = property(get_depth, set_depth)
     length = property(get_length)
     
     names = property(get_namesOfContigs)
