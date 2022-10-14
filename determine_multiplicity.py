@@ -219,7 +219,7 @@ def propagate_multiplicity(multiplicities, segments, names, contigIdx, supported
         seg = segments[contigIdx]
         for end in range(2) :
                             
-            if all([len(i.links[seg.otherEndOfLinks[end][j]]) ==1 for j,i in enumerate(seg.links[end])]) :
+            if all([len(i.links[seg.otherEndOfLinks[end][j]]) ==1 for j,i in enumerate(seg.links[end])]) and not any([i.depth == 0 for i in seg.links[end]]) :
                 
                 covTot = sum([i.depths[0] for i in seg.links[end]])
                 tot = 0
