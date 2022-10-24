@@ -28,9 +28,42 @@ import time
 def parse_args_command() :
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", help="Either unzip, extract, HiC-IM (to prepare Hi-C data) or linked-reads-IM (to prepare linked reads data)")
+    
+    parser.add_argument("command", help="Either unzip (untangle the GFA file), purge (retain only haploid contigs), extract (extract haploid assembly with a close reference genome), HiC-IM (to prepare Hi-C data) or linked-reads-IM (to prepare linked reads data)")
     
     return parser.parse_args(sys.argv[1:2])
+
+def parse_args_purge():
+    """ 
+	Gets the arguments from the command line.
+	"""
+
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("-g", "--gfa", required=True,  help="""GFA file from which the assembly will be extracted (required)""")
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=False,
+        default="output.gfa",
+        help="""Output the purged GFA assemby [default: output.gfa]""",
+    )
+    parser.add_argument(
+        "-f",
+        "--fasta_output",
+        required=False,
+        default="None",
+        help="""Optional fasta output [default: None]""",
+    )
+    parser.add_argument(
+        "--dont_merge",
+        required=False,
+        action="store_true",
+        help="""If you don't want the output to have all possible contigs merged""",
+    )
+    
+    return parser.parse_args(sys.argv[2:])
 
 
 def parse_args_extract():
@@ -163,7 +196,12 @@ def parse_args_unzip() :
         action="store_true",
         help="""(Hi-C only)[default] Proposes the best untangling it can get (can be misled by approximate coverage information). Use this option if the contig coverage information of the graph can be trusted""",
     )
-    
+    groupBehavior.add_argument(
+        "-n",
+        "--noisy",
+        action="store_true",
+        help="""(Hi-C only) Use this option if you expect that the assembly may contain artefactual contigs, e.g. when you use the .p_utg.gfa of hifiasm""",
+    )
     groupBehavior.add_argument(
         "-e",
         "--exhaustive",
@@ -328,7 +366,7 @@ def main():
         print("================\n\nEverything loaded, moving on to untangling the graph\n\n================")
         
         supported_links2 = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links considering the topography of the graph
-        refHaploidy, multiplicities = determine_multiplicity(segments, names, supported_links2, reliable_coverage=False) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
+        refHaploidy, multiplicities = determine_multiplicity(segments, supported_links2, reliable_coverage=False) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
 
         segments = bridge_with_long_reads(segments, names, cn, lrFile, supported_links2, multiplicities, exhaustive=True, extract=True)
         print("Merging contigs that can be merged...")
@@ -364,6 +402,7 @@ def main():
         merge = not args.dont_merge
         reliableCoverage = not args.conservative
         exhaustive = args.exhaustive
+        noisy = args.noisy
         
         #clean = args.clean
         
@@ -447,7 +486,7 @@ def main():
         ##Moving to the actual unzipping of the graph
         
         supported_links2 = sparse.lil_matrix((len(names)*2, len(names)*2)) #supported links considering the topography of the graph
-        refHaploidy, multiplicities = determine_multiplicity(segments, names, supported_links2, reliableCoverage) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
+        refHaploidy, multiplicities = determine_multiplicity(segments, supported_links2, reliableCoverage) #multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
 
         #As a first step, use only the long reads, if available
         if uselr :
@@ -460,13 +499,13 @@ def main():
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 :
             print("\n*Untangling the graph using Hi-C*\n")
-            segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
+            segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, noisy = noisy, verbose = verbose)
             print("Merging contigs that can be merged...")
             merge_adjacent_contigs(segments)
             print("\n*Done untangling the graph using Hi-C*\n")
         
         elif tagInteractionMatrix.count_nonzero() > 0 :
-            segments = solve_with_HiC(segments, tagInteractionMatrix, names, confidentCoverage=reliableCoverage, verbose = verbose)
+            segments = solve_with_HiC(segments, tagInteractionMatrix, names, confidentCoverage=reliableCoverage, noisy = noisy, verbose = verbose)
             print("Merging contigs that can be merged...")
             merge_adjacent_contigs(segments)
 

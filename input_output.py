@@ -345,11 +345,11 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     sequence, depth, extra_tags = get_contig_GFA(gfaFile, contig, line_offset[contig])
                     #print("Here is the depth I got : ", depth)
                     if depth == '':
-                        f.write(sequence + '\t'+ extra_tags +"\n")
+                        f.write((sequence + '\t'+ extra_tags).rstrip("\t") +"\n")
                     else :
                         
                         newdepth = str(float(depth.split(':')[-1])/copies[contig])
-                        f.write(sequence + '\t' + ":".join(depth.split(':')[:-1]) + ":" + newdepth + '\t' + extra_tags + '\n')
+                        f.write((sequence + '\t' + ":".join(depth.split(':')[:-1]) + ":" + newdepth + '\t' + extra_tags).rstrip("\t") + '\n')
                 else:
                     f.write("*\n")
     
@@ -452,7 +452,7 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                     sequence += s
                     
                 if fullDepth == 0:
-                    f.write(sequence + "\n")
+                    f.write((sequence + "\t"+extra_tags).rstrip("\t")+"\n")
                 else :
                     newdepth = str(fullDepth/len(sequence))
                     f.write(sequence + '\tDP:f:'+newdepth + '\n')
@@ -597,6 +597,7 @@ def load_gfa(file):
     gfa_read.close()
     
     #delete_links_present_twice(segments)
+    
 
     return segments, names
 
