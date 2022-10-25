@@ -9,9 +9,9 @@ Created on Fri Oct  8 13:02:36 2021
 from scipy import sparse
 
 #main function of the file : tries to estimate how many copies of each contig is actually present in the actual assembly, based on the topology of the graph and the coverage
-#input : a gfa (as a list of segments), with mandatory coverage information ; names (to know at what index to put each contig)
+#input : a gfa (as a list of segments), with mandatory coverage information ; names (to know at what index to put each contig) ; reliable_coverage if the depth is reliable, noisy if some contigs probably are artefacts and we want to be sure
 #output : computed_multiplicity, which is a list containing the theoretical multiplicity of contig 'a' at position IDs[a], as well as updated supported_links, telling which links actually exist
-def determine_multiplicity(segments, supported_links=sparse.lil_matrix((0,0)), reliable_coverage=True) :
+def determine_multiplicity(segments, supported_links=sparse.lil_matrix((0,0)), reliable_coverage=True, noisy=False) :
 
     computed_multiplicity = [0 for i in range(len(segments))]
     IDs = {segments[i].ID : i  for i in range(len(segments))}
@@ -30,7 +30,7 @@ def determine_multiplicity(segments, supported_links=sparse.lil_matrix((0,0)), r
             weightedNumberOfRefContigs += s.length
             refCoverages += s.length * s.depths[0]
 
-    #make an exception for over-complicated graphs : all multiplicities of one
+    #make an exception for over-complicated graphs with no coverage : all multiplicities of one
     if len(segments) > 100 and refCoverages == 0 :
         return 1, [1 for i in range(len(segments))]
 
@@ -143,7 +143,11 @@ def determine_multiplicity(segments, supported_links=sparse.lil_matrix((0,0)), r
                                         #print("Inferring multiplicity of ", neighbor.names, " at ", round(computed_multiplicity[s] * neighbor.depths[0]/covTot) , ", from contig ", seg.names)
                                     propagate_multiplicity(computed_multiplicity, segments, IDs, IDs[neighbor.ID], supported_links, refCoverage)
         
-    #if nothing else worked, start the propagation again by giving a multiplicity to the largest contig without multiplicity yet
+    #if contigs are shaky, stop there
+    if noisy:
+        return refCoverage, computed_multiplicity
+    
+    #elsewhise, if nothing else worked, start the propagation again by giving a multiplicity to the largest contig without multiplicity yet
     sortedContigs = [IDs[i.ID] for i in sorted(segments, key=lambda x:x.length, reverse=True)]
     sortedContigidx = len(sortedContigs)-1
     while sortedContigidx >= 0 :
@@ -161,6 +165,8 @@ def determine_multiplicity(segments, supported_links=sparse.lil_matrix((0,0)), r
                     minRight += computed_multiplicity[IDs[neighbor.ID]]
                 
             computed_multiplicity[sortedContigidx] = max(1, minLeft, minRight) #choosing 1 there means that computed_multiplicity is a minimum multiplicity
+            if segments[sortedContigidx].length > 5000 and reliable_coverage:
+                computed_multiplicity[sortedContigidx] = max(computed_multiplicity[sortedContigidx], round(segments[sortedContigidx].depth/refCoverage))
             propagate_multiplicity(computed_multiplicity, segments, IDs, sortedContigidx, supported_links, refCoverage)
             
             #print("Finding new multiplicities, ", computed_multiplicity.count(0), " multiplicities left to infer")

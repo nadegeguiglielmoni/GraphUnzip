@@ -34,7 +34,7 @@ sys.setrecursionlimit(MAX_RECURSION) #this may be important in find_neighbors
 
 #input : segments and the interactionMatrix of Hi-C contacts. Optionnaly, a list of haploid contigs obtained from the long reads algorithm. noisy if a significant amount of contigs are expected to be artefacts
 #output : untangled graph in the form of a list of segments
-def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copiesnumber={}, confidentCoverage=True, noisy=False, verbose = False):
+def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copiesnumber={}, confidentCoverage=True, noisy=False, verbose = False, haploid=False):
     
     if copiesnumber == {} :
         for segment in segments :
@@ -53,57 +53,7 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
     #print("Interactions of contig 147 : ", [normalInteractions[names["edge_147"], i] for i in range(len(names))])
     
     #determine the single-copy contigs that will serve as anchor for our algorithm
-
-    ##compute the average depth of single-copy contigs
-    totalDepth = 0
-    totalLength = 0
-    if confidentCoverage :
-        for s in segments :
-            if len(s.links[0]) <= 1 and len(s.links[1]) <= 1 and s.depth != 0  : 
-
-                totalDepth += s.depth *  max(1,s.length)
-                totalLength += max(1,s.length)
-        refCoverage = totalDepth/totalLength
-    else :
-        refCoverage = 1
-        
-    
-    if haploidContigs == [] : #that means it was not provided by a previous long read step    
-
-        ##give a first estimation of the haploid contigs
-        refLengths = [] #to give an order of magnitude of the length of the contigs
-        for se, s in enumerate(segments) :
-        
-            #to be deemed haploid, a segment must have at most one connection at each of its end plus be equally or less covered thant neighboring contigs
-            links = s.links
-            if round(s.depth/refCoverage) <= 1 and confidentCoverage:
-                m1, m2 = 0, 0
-                if len(links[0]) > 0 :
-                    m1 = max([i.depth for i in links[0]])
-                if len(links[1]) > 0 :
-                    m2 = max([i.depth for i in links[1]])
-                if s.depth < 1.5 * max(m1, m2) and (s.length > 1000 or (m1>0 and m2>0)) and len(links[0]) <= 1 and len(links[1]) <= 1 : #the second condition is there to ignore small dead ends
-                    haploidContigs.append(s)
-                    refLengths += [s.length]
-                                
-            elif not confidentCoverage :
-                if len(links[0]) <= 1 and len(links[1]) <= 1 and (s.length > 1000 or (len(links[0])>0 and len(links[1])>0))  : #the second condition is there to ignore small dead ends
-                    # if 'edge_283' in s.names :
-                    #     print("Inspecting edge_283 : ", s.names)
-                    haploidContigs.append(s)
-                    refLengths += [s.length]
-               
-        if noisy:
-            #all suffciently long contigs with one link at both ends can also be deemed haploid, worst case scenario they will be ruled out in the next iteration
-            refLength = np.mean(refLengths)
-            for se, s in enumerate(segments) : 
-                if s.length > refLength: #and len(s.links[0]) <= 1 and len(s.links[1]) <= 1:  
-                    haploidContigs.append(s)
-                
-    else :
-        refLength = np.means([i.length for i in haploidContigs])
-                
-    
+    refCoverage, refLength, haploidContigs = determine_haploid_contigs(segments, names, confidentCoverage, haploid, noisy, haploidContigs)
     
     #print("Haploid contigs are : ", [i.full_name() for i in haploidContigs])
     
@@ -117,12 +67,12 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
     for s in haploidContigs :
         haploidContigsNames[s.full_name()] = index
         index += 1
-              
+                  
     solvedKnots = [0]  
     go_on = 1
     limit = 10
     limit_counter = 0
-    
+    alt_contigs = set() #alt contigs when using --haploid
     
     while go_on > 0 and limit_counter < limit: 
         
@@ -131,7 +81,7 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         if confidentCoverage :
             for s in segments :
                 if s.full_name() not in haploidContigsNames :
-                    if s.length > 100000 and s.depth < 1.2 * refCoverage : #this look haploid
+                    if s.length > 100000 and s.depth < 1.2 * refCoverage and not haploid : #this look haploid
                         haploidContigsNames[s.full_name()] = len(haploidContigs)
                         haploidContigs.append(s)
         
@@ -156,8 +106,8 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         print("Finished matching haploid contigs, now we'll move on to  determining the paths linking them")
         
         #now find paths between matching contigs
-        untangled_paths = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, normalInteractions, names, confidentCoverage, verbose)
-    
+        untangled_paths, list_of_unused_contigs = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, normalInteractions, names, confidentCoverage, verbose)
+        alt_contigs.update(list_of_unused_contigs)
         
         # for k in untangled_paths :
         #     for p in k :
@@ -171,22 +121,112 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         print("Finished round of untangling number ", limit_counter , ". Untangled ", go_on, " contigs. Going on one supplementary round if ", go_on, "> 0 and if ", limit_counter, "<", limit)
       
     #at the end of the process, duplicate also the multiploid contigs, even those for which graphunzip did not solve the knot
-    if confidentCoverage:
-        duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames, refCoverage)
+    if confidentCoverage and not haploid:
+        duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames)
       
+    toDelete = []
     if noisy:
-        toDelete = []
         for se, s in enumerate(segments):
             if len(s.links[0]) == 0 and len(s.links[1]) == 0:
                 if len(s.names) == 1 and ((number_of_ends_of_all_contigs[s.names[0]][0] > 0 or number_of_ends_of_all_contigs[s.names[0]][1] > 0 ) or (confidentCoverage <= refCoverage/4)):
                     toDelete += [se]
+    if haploid:
+        for se, s in enumerate(segments):
+            if s in alt_contigs:
+                s.cut_all_links()
+                toDelete += [se]
                 
-        for t in toDelete[::-1]:
-            del segments[t]
+    for t in toDelete[::-1]:
+        del segments[t]
     #segments = break_up_chimeras(segments, names, interactionMatrix, 1000000)
         
     
     return segments
+
+#input:segments
+#output : a list of seemingly haploid contigs
+def determine_haploid_contigs(segments, names, confidentCoverage, haploid, noisy, haploidContigs = []):
+    
+    refCoverage = 1
+    refLength = 0
+    
+    ##compute the average depth of single-copy contigs
+    if not haploid:
+        totalDepth = 0
+        totalLength = 0
+        if confidentCoverage :
+            for s in segments :
+                if len(s.links[0]) <= 1 and len(s.links[1]) <= 1 and s.depth != 0  : 
+    
+                    totalDepth += s.depth *  max(1,s.length)
+                    totalLength += max(1,s.length)
+            refCoverage = totalDepth/totalLength
+            
+        
+        if haploidContigs == [] : #that means it was not provided by a previous long read step    
+    
+            ##give a first estimation of the haploid contigs
+            refLengths = [] #to give an order of magnitude of the length of the contigs
+            for se, s in enumerate(segments) :
+            
+                #to be deemed haploid, a segment must have at most one connection at each of its end plus be equally or less covered thant neighboring contigs
+                links = s.links
+                if round(s.depth/refCoverage) <= 1 and confidentCoverage:
+                    m1, m2 = 0, 0
+                    if len(links[0]) > 0 :
+                        m1 = max([i.depth for i in links[0]])
+                    if len(links[1]) > 0 :
+                        m2 = max([i.depth for i in links[1]])
+                    if s.depth < 1.5 * max(m1, m2) and (s.length > 1000 or (m1>0 and m2>0)) and len(links[0]) <= 1 and len(links[1]) <= 1 : #the second condition is there to ignore small dead ends
+                        haploidContigs.append(s)
+                        refLengths += [s.length]
+                                    
+                elif not confidentCoverage :
+                    if len(links[0]) <= 1 and len(links[1]) <= 1 and (s.length > 1000 or (len(links[0])>0 and len(links[1])>0))  : #the second condition is there to ignore small dead ends
+                        # if 'edge_283' in s.names :
+                        #     print("Inspecting edge_283 : ", s.names)
+                        haploidContigs.append(s)
+                        refLengths += [s.length]
+            
+            refLength = np.mean(refLengths)     
+            if noisy:
+                #all suffciently long contigs with one link at both ends can also be deemed haploid, worst case scenario they will be ruled out in the next iteration
+                for se, s in enumerate(segments) : 
+                    if s.length > refLength: #and len(s.links[0]) <= 1 and len(s.links[1]) <= 1:  
+                        haploidContigs.append(s)
+                    
+        else :
+            refLength = np.means([i.length for i in haploidContigs])
+    
+    else: #if haploid
+        refCoverage, multiplicities = determine_multiplicity(segments, reliable_coverage = confidentCoverage, noisy=noisy)
+
+        total_length = np.sum([i.length for i in segments])
+        
+        #compute the target_ploidy of the input sequence
+        ploidies = [0 for i in range(max(multiplicities)+1)]
+        for m in range(len(multiplicities)):
+            ploidies[multiplicities[m]] += segments[m].length
+            
+        target_ploidy = len(ploidies)-1
+        while target_ploidy >= 0 and ploidies[target_ploidy] < 0.1 * total_length :
+            target_ploidy -= 1
+            
+        if target_ploidy == -1:
+            target_ploidy = ploidies.index(max(ploidies))
+            
+
+        #now mark as haploid the contigs with multiplicity ploidy 
+        for s, segment in enumerate(segments):
+            
+            if multiplicities[s] == target_ploidy or (segment.length > 10000 and segment.depth/refCoverage > 0.75 * target_ploidy and segment.depth/refCoverage > 0.75 * target_ploidy < 1.25 * target_ploidy):
+                haploidContigs.append(segment)
+                
+        refLength = np.mean([i.length for i in haploidContigs])
+        refCoverage = np.mean([i.depth for i in haploidContigs])
+        
+        
+    return refCoverage, refLength, haploidContigs
 
 
 #input: a graph, in the form of a list of segments and a list of haploid conigs
@@ -316,9 +356,8 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
                 
                 
     # for k, knot in enumerate(listOfKnots) :
-       
-    #     if any(['utg000025l' in haploidContigs[i//2].names for i in knot]) :
-    #         print("Edge 1433 in this knot : ", [haploidContigs[i//2].names for i in knot], " ", knot)  
+    #     if any(['edge_117' in haploidContigs[i//2].names for i in knot]) :
+    #         print("Edge 1433 in this knot : ", [haploidContigs[i//2].names for i in knot])  
 
     #recompute haploid contigs without those that are in a knot by both ends
     index = 0
@@ -544,6 +583,11 @@ def normalize(matrix, verbose) :
 def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage, verbose = False) :
     
     untangled_paths = []
+    unused_contigs = set()
+    
+    fullnames = {}
+    for s, seg in enumerate(segments) :
+        fullnames[seg.full_name()+str(int(seg.ID*1000))] = s
     
     for kn, k in enumerate(solvedKnots) :
         
@@ -588,12 +632,25 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
             if verbose :
                 print("Finding dynamically the best paths to satisfy all constraints")
             untangled_paths[-1] = find_best_paths(alldecisions, repartitionOfContigs, hardlimits, segments, contacts[k], haploidContigs)
-        
+            
+            #find unused contigs in the path to communicate on which contig could be suppressed if using --haploid
+            allcontigs = []
+            for p in untangled_paths[-1]:
+                contigs = split('[><]' , p)
+                del contigs[0]
+                for c in contigs:
+                    allcontigs.append(segments[fullnames[c]])
+            usedcontigs = set(allcontigs)
+            intermediateContigs = set(repartitionOfContigs.keys())
+            
+            for c in intermediateContigs:
+                if c not in usedcontigs :
+                    unused_contigs.add(c)
         
         # print("Here are the untangled paths I got : ", untangled_paths)
         # print()
     
-    return untangled_paths
+    return untangled_paths, unused_contigs
 
 #input: two ends of a path
 #output : the list of all possible decisions we can make to go from segment1 to segment2, as well as a completed touchedContigs, i.e. with indexOfPath added on all possible contigs reached by this path
@@ -991,9 +1048,9 @@ def interaction(interactionMatrix, names, contig1, contig2) :
 
 #input: the graph and the list of haploid contigs
 #output: the graph with multiploid contigs duplicated (though not linked)
-def duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames, refCoverage):
+def duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames):
     
-    cov, multiplicities = determine_multiplicity(segments)
+    refCoverage, multiplicities = determine_multiplicity(segments, noisy=True)
     IDs = {segments[i].ID : i  for i in range(len(segments))}
     
     toDelete = []
@@ -1006,6 +1063,8 @@ def duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames, 
                 # print([multiplicities[IDs[i.ID]] for i in seg.links[end]]," ", multiplicities[s])
                 if not duplicated and sum([multiplicities[IDs[i.ID]] for i in seg.links[end]]) == multiplicities[s] and all([multiplicities[IDs[i.ID]]>0 for i in seg.links[end]]) and seg.ID not in [i.ID for i in seg.links[end]] and len(seg.links[end]) >1: #nice duplication here
                     duplicated = True
+                    #print("Duplicating ", seg.names, " ", multiplicities[s], " times, ", seg.depth, " coverage, compared to reference ", refCoverage)
+                    
                     for n, neighbor in enumerate(seg.links[end]):
                         newSegment = Segment(seg.names, seg.orientations, seg.lengths, seg.insideCIGARs, HiCcoverage = seg.HiCcoverage, readCoverage = [i/len(seg.links[end]) for i in seg.depths])
                         add_link(newSegment, end, neighbor, seg.otherEndOfLinks[end][n], seg.CIGARs[end][n])
@@ -1019,16 +1078,6 @@ def duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames, 
                     toDelete.append(s)
                     duplicated = True
                 
-    
-    #delete all the contigs that were duplicated
-    # newsegments = []
-    # for s, seg in enumerate(segments) :
-    #     if seg not in toDelete :
-    #         newsegments += [seg]
-    #     # else :
-    #     #     seg.cut_all_links()
-    
-    # newsegments = merge_adjacent_contigs(newsegments)
     for t in toDelete[::-1]:
         del segments[t]
     

@@ -15,6 +15,7 @@ from solve_with_long_reads import bridge_with_long_reads
 from solve_with_HiC import solve_with_HiC
 from determine_multiplicity import determine_multiplicity
 #from segment import check_if_all_links_are_sorted
+from purge import purge_assembly
 
 from scipy import sparse
 import numpy as np
@@ -40,7 +41,7 @@ def parse_args_purge():
 
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("-g", "--gfa", required=True,  help="""GFA file from which the assembly will be extracted (required)""")
+    parser.add_argument("-g", "--gfa", required=True,  help="""GFA file to be purged (required)""")
 
     parser.add_argument(
         "-o",
@@ -183,6 +184,12 @@ def parse_args_unzip() :
         help="""If you don't want the output to have all possible contigs merged""",
     )
     
+    groupBehavior.add_argument(
+        "-H",
+        "--haploid",
+        action="store_true",
+        help="""Use this option if you wish to obtain a collapsed assembly of a multiploid genome.""",
+    )
     groupBehavior.add_argument(
         "-c",
         "--conservative",
@@ -399,6 +406,7 @@ def main():
         verbose = args.verbose
         rename = not args.dont_rename
         # dbgDir = args.debug 
+        haploid = args.haploid
         merge = not args.dont_merge
         reliableCoverage = not args.conservative
         exhaustive = args.exhaustive
@@ -499,13 +507,13 @@ def main():
         #As a second step, use Hi-C and/or linked reads 
         if interactionMatrix.count_nonzero() > 0 :
             print("\n*Untangling the graph using Hi-C*\n")
-            segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, noisy = noisy, verbose = verbose)
+            segments = solve_with_HiC(segments, interactionMatrix, names, confidentCoverage=reliableCoverage, noisy = noisy, verbose = verbose, haploid=haploid)
             print("Merging contigs that can be merged...")
             merge_adjacent_contigs(segments)
             print("\n*Done untangling the graph using Hi-C*\n")
         
         elif tagInteractionMatrix.count_nonzero() > 0 :
-            segments = solve_with_HiC(segments, tagInteractionMatrix, names, confidentCoverage=reliableCoverage, noisy = noisy, verbose = verbose)
+            segments = solve_with_HiC(segments, tagInteractionMatrix, names, confidentCoverage=reliableCoverage, noisy = noisy, verbose = verbose, haploid=haploid)
             print("Merging contigs that can be merged...")
             merge_adjacent_contigs(segments)
 
@@ -523,7 +531,29 @@ def main():
             io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)
     
         print("Finished in ", time.time() - t, " seconds")
+     
+    elif command == "purge":
+        args = parse_args_purge()
         
+        gfaFile = args.gfa
+        
+        outFile = args.output
+        fastaFile = args.fasta_output
+        
+        merge = not args.dont_merge
+        rename = False
+        
+        segments, names = io.load_gfa(gfaFile)
+        
+        purge_assembly(segments)
+        
+        print("Now exporting the result")
+        io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge, rename_contigs=rename)
+    
+        if fastaFile != "None":
+            io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)
+            
+    
     else :
         print("Unrecognized command ", command, "\". Use either unzip, HiC-IM (to prepare Hi-C data) or linked-reads-IM (to prepare linked reads data)")
 
