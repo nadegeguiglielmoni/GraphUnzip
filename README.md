@@ -12,7 +12,7 @@ Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/l
 
 ## Installation
 
-`GraphUnzip` requires python3 with numpy and scipy, you can install them using `pip install`. To use linked reads you'll also need pysam.
+`GraphUnzip` requires python3 with numpy, scipy and zlib, you can install them e.g. using `pip install` or `conda install`. To use linked reads you'll also need pysam.
 `GraphUnzip` requires no installation. To run `GraphUnzip`, clone this repo using `git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git`, and simply run `graphunzip.py`
 
 ## Usage
@@ -23,10 +23,10 @@ Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/l
 
 An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) and any combination of :
 
-1. Hi-C data : GraphUnzip needs a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats). You can use [hicstuff](https://github.com/koszullab/hicstuff) to obtain these files, using preferably iterative mode :
+1. Hi-C data : GraphUnzip needs either 1) the Hi-C reads mapped to the assembly in name-sorted bam format or 2) a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats). You can use [hicstuff](https://github.com/koszullab/hicstuff) to obtain these files, using preferably iterative mode :
 ```bash
 awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta file from the gfa
-hicstuff pipeline -t 8 --mapping=iterative -o mapping/ -g assembly.fasta -e DpnII HiC_reads_forward.fq HiC_reads_reads_reverse.fq
+hicstuff pipeline -t 8 --mapping=iterative -o mapping/ -g assembly.fasta -e DpnII HiC_reads_forward.fq HiC_reads_reverse.fq
 ```
 and/or
 

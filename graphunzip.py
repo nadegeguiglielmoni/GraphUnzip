@@ -157,6 +157,13 @@ def parse_args_unzip() :
         default="None",
         help="""Optional fasta output [default: None]""",
     )
+    groupOutput.add_argument(
+        "-b",
+        "--bam_file",
+        required=False,
+        default="None",
+        help="""bam file of the Hi-C reads aligned on assembly. GraphUnzip will output bam_file.new.bam corresponding to the new bam file, ready to be used for scaffolding [optional]""",
+    )
     
     groupOther.add_argument(
         "-v",
@@ -198,7 +205,7 @@ def parse_args_unzip() :
     )
     
     groupBehavior.add_argument(
-        "-b",
+        "-B",
         "--bold",
         action="store_true",
         help="""(Hi-C only)[default] Proposes the best untangling it can get (can be misled by approximate coverage information). Use this option if the contig coverage information of the graph can be trusted""",
@@ -253,12 +260,14 @@ def parse_args_HiC():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("-g", "--gfa_graph", required=True,  help="""GFA file that will be untangled (required)""")
-    
     parser.add_argument(
-        "-m", "--matrix", required=True, help="""Sparse Hi-C contact map (required)"""
+        "-b", "--bam", default="Empty", required=False, help="""Bam file of Hi-C reads aligned on assembly and sorted by name (if using bam format)"""
     )
     parser.add_argument(
-        "-F", "--fragments", required=True, help="""Fragments list (required)"""
+        "-m", "--matrix", default="Empty", required=False, help="""Sparse Hi-C contact map (if using instaGRAAL format)"""
+    )
+    parser.add_argument(
+        "-F", "--fragments", default="Empty", required=False, help="""Fragments list (if using instaGRAAL format)"""
     )
     parser.add_argument(
         "-i","--HiC_IM", required=True, help="""Output file for the Hi-C interaction matrix (required)"""
@@ -283,6 +292,11 @@ def main():
         
         matrixFile = args.matrix
         fragmentsFile = args.fragments
+        bamfile = args.bam
+        
+        if bamfile == "Empty" and (matrixFile == "Empty" or fragmentsFile == "Empty"):
+            print("ERROR: you must provide as input either (a bam file) or (an abs_fragments_weighted.txt and a fragment_list.txt files from hicstuff)")
+            sys.exit()
         
         outputIMH = args.HiC_IM
         
@@ -296,24 +310,36 @@ def main():
             print("ERROR: could not read the GFA")
             sys.exit()
         
-        if os.path.exists(fragmentsFile) and os.path.exists(matrixFile):
-            
-            fragmentList = io.read_fragment_list(fragmentsFile)
+        if bamfile == "Empty":
+            if os.path.exists(fragmentsFile) and os.path.exists(matrixFile):
+                
+                fragmentList = io.read_fragment_list(fragmentsFile)
+    
+                # Now computing the interaction matrix
+    
+                interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
+                useHiC = True
+    
+                # exporting it as to never have to do it again
+    
+                print("Exporting Hi-C interaction matrix as ", outputIMH)
+                with open(outputIMH, "wb") as o:
+                    pickle.dump(interactionMatrix, o)            
 
-            # Now computing the interaction matrix
-
-            interactionMatrix = io.interactionMatrix(matrixFile, fragmentList, names, segments)
-            useHiC = True
-
-            # exporting it as to never have to do it again
-
-            print("Exporting Hi-C interaction matrix as ", outputIMH)
-            with open(outputIMH, "wb") as o:
-                pickle.dump(interactionMatrix, o)
-
+            else:
+                print("Error: could not find fragments file {0}.".format(fragmentsFile), " or matrix file {0}".format(matrixFile))
+                sys.exit(1)
         else:
-            print("Error: could not find fragments file {0}.".format(fragmentsFile), " or matrix file {0}".format(matrixFile))
-            sys.exit(1)
+            if os.path.exists(bamfile):
+                interactionMatrix = io.read_bam(bamfile, names, segments)
+                useHiC = True
+                
+                print("Exporting Hi-C interaction matrix as ", outputIMH)
+                with open(outputIMH, "wb") as o:
+                    pickle.dump(interactionMatrix, o)  
+            else:
+                print("Error: could not find bam file {0}.".format(bamfile))
+                sys.exit(1)
             
     elif command == 'linked-reads-IM' :
         
@@ -397,6 +423,7 @@ def main():
         
         outFile = args.output
         fastaFile = args.fasta_output
+        bamFile = args.bam_file
         
         lrFile = args.longreads        
         
@@ -525,10 +552,14 @@ def main():
             
         # now exporting the output  
         print("Now exporting the result")
-        io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge, rename_contigs=rename)
+        newnames = io.export_to_GFA(segments, gfaFile, exportFile=outFile, merge_adjacent_contigs=merge, rename_contigs=rename)
     
         if fastaFile != "None":
             io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)
+            
+        if bamFile != "None":
+            print("Now creating the new bam file to re-scaffold")
+            io.export_to_bam(segments, bamFile, newnames)
     
         print("Finished in ", time.time() - t, " seconds")
      

@@ -13,11 +13,130 @@ import pickle #for writing files and reading them
 import re #to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
 import shutil #to remove directories
 import sys #to exit when there is an error and to set recursion limit
-
+import gzip
+import pybam.pybam as pybam
+import copy
 
 from segment import Segment
 from segment import compute_copiesNumber
 from segment import delete_links_present_twice
+
+# Read bam file of Hi-C aligned on assembly
+# Input :
+#   bam file, assembly graph
+# Output :
+#   a matrix of interaction between the ends of each contig 
+def read_bam(file, names, segments):
+    
+    interactionMatrix = sparse.dok_matrix((len(segments)*2, len(segments)*2))
+    number_of_lines = 0
+    
+    name_of_last_read = "nothing"
+    last_alignment = []
+    for alignment in pybam.read(file):
+        
+        # print(alignment.sam)
+        ls = alignment.sam.split("\t")
+        if ls[0] == name_of_last_read:
+            if last_alignment[2] in names and ls[2] in names and last_alignment[2] != ls[2]: #not an intra-contig contact
+                index1 = names[ls[2]]*2
+                if int(ls[3]) > segments[names[ls[2]]].length/2:
+                    index1 += 1
+                    
+                index2 = names[last_alignment[2]]*2
+                if int(last_alignment[3]) > segments[names[last_alignment[2]]].length/2:
+                    index2 += 1   
+                    
+                interactionMatrix[index1, index2] += 1
+                interactionMatrix[index2, index1] += 1 
+                
+            name_of_last_read = "nothing"
+        else:
+            name_of_last_read = ls[0]
+            last_alignment = ls
+        #print(alignment)
+        
+        number_of_lines += 1
+        if number_of_lines % 10000 == 0:
+            print("Processed ", number_of_lines, " records", end='\r')
+    
+        
+    # print(interactionMatrix)
+        
+    interactionMatrix.tocsr()
+    return interactionMatrix
+
+# Export the new bam file, ready to be scaffolded
+# Input :
+#   old bam file, assembly graph
+# Output :
+#   a new bam file
+def export_to_bam(segments, bamFile, newnames):
+    
+    newbam = bamFile.rstrip(".bam")+".new.bam"
+    import pysam
+    
+    names = {}
+    indices = {}
+    head = []
+
+    duplicatedcontigs = set()
+    for s in segments:
+        for i, n in enumerate(s.names):
+            if n in names :
+                duplicatedcontigs.add(n)
+            else:
+                names[n] = (s.orientations[i] , np.sum([s.lengths[j] for j in range(i)]), newnames[s.full_name()])
+                head.append({'LN':s.length, 'SN':newnames[s.full_name()]})
+                indices[n] = len(head)-1
+        
+    for n in names.keys():
+        if n in duplicatedcontigs:
+            names.remove(n)
+    
+    oldfile = pysam.AlignmentFile(bamFile, "rb")
+    
+    
+    header = { 'HD': {'VN': '1.5', 'SO':'queryname','GO':'query'},
+            'SQ': head }
+    
+    
+    # header = { 'HD': {'VN': '1.0'},
+    #         'SQ': [{'LN': 1575, 'SN': 'chr1'},{'LN': 1584, 'SN': 'chr2'}] }
+    
+    # print(header)
+    
+    newfile = pysam.AlignmentFile(newbam, "wb", header=header)
+    for read in oldfile.fetch(until_eof=True):
+        
+        contig = read.reference_name
+        start = int(read.reference_start)
+        if contig in names :
+            
+            a = pysam.AlignedSegment()
+            a.query_name = read.query_name
+            a.query_sequence=read.query_sequence
+            a.flag = read.flag
+            a.reference_id = read.reference_id
+            a.mapping_quality = read.mapping_quality
+            a.cigar = read.cigar
+            a.next_reference_id = read.next_reference_id
+            a.next_reference_start= read.next_reference_start
+            a.template_length= read.template_length
+            a.query_qualities = read.query_qualities
+            a.tags = read.tags            
+            
+            a.reference_id = indices[contig]
+            
+            if names[contig][1] == "+":
+                a.reference_start = start+int(names[contig][0])
+            else:
+                a.reference_start = start-int(names[contig][0])
+            newfile.write(a)
+            
+    oldfile.close()
+    newfile.close()
+        
 
 # Read fragments list file
 # Input :
@@ -43,12 +162,10 @@ def read_info_contig(file):
 
     with open(file) as f:
         content = f.readlines()
-
     # parsing
     content = [x.strip("\n").split('\t') for x in content[1:]]
     # 1: contig_id, 2: length, 3: n_frags, 4:cumul_length
     content = [[x[0], int(x[1]), int(x[2]), int(x[3])] for x in content]
-
     return content
 
 #input : output of hicstuff
@@ -122,7 +239,7 @@ def interactionMatrix(hiccontactsfile, fragmentList, names, segments, header=Tru
 
 #input : GAF file (outputted by graphaligner) and parameters telling which line are deemed informative
 #output : list of useful lines extracted (['>12>34<2' , '>77<33' ,... ] for example)
-def read_GAF(gafFile,similarity_threshold, whole_mapping_threshold, lines) : #a function going through the gaf files and inventoring all useful lines
+def read_GAF(gafFile, similarity_threshold, whole_mapping_threshold, lines) : #a function going through the gaf files and inventoring all useful lines
     
     gaf = open(gafFile, 'r')
     
@@ -287,6 +404,7 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
 #   merge_adjacent_contig is to produce a GFA with contigs merged
 def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gfa", offsetsFile = "", merge_adjacent_contigs = False, rename_contigs = False): 
     
+    newnames = {}
     #compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
     noOffsets = False
     #print('Offsets : ', offsetsFile)
@@ -427,9 +545,11 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
             
             if rename_contigs :
                 f.write("S\t" + "supercontig_"+ str(s) + "\t") #the name of the contigs are supercontig_i
+                newnames[segment.full_name()] = "supercontig_"+ str(s)
                 fcontigs.write("supercontig_"+ str(s) + "\t"+segment.full_name()+"\n")
             else :
-                f.write("S\t" + segment.full_name() + "\t") #the name of the contigs are supercontig_i            
+                f.write("S\t" + segment.full_name() + "\t") #the name of the contigs are supercontig_i   
+                newnames[segment.full_name()] = segment.full_name()
             
             fullDepth = 0
             
@@ -475,6 +595,8 @@ def export_to_GFA(listOfSegments, gfaFile="", exportFile="results/newAssembly.gf
                         else :
                             f.write("L\t"+supercontigs[segment.full_name()]+'\t'+orientation1+'\t'+supercontigs[neighbor.full_name()]+\
                                     '\t'+orientation2+'\t'+ segment.CIGARs[endOfSegment][n]+'\n')
+                                
+    return newnames
                                 
 def export_to_fasta(listOfSegments, gfaFile, exportFile="results/newAssembly.fasta", rename_contigs = False): 
     

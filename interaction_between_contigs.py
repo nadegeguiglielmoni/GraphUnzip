@@ -21,15 +21,18 @@ def interactions_with_neighbors(
 ):
     
     
-    for candidate in candidateSegments :
-        if candidate.ID == segment.ID : #small loop, don't solve that !
-            return [-1]
+    if segment in candidateSegments:
+        # del listOfNeighborEnds[candidateSegments.index(segment)]
+        # del candidateSegments[candidateSegments.index(segment)]
+        return [-1]
+        
+            
     
     ##first compute all contigs common to all candidates, to take them out
 
     commonContigs = []
     if len(candidateSegments) > 1 :
-        commonContigs = compute_commonContigs(segment, candidateSegments, listOfNeighborEnds, min(1000000, 3*max([i.length for i in candidateSegments])))
+        commonContigs = list(set(compute_commonContigs(segment, candidateSegments, listOfNeighborEnds, min(1000000, 3*max([i.length for i in candidateSegments])))))
     
     if debugDir != '':
         f = open(debugDir.strip('/')+'/'+'debug_log.txt', 'a')
@@ -50,8 +53,9 @@ def interactions_with_neighbors(
 
     for ca, c in enumerate(candidateSegments):
                 
+        # print(endOfSegment, " ", segment.names, " ", c.names, " ", listOfNeighborEnds[ca], " ", commonContigs)
         absoluteScore, relativeScore, depthHere = c.interaction_with_contigs(endOfSegment, segment, listOfNeighborEnds[ca], interactionMatrix, names, copiesnumber, commonContigs, bestSignature)
-            
+        
         if all([i in commonContigs for i in c.names]) :
             returnRelativeScore = False #if a contig is entirely contained in commonContigs, don't say that his score is 0, that would lead to errors
             # if verbose :
@@ -64,7 +68,7 @@ def interactions_with_neighbors(
     #     print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidateSegments], ' and the result is ', relativeScores, absoluteScores)
     #     #print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
     #     print('Common contigs : ', commonContigs, '\n')
-    
+        
     if returnRelativeScore :
         return relativeScores
     else :

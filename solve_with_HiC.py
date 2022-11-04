@@ -106,7 +106,7 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         print("Finished matching haploid contigs, now we'll move on to  determining the paths linking them")
         
         #now find paths between matching contigs
-        untangled_paths, list_of_unused_contigs = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, normalInteractions, names, confidentCoverage, verbose)
+        untangled_paths, list_of_unused_contigs = find_paths(contacts, segments, list_of_knots, solvedKnots, haploidContigsNames, haploidContigs, normalInteractions, names, confidentCoverage, refCoverage, verbose)
         alt_contigs.update(list_of_unused_contigs)
         
         # for k in untangled_paths :
@@ -125,17 +125,26 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames)
       
     toDelete = []
-    if noisy:
-        for se, s in enumerate(segments):
-            if len(s.links[0]) == 0 and len(s.links[1]) == 0:
-                if len(s.names) == 1 and ((number_of_ends_of_all_contigs[s.names[0]][0] > 0 or number_of_ends_of_all_contigs[s.names[0]][1] > 0 ) or (confidentCoverage <= refCoverage/4)):
-                    toDelete += [se]
     if haploid:
         for se, s in enumerate(segments):
             if s in alt_contigs:
                 s.cut_all_links()
                 toDelete += [se]
+        for se, s in enumerate(segments):    
+            if len(s.links[0]) == 0 and len(s.links[1]) == 0 :
+                if len(s.names) == 1 and (number_of_ends_of_all_contigs[s.names[0]][0] > 0 or number_of_ends_of_all_contigs[s.names[0]][1] > 0) and s.depth < 0.7*refCoverage:
+                    s.cut_all_links()
+                    toDelete += [se]
+            
                 
+    if noisy:
+        for se, s in enumerate(segments):
+            if len(s.links[0]) == 0 and len(s.links[1]) == 0:
+                if len(s.names) == 1 and ((number_of_ends_of_all_contigs[s.names[0]][0] > 0 or number_of_ends_of_all_contigs[s.names[0]][1] > 0 ) or (confidentCoverage <= refCoverage/4)):
+                    toDelete += [se]
+
+    toDelete = list(set(toDelete))
+    toDelete.sort()
     for t in toDelete[::-1]:
         del segments[t]
     #segments = break_up_chimeras(segments, names, interactionMatrix, 1000000)
@@ -215,11 +224,12 @@ def determine_haploid_contigs(segments, names, confidentCoverage, haploid, noisy
         if target_ploidy == -1:
             target_ploidy = ploidies.index(max(ploidies))
             
-
+        #print("Multiplicity of 1501: ", multiplicities[names["edge_1501"]])
         #now mark as haploid the contigs with multiplicity ploidy 
         for s, segment in enumerate(segments):
             
-            if multiplicities[s] == target_ploidy or (segment.length > 10000 and segment.depth/refCoverage > 0.75 * target_ploidy and segment.depth/refCoverage > 0.75 * target_ploidy < 1.25 * target_ploidy):
+            rightdepth = (segment.depth/refCoverage > 0.75 * target_ploidy and segment.depth/refCoverage < 1.25 * target_ploidy)
+            if multiplicities[s] == target_ploidy or (segment.length > 10000 and rightdepth) :
                 haploidContigs.append(segment)
                 
         refLength = np.mean([i.length for i in haploidContigs])
@@ -353,11 +363,6 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
                 
                 listOfKnots += [knot]
                 # print("I found the knot of ", s.full_name(), " : ", [haploidContigs[i//2].full_name() for i in listOfKnots[-1]])
-                
-                
-    # for k, knot in enumerate(listOfKnots) :
-    #     if any(['edge_117' in haploidContigs[i//2].names for i in knot]) :
-    #         print("Edge 1433 in this knot : ", [haploidContigs[i//2].names for i in knot])  
 
     #recompute haploid contigs without those that are in a knot by both ends
     index = 0
@@ -379,6 +384,8 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
     for end in range(len(listOfNeighbors)) :
         segmentsAlreadyTraversed = set()
         listOfNeighbors[end] = find_neighbors(haploidContigs[end//2], end%2, segmentsAlreadyTraversed, haploidContigsNames, 1, 100)
+        # if end in listOfNeighbors[end]:
+        #     listOfNeighbors[end].remove(end)
         
     #recompute the knots
     listOfKnots = []
@@ -419,6 +426,11 @@ def determine_list_of_knots(segments, haploidContigs, haploidContigsNames, inter
                                 
                 knot.sort()
                 listOfKnots += [knot]
+                
+                    
+    # for k, knot in enumerate(listOfKnots) :
+    #     if any(['edge_1920' in haploidContigs[i//2].names for i in knot]) :
+    #         print("Edge 1920 in this knot : ", [haploidContigs[i//2].names for i in knot])  
 
     
     return listOfKnots, listOfNeighbors, knotOfContig, haploidContigs, haploidContigsNames
@@ -460,23 +472,37 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
         # if any(['edge_1444' in haploidContigs[i//2].names for i in knot]) :
         #     print("Edge 128 in this knot : ", [haploidContigs[i//2].names for i in knot])
         
+        
         if len(knot) > 1  :
+            
             preferred_contact = {} #preferred_contact associates to an end all the ends that points toward it
             knot_solved = True
             
+            
             for e, end in enumerate(knot) :
-                
+                                
                 index = haploidContigsNames[haploidContigs[end//2].full_name()]
-
-                interactions = interactions_with_neighbors(haploidContigs[end//2], end%2, [haploidContigs[i//2] for i in list_of_neighbors[end]], [i%2 for i in list_of_neighbors[end]], segments, interactionMatrix, names, copiesnumber, verbose = verbose)
-                if len(interactions) == 0: #can appear in really rare cases where a contig has one neighbor but not reciprocally because of limits in depth recursion (so contig ends up alone in his knot)
-                    interactions = [-1]
+                interactions = []
                 
-                if interactions == [-1] and verbose :
-                    print ("Did not manage to compute interactions from ", haploidContigs[end//2].names, " to ", [haploidContigs[i//2].names for i in list_of_neighbors[end]])
+                if len(knot) == 2: #then no need to compute complicated bridges
                 
-                # if 'edge_107' in haploidContigs[end//2].names : #or 'edge_129' in haploidContigs[end//2].names or 'edge_290' in haploidContigs[end//2].names or 'edge_289' in haploidContigs[end//2].names:
-                #     print("Looking at interaction from contig ", haploidContigs[end//2].full_name(), " and here are its interactions: ", interactions, k)
+                    for i in list_of_neighbors[end]:
+                        if i == end :
+                            interactions.append(0)
+                        else :
+                            interactions.append(10)
+                else :
+                    interactions = interactions_with_neighbors(haploidContigs[end//2], end%2, [haploidContigs[i//2] for i in list_of_neighbors[end]], [i%2 for i in list_of_neighbors[end]], segments, interactionMatrix, names, copiesnumber, verbose = verbose)
+                    if len(interactions) == 0: #can appear in really rare cases where a contig has one neighbor but not reciprocally because of limits in recursion depth (so contig ends up alone in his knot)
+                        interactions = [-1]
+                    
+                    if interactions == [-1] and verbose :
+                        print ("Did not manage to compute interactions from ", haploidContigs[end//2].names, " to ", [haploidContigs[i//2].names for i in list_of_neighbors[end]])
+                    
+                    if  'edge_1808' in haploidContigs[end//2].names : #and end == 1: #or 'edge_129' in haploidContigs[end//2].names or 'edge_290' in haploidContigs[end//2].names or 'edge_289' in haploidContigs[end//2].names:
+                        print("Looking at interaction from contig ", haploidContigs[end//2].full_name(), " and here are its interactions: ", interactions, k)
+                    #     while True : 
+                    #         pass
                 
                 m = max(interactions)
                 
@@ -580,7 +606,7 @@ def normalize(matrix, verbose) :
 
 #input : list of ends of haploid contigs we want to link, list of the solved knots we can work on (a partially resolved knot is no good)
 #output : paths between the linked segments
-def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage, verbose = False) :
+def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, haploidContigs, interactionMatrix, names, confidentCoverage, refDepth, verbose = False) :
     
     untangled_paths = []
     unused_contigs = set()
@@ -627,7 +653,7 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
             if verbose :
                 print("Dispatching all the intermediary contigs")
                 
-            repartitionOfContigs, hardlimits = dispatch_contigs(touchedContigs, contacts[k], interactionMatrix, names, haploidContigs, confidentCoverage)
+            repartitionOfContigs, hardlimits = dispatch_contigs(touchedContigs, contacts[k], interactionMatrix, names, haploidContigs, confidentCoverage, refDepth)
 
             if verbose :
                 print("Finding dynamically the best paths to satisfy all constraints")
@@ -715,14 +741,16 @@ def backtrack_from_segment2(segment2, end2, segment1, end1, touchingSegment1, de
   
 #input : a list of contacts and intermediary contigs
 #output : a repartition of all intermediary contigs between the different paths, as well as hardlimits, a hard limit on the multiplicity of the contigs given their coverage
-def dispatch_contigs(touchedContigs, contacts, interactionMatrix, names, haploidContigs, confidentCoverage) :
+def dispatch_contigs(touchedContigs, contacts, interactionMatrix, names, haploidContigs, confidentCoverage, refDepth) :
 
     repartitionOfContigs= {} #a dict associating each contig to a dictionnary giving the repartition of this contig
     hardlimits = {} #a dict associating to each contig the hard limit of multiplicity associated with the contig
     
     #first deal with intermediary contigs
     refCoverage = np.mean([haploidContigs[i[0]//2].depth for i in contacts]+[haploidContigs[i[1]//2].depth for i in contacts]) #refCoverage is the average of the coverage of the haploid contigs bordering the knot
-
+    if refCoverage == 0 :
+        refCoverage = refDepth
+    
     for intercontig in touchedContigs.keys() :
 
         repartitionOfContigs[intercontig] = {}        
@@ -731,7 +759,9 @@ def dispatch_contigs(touchedContigs, contacts, interactionMatrix, names, haploid
         multiplicity = 0
         if confidentCoverage :
             multiplicity = round(intercontig.depth / refCoverage)
-        multiplicity = max([ min(len(intercontig.links[0]), len(intercontig.links[1]), 3), multiplicity])
+        else :
+            multiplicity = max([ min(len(intercontig.links[0]), len(intercontig.links[1]))])
+        multiplicity = max(1, multiplicity)
         
         #compute the interaction of this contig with each path it can be on
         interaction_with_path = [0 for i in range(len(contacts))]
