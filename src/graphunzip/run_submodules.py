@@ -81,9 +81,7 @@ def run_prog_unzip():
             if reliableCoverage:
                 if someDepth0 < 10:
                     logging.warning(
-                        "WARNING: contig ",
-                        s.names,
-                        " has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode",
+                        f"WARNING: contig {s.names} has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode",
                     )
                 elif someDepth0 == 10:
                     logging.info(

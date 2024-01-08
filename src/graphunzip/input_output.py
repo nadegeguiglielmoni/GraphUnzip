@@ -824,7 +824,7 @@ def load_gfa(file):
             ] = index  # now this contig (identified by its name) is attached to index
             index += 1
 
-    logging.info("Loading links")
+    logging.info("Loading links from: {file}")
     gfa_read = open(file, "r")
 
     cov = 1
