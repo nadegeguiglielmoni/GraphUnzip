@@ -16,6 +16,7 @@ import numpy as np
 
 import copy
 import gzip
+import logging
 import os.path  # to check the existence of files
 import pickle  # for writing files and reading them
 import re  # to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
