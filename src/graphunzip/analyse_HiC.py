@@ -132,7 +132,7 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
         ):
             contactNumber += 1
 
-    logging.info(score)
+    # logging.info(score)
     plt.hist(score)
 
 

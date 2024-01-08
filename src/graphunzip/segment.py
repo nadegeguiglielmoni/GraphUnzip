@@ -565,10 +565,7 @@ class Segment:
             return True
         elif index == -1 and warning:
             logging.info(
-                "Trying unsuccesfully to remove ",
-                segmentToRemove.names,
-                " from ",
-                self._namesOfContigs,
+                f"Trying unsuccesfully to remove {segmentToRemove.names} from {self._namesOfContigs}"
             )
             return False
 

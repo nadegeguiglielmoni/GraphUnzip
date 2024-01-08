@@ -353,7 +353,7 @@ def run_prog_extract():
             cn[name] = 1
 
     logging.info(
-        "\n\n================\n\nEverything loaded, moving on to untangling the graph\n\n================"
+        " \n\n================\n\nEverything loaded, moving on to untangling the graph\n\n================"
     )
 
     supported_links2 = sparse.lil_matrix(
@@ -373,12 +373,12 @@ def run_prog_extract():
         exhaustive=True,
         extract=True,
     )
-    logging.info("Merging contigs that can be merged...")
+    logging.info("Merging contigs that can be merged.")
     merge_adjacent_contigs(segments)
-    logging.info("Done extracting the genome")
+    logging.info("Done extracting the genome.")
 
     # now exporting the output
-    logging.info("Now exporting the result")
+    logging.info(f"Now exporting the result to: {outFile}")
     io.export_to_GFA(
         segments,
         gfaFile,
@@ -406,7 +406,7 @@ def run_prog_purge():
 
     purge_assembly(segments)
 
-    logging.info("Now exporting the result")
+    logging.info(f"Now exporting the result to: {outFile}")
     io.export_to_GFA(
         segments,
         gfaFile,

@@ -76,7 +76,7 @@ def purge_assembly(segments):
                             for alt_contig in alternativePath:
                                 if alt_contig not in allpaths[longestPath]:
                                     alt_contig.cut_all_links()
-                                    logging.info("Deleting ", alt_contig.names[0])
+                                    logging.info(f"Deleting {alt_contig.names[0]}")
                                     toDelete += [IDs[alt_contig.ID]]
 
     toDelete.sort(reverse=True)

@@ -67,7 +67,7 @@ def read_bam(file, names, segments):
 
         number_of_lines += 1
         if number_of_lines % 10000 == 0:
-            logging.info("Processed ", number_of_lines, " records")
+            logging.info(f"Processed {number_of_lines} records.")
 
     # logging.info(interactionMatrix)
 
@@ -180,7 +180,7 @@ def read_info_contig(file):
 def interactionMatrix(
     hiccontactsfile, fragmentList, names, segments, header=True
 ):  # the header refers to the hiccontactsfile
-    logging.info("Building the interaction matrix")
+    logging.info("Building the interaction matrix.")
     t = time.time()
     # create interaction matrix of contig vs contig
     # 1 -> [1...N] N contigs
@@ -199,7 +199,7 @@ def interactionMatrix(
     for line in inFile:
         if time.time() - t > 2:
             t = time.time()
-            logging.info("Built " + str(int(n / len(inFile) * 100)) + "%")
+            logging.info(f"Built {str(int(n / len(inFile) * 100))}%")
 
         line = line.strip("\n").split("\t")
 
@@ -242,11 +242,7 @@ def interactionMatrix(
 
     if unknowncontacts != 0:
         logging.warning(
-            "WARNING: There are ",
-            unknowncontacts,
-            " out of ",
-            n,
-            " contacts I did not manage to map : you may want to check if the names of the contigs are consistent throughout your files",
+            f"WARNING: There are {unknowncontacts} out of {n} contacts I did not manage to map : you may want to check if the names of the contigs are consistent throughout your files"
         )
 
     interactionMatrix.tocsr()
@@ -342,9 +338,7 @@ def linkedReads_interactionMatrix(sam, names):
             else:  # in case barcode is not found (no break statement reached in for loop)
                 if l < 10:
                     logging.info(
-                        "Barcode could not be extracted from record ",
-                        record,
-                        ", ignoring...",
+                        f"Barcode could not be extracted from record {record}, ignoring..."
                     )
                     l += 1
                 if l == 9:
@@ -374,10 +368,7 @@ def load_interactionMatrix(file, listOfSegments, names, HiC=False):
 
     if interactionMatrix.shape != (len(listOfSegments) * 2, len(listOfSegments) * 2):
         logging.error(
-            "ERROR: the interaction matrix provided ( ",
-            file,
-            " ) does not seem to match with the GFA file (different number of contigs). \
-              The format of interaction matrices have changed since April 2022: you may want to re-run graphunzip HiC-IM. Exiting",
+            f"ERROR: the interaction matrix provided ({file}) does not seem to match with the GFA file (different number of contigs). The format of interaction matrices have changed since April 2022: you may want to re-run graphunzip HiC-IM. Exiting"
         )
         sys.exit(1)
 
@@ -428,7 +419,7 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
 
         else:
             logging.error(
-                "ERROR : Problem in the offset file, not pointing to the right lines"
+                "ERROR : Problem in the offset file, not pointing to the right lines."
             )
 
     return "In get_contig : the contig you are seeking is not in the gfa file"
@@ -496,7 +487,7 @@ def export_to_GFA(
             if time.time() > t + 1:
                 t = time.time()
                 logging.info(
-                    int(s / len(listOfSegments) * 1000) / 10, "% of sequences written"
+                    f"{int(s / len(listOfSegments) * 1000) / 10}% of sequences written"
                 )
 
             for c, contig in enumerate(segment.names):
@@ -556,7 +547,7 @@ def export_to_GFA(
             if time.time() > t + 1:
                 t = time.time()
                 logging.info(
-                    int(s / len(listOfSegments) * 1000) / 10, "% of links written"
+                    f"{int(s / len(listOfSegments) * 1000) / 10}% of links written."
                 )
 
             for endOfSegment in range(2):
@@ -609,7 +600,7 @@ def export_to_GFA(
             if time.time() > t + 1:
                 t = time.time()
                 logging.info(
-                    int(s / len(listOfSegments) * 1000) / 10, "% of sequences written"
+                    f"{int(s / len(listOfSegments) * 1000) / 10}% of sequences written."
                 )
 
             if rename_contigs:
@@ -753,7 +744,7 @@ def export_to_fasta(
         if time.time() > t + 1:
             t = time.time()
             logging.info(
-                int(s / len(listOfSegments) * 1000) / 10, "% of sequences written"
+                f"{int(s / len(listOfSegments) * 1000) / 10}% of sequences written."
             )
 
         if rename_contigs:

@@ -105,7 +105,7 @@ def check_if_there_are_restriction_fragments_in_this_contig(
             if "S" in ls[0] and contig in ls[1]:
                 return ls[2].count(restrictionSiteSequence)
 
-    logging.info("There is a problem with the input contig")
+    logging.info("There is a problem with the input contig.")
     return 0
 
 
@@ -149,6 +149,7 @@ def correlation_coverage_restrictionSites(coverage, restrictionSites):
     plt.ylabel("Coverage")
 
 
+"""
 fragmentsFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/fragments_list.txt"
 matrixFile = (
     "Arabidopsis/Arabidopsis_hybrid/HiCmapping/abs_fragments_contacts_weighted.txt"
@@ -162,6 +163,7 @@ logging.info(
         "contig_6405", "GATC", gfaFile
     )
 )
+"""
 
 # coverage = determine_HiC_coverage(matrixFile, bf.read_info_contig(contigFile), bf.read_fragment_list(fragmentsFile))
 # restrictionSites = restrictionSitesInEachContigs(fastaFile, 'GATC')
@@ -179,4 +181,4 @@ logging.info(
 # plt.xlim([0,3])
 
 # correlation_GCcontent_HiCcoverage(coverage, 'data/Assembly.fasta', unconnectedcontigs)
-logging.info("Finished")
+# logging.info("Finished")

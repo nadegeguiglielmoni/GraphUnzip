@@ -34,7 +34,7 @@ def cut_chromosomes(solutionFile, chunks=2000):
                 q.close()
                 queryfiles += [line.strip(">").strip("\n") + "_cut.fasta"]
                 q = open("cut/" + line.strip(">").strip("\n") + "_cut.fasta", "w")
-                logging.info("Cutting ", line.strip(">").strip("\n"))
+                logging.info(f"Cutting: {line.strip(">").strip("\n")}")
             else:
                 char = 0
                 l = list(line)
@@ -61,10 +61,11 @@ def assign_a_chromosome_to_each_contig(
 ):
     # here the reference will be the assemblyFile
     os.system("mkdir tmp")
+    logging.info(f'Calling: makeblastdb -dbtype nucl -parse_seqids -in {assemblyFile} -out tmp/dtb')
     os.system(
         "makeblastdb -dbtype nucl -parse_seqids -in " + assemblyFile + " -out tmp/dtb"
     )
-    logging.info("Done building the database")
+    logging.info("Finished building the database.")
 
     assign = {}
     aFile = open(assemblyFile, "r")
@@ -81,7 +82,7 @@ def assign_a_chromosome_to_each_contig(
 
     for query in queryfiles:
         contigsHere = []
-        logging.info("Looking at chromosome : ", query)
+        logging.info(f"Looking at chromosome : {query}")
         blastn_cline = NcbiblastnCommandline(
             query="cut/" + query,
             db="tmp/dtb",
@@ -197,7 +198,7 @@ def check_phasing(
                             first = False
                             chromosomes = set(assigned[contig])
                             allchromosomes = set(assigned[contig])
-                            logging.info("\nIn contig ", line)
+                            logging.info(f"In contig {line}")
                             fo.write("\nIn contig " + line)
                         elif len(chromosomes) != 0:
                             chromosomes = chromosomes.intersection(
@@ -217,13 +218,7 @@ def check_phasing(
         if len(assigned[i]) > 0:
             phasingSuccesses += 1
 
-    logging.info(
-        "\n\nTo summarize ",
-        phasingSuccesses,
-        " contigs contain no phasing errors and ",
-        phasingErrors,
-        " contain phasing errors",
-    )
+    logging.info(f"To summarize {phasingSuccesses} contigs contain no phasing errors and {phasingErrors} contain phasing errors.")
 
 
 # first cut each chromosome in chunks

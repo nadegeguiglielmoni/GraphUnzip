@@ -143,9 +143,7 @@ def solve_with_HiC(
         contacts = [[] for i in range(len(list_of_knots))]
         # while not sure :
         logging.info(
-            "Finished determining the list of knots, there are ",
-            len(list_of_knots),
-            " of them. Now determining pairs of single-copy contigs that should be linked through other contigs.",
+            f"Finished determining the list of knots, there are {len(list_of_knots)} of them. Now determining pairs of single-copy contigs that should be linked through other contigs."
         )
         solvedKnots, rien1, rien2, sure = match_haploidContigs(
             segments,
@@ -881,7 +879,7 @@ def find_paths(
 
     for kn, k in enumerate(solvedKnots):
         logging.info(
-            "Found the path for ", float(kn) / len(solvedKnots) * 100, "% of the knots"
+            f"Found the path for {float(kn) / len(solvedKnots) * 100}% of the knots"
         )
 
         untangled_paths += [[]]

@@ -72,13 +72,7 @@ def break_up_chimeras(segments, names, interactionMatrix, length):
                         )
 
                         logging.info(
-                            "Breaking up contig ",
-                            segment.names,
-                            " between ",
-                            segment.names[localMinimums[loin] - 1],
-                            " and ",
-                            segment.names[localMinimums[loin]],
-                            " because it looks like a chimeric contig",
+                            f"Breaking up contig {segment.names} between {segment.names[localMinimums[loin] - 1]} and {segment.names[localMinimums[loin]]} because it looks like a chimeric contig"
                         )
 
                         # Now break the contig where it should
@@ -686,11 +680,10 @@ def get_rid_of_bad_links(
                                     else:
                                         if verbose:
                                             logging.info(
-                                                "\nRemoving link from ",
+                                                "Removing link from ",
                                                 segment.links[endOfSegment][n1].names,
                                                 " to ",
                                                 segment.names,
-                                                "\n",
                                             )
                                         if n1 not in toRemove:
                                             toRemove += [n1]
@@ -839,7 +832,7 @@ def solve_ambiguities(
         for j in listOfSegments:
             j.unfreeze()
 
-        logging.info(str((i + 1) / steps * 100) + "% of solving ambiguities done")
+        logging.info(f"{str((i + 1) / steps * 100)}% of solving ambiguities done.")
 
         if debugDir != "":
             io.export_to_GFA(

@@ -69,13 +69,7 @@ def break_up_chimeras(segments, names, interactionMatrix, length):
                         )
 
                         logging.info(
-                            "Breaking up contig ",
-                            segment.names,
-                            " between ",
-                            segment.names[localMinimums[loin] - 1],
-                            " and ",
-                            segment.names[localMinimums[loin]],
-                            " because it looks like a chimeric contig",
+                            f"Breaking up contig {segment.names} between {segment.names[localMinimums[loin] - 1]} and {segment.names[localMinimums[loin]]} because it looks like a chimeric contig"
                         )
 
                         # Now break the contig where it should
@@ -96,7 +90,7 @@ def break_up_chimeras(segments, names, interactionMatrix, length):
 def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     if len(segment.links[endOfSegment]) != 1:
         logging.error(
-            "ERROR : trying to merge simply two contigs that cannot be merged simply"
+            "ERROR : trying to merge simply two contigs that cannot be merged simply."
         )
         return -1, -1
 
@@ -105,7 +99,7 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
 
     if len(neighbor.links[endOfSegmentNeighbor]) != 1:
         logging.error(
-            "ERROR : trying to merge simply two contigs that cannot be merged simply"
+            "ERROR : trying to merge simply two contigs that cannot be merged simply."
         )
         return -1, -1
 
