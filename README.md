@@ -164,7 +164,7 @@ Other options:
 ```
 
 To run command HiC-IM:
-```bash
+```
 graphunzip HiC-IM --help
 usage: graphunzip [-h] -g GFA_GRAPH -m MATRIX -F FRAGMENTS [--HiC_IM HIC_IM]
 
@@ -181,7 +181,7 @@ optional arguments:
 ```
 
 To run command linked-reads-IM:
-```bash
+```
 graphunzip linked-reads-IM --help
 usage: graphunzip [-h] -g GFA_GRAPH -p--linked_reads_IM P__LINKED_READS_IM
                      -b BARCODED_SAM
