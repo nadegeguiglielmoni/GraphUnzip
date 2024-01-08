@@ -353,7 +353,7 @@ def run_prog_extract():
             cn[name] = 1
 
     logging.info(
-        "\n================\n\nEverything loaded, moving on to untangling the graph\n\n================"
+        "\n\n================\n\nEverything loaded, moving on to untangling the graph\n\n================"
     )
 
     supported_links2 = sparse.lil_matrix(
