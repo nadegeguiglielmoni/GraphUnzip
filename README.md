@@ -12,8 +12,37 @@ Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/l
 
 ## Installation
 
-`GraphUnzip` requires python3 with numpy, scipy and zlib, you can install them e.g. using `pip install` or `conda install`. To use bam format (Hi-C or linked reads) you'll also need pysam.
-`GraphUnzip` requires no installation. To run `GraphUnzip`, clone this repo using `git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git`, and simply run `graphunzip.py`
+`GraphUnzip` requires python3 with numpy, scipy and zlib. 
+To read bam-format data (Hi-C or linked reads) you'll also need pysam.
+
+There are 4 options available for installing GraphUnzip:
+
+1) Clone from this repository and install as a local Python package.
+This is the best way to ensure you have the latest development version.
+
+```bash
+git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git && cd graphunzip && pip install -e .
+```
+
+2) Pip install directly from this git repository.
+
+```bash
+pip install git+https://github.com/nadegeguiglielmoni/GraphUnzip.git
+```
+
+3) Install from PyPi.
+
+```bash
+pip install graphunzip
+```
+
+4) Install from Bioconda.
+```bash
+conda install -c bioconda graphunzip
+```
+
+Run `graphunzip --help` to verify installation.
+
 
 ## Usage
 
@@ -24,63 +53,84 @@ Combined with a short read assembler, `GraphUnzip` makes a great hybrid (short/l
 An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) and any combination of :
 
 1. Hi-C data : GraphUnzip needs either 1) the Hi-C reads mapped to the assembly in name-sorted bam format or 2) a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats). You can use [hicstuff](https://github.com/koszullab/hicstuff) to obtain these files, using preferably iterative mode :
+
 ```bash
 awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta file from the gfa
 hicstuff pipeline -t 8 --mapping=iterative -o mapping/ -g assembly.fasta -e DpnII HiC_reads_forward.fq HiC_reads_reverse.fq
 ```
 and/or
 
-2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner)). The best is to use an old version of GraphAligner (commit `5217838b436fee4eda5824aabee99406db2a137b`) with option `--global-alginment`, elsewhise you can use a more recent version with option `--multimap-score-fraction 1`.
-```
+2. Long reads (mapped to the GFA in the GAF format of [GraphAligner](https://github.com/maickrau/GraphAligner)). The best is to use an old version of GraphAligner (commit `5217838b436fee4eda5824aabee99406db2a137b`) with option `--global-alginment`, otherwise you can use a more recent version with option `--multimap-score-fraction 1`.
+
+```bash
 GraphAligner --global-alignment -x vg -f reads.fq -g graph.gfa -a longreads_aligned_on_gfa.gaf
 ``` 
 and/or
 
 3. Barcoded linked reads mapped to the contigs of the assembly in [SAM format](https://samtools.github.io/hts-specs/SAMv1.pdf). Barcodes need to be designated in the SAM by a BX:Z: tag (e.g. BX:Z:AACTTGTCGGTCAT-1) at the end of each line. A possible pipeline to get this file from barcoded reads using BWA would be:
-```
+
+```bash
 awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta file from the gfa
 bwa index assembly.fasta							#index the fasta file of the assembly
 bwa mem assembly barcoded_reads.fastq -C > reads_aligned_on_assembly.sam	#align the barcoded reads to the assembly : the -C option is very important here, to keep the barcodes in the sam file
 ```
-N.B. Linked reads support is an experimental option we added on demand from some users. It has not been extensively tested. We also expect results to be poorer than what is obtained using Hi-C or long reads.
+
+Note: Linked reads support is an experimental option we added on demand from some users. It has not been extensively tested. We also expect results to be poorer than what is obtained using Hi-C or long reads.
 
 ### Running GraphUnzip
 
 To use `GraphUnzip`, you generally need to proceed in two steps :
 
 1. If using Hi-C or linked reads, build interaction matrix(ces) (a matrix quantifying the pairwise interaction between all contigs): for that use the `HiC-IM`, or `linked-reads-IM` command, depending on which type of data you dispose. You will have to specify the files to which these interaction matrices will be written.
-```
+
+```bash
 #for Hi-C
-graphunzip.py HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC_IM hic_interactionmatrix.txt
+graphunzip HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC_IM hic_interactionmatrix.txt
 
 #for linked reads
-graphunzip.py linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g assembly.gfa --linked_reads_IM linkedreads_interactionmatrix.txt
+graphunzip linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g assembly.gfa --linked_reads_IM linkedreads_interactionmatrix.txt
 ```
+
 2. Use the command `unzip` to unzip the graph using the interaction matrices built beforehand and/or the gaf file if using long reads.
-```
+
+```bash
 #let's unzip our gfa using linked-reads, Hi-C and long reads :
 
-graphunzip.py unzip -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_interactionmatrix.txt -l longreads_aligned_on_gfa.gaf -o assembly_unzipped.gfa
+graphunzip unzip -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_interactionmatrix.txt -l longreads_aligned_on_gfa.gaf -o assembly_unzipped.gfa
 
 ```
 
 
 ### Options
-```bash
-./graphunzip.py --help
-usage: graphunzip.py [-h] command
+
+GraphUnzip has 5 sub-modules:  
+- unzip: untangle the GFA file
+- purge: retain only haploid contigs
+- extract: extract haploid assembly with a close reference genome
+- HiC-IM: to prepare Hi-C data
+- linked-reads-IM: to prepare linked reads data
+
+```
+graphunzip --help
+usage: graphunzip [-h] command
 
 positional arguments:
-  command     Either unzip, HiC-IM (to prepare Hi-C data) or linked-reads-IM (to prepare linked reads data)
+  command     Sub-command must be one of: 
+              unzip (untangle the GFA file), 
+              purge (retain only haploid contigs), 
+              extract (extract haploid assembly with a close reference genome), 
+              HiC-IM (to prepare Hi-C data) or 
+              linked-reads-IM (to prepare linked reads data)
 
 optional arguments:
   -h, --help  show this help message and exit
+  -v, --version         show program's version number and exit
 ```
 
 To run command unzip:
-```bash
-./graphunzip.py unzip -h
-usage: graphunzip.py [-h] -g GFA [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-o OUTPUT]
+```
+graphunzip unzip -h
+usage: graphunzip [-h] -g GFA [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-o OUTPUT]
                      [-f FASTA_OUTPUT] [-v] [-r] [--dont_merge] [-c] [-b]
 
 optional arguments:
@@ -115,8 +165,8 @@ Other options:
 
 To run command HiC-IM:
 ```bash
-./graphunzip.py HiC-IM --help
-usage: graphunzip.py [-h] -g GFA_GRAPH -m MATRIX -F FRAGMENTS [--HiC_IM HIC_IM]
+graphunzip HiC-IM --help
+usage: graphunzip [-h] -g GFA_GRAPH -m MATRIX -F FRAGMENTS [--HiC_IM HIC_IM]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -132,8 +182,8 @@ optional arguments:
 
 To run command linked-reads-IM:
 ```bash
-./graphunzip.py linked-reads-IM --help
-usage: graphunzip.py [-h] -g GFA_GRAPH -p--linked_reads_IM P__LINKED_READS_IM
+graphunzip linked-reads-IM --help
+usage: graphunzip [-h] -g GFA_GRAPH -p--linked_reads_IM P__LINKED_READS_IM
                      -b BARCODED_SAM
 
 optional arguments:
@@ -185,7 +235,7 @@ SPAdes-3.15.3-Linux/bin/spaligner SPAdes-3.15.3-Linux/share/spaligner/spaligner_
 
 Now we use GraphUnzip:
 ```
-GraphUnzip/graphunzip.py -g short_read_assembly/assembly_graph_with_scaffolds.gfa -l spaligner_result/alignment.tsv -o assembly.gfa -f assembly.fasta
+GraphUnzip/graphunzip -g short_read_assembly/assembly_graph_with_scaffolds.gfa -l spaligner_result/alignment.tsv -o assembly.gfa -f assembly.fasta
 ```
 
 The final assembly are assembly.gfa (GFA format) and assembly.fasta (FASTA format)
@@ -197,10 +247,10 @@ The final assembly are assembly.gfa (GFA format) and assembly.fasta (FASTA forma
 
 It is tempting to try to use GraphUnzip on any assembly to improve its contiguity. And you can ! Yet on some assemblies it will not improve the results at all. You can generally know that beforehand by looking at what the assembly graph looks like with the tool [Bandage](https://github.com/rrwick/Bandage/).
 GraphUnzip untangles assembly graphs. Thus it likes having messy, tangled graphs as input. Here is an example of an assembly on which GraphUnzip will probably do well:
-![tangled graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/gfa_tangled.png)
+![tangled graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/docs/gfa_tangled.png)
 
 On the contrary, some assemblies are very fragmented. For those, GraphUnzip cannot do much, since it cannot reconstitute the missing sequence between two contigs. You might consider using a scaffolder instead. Here is an example of a very fragmented assembly, which cannot be untangled much more:
-![fragmented graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/gfa_split.png)
+![fragmented graph](https://github.com/nadegeguiglielmoni/GraphUnzip/blob/master/docs/gfa_split.png)
 
 ## Citation
 
