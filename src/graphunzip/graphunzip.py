@@ -40,8 +40,10 @@ def main():
     args_command = parse_args_command()
     command = args_command.command
 
-    # if len(sys.argv) < 1 :
-    #     sys.exit()
+    logging.basicConfig(
+        level=0,
+        format="%(asctime)s:%(levelname)s:%(module)s:%(message)s",
+    )
 
     t = time.time()
 

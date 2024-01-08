@@ -1,14 +1,32 @@
 import argparse
 import sys
+from graphunzip._version import __version__
 
 
 def parse_args_command():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads.",
+        prog="graphunzip",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s {version}".format(version=__version__),
+    )
 
     parser.add_argument(
         "command",
         choices=["unzip", "purge", "extract", "HiC-IM", "linked-reads-IM"],
-        help=f"Sub-command must be one of: \nunzip (untangle the GFA file), \npurge (retain only haploid contigs), \nextract (extract haploid assembly with a close reference genome), \nHiC-IM (to prepare Hi-C data) or \nlinked-reads-IM (to prepare linked reads data)",
+        help="""
+        Sub-command must be one of:
+        unzip (untangle the GFA file),
+        purge (retain only haploid contigs),
+        extract (extract haploid assembly with a close reference genome),
+        HiC-IM (to prepare Hi-C data) or
+        linked-reads-IM (to prepare linked reads data)
+        """,
     )
 
     return parser.parse_args(sys.argv[1:2])
