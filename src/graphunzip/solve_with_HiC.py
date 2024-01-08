@@ -834,7 +834,7 @@ def normalize(matrix, verbose):
 
     for rounds in range(10):
         if verbose:
-            logging.info("Round ", rounds, "/10", end="\r")
+            logging.info("Round ", rounds, "/10")
         for i in range(W.shape[0]):
             row_sum = W.data[W.indptr[i] : W.indptr[i + 1]].sum()
             if row_sum != 0:
@@ -881,10 +881,7 @@ def find_paths(
 
     for kn, k in enumerate(solvedKnots):
         logging.info(
-            "Found the path for ",
-            float(kn) / len(solvedKnots) * 100,
-            "% of the knots",
-            end="\r",
+            "Found the path for ", float(kn) / len(solvedKnots) * 100, "% of the knots"
         )
 
         untangled_paths += [[]]

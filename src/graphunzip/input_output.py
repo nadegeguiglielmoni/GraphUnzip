@@ -67,7 +67,7 @@ def read_bam(file, names, segments):
 
         number_of_lines += 1
         if number_of_lines % 10000 == 0:
-            logging.info("Processed ", number_of_lines, " records", end="\r")
+            logging.info("Processed ", number_of_lines, " records")
 
     # logging.info(interactionMatrix)
 
@@ -199,7 +199,7 @@ def interactionMatrix(
     for line in inFile:
         if time.time() - t > 2:
             t = time.time()
-            logging.info("Built " + str(int(n / len(inFile) * 100)) + "%", end="\r")
+            logging.info("Built " + str(int(n / len(inFile) * 100)) + "%")
 
         line = line.strip("\n").split("\t")
 
@@ -496,9 +496,7 @@ def export_to_GFA(
             if time.time() > t + 1:
                 t = time.time()
                 logging.info(
-                    int(s / len(listOfSegments) * 1000) / 10,
-                    "% of sequences written",
-                    end="\r",
+                    int(s / len(listOfSegments) * 1000) / 10, "% of sequences written"
                 )
 
             for c, contig in enumerate(segment.names):
@@ -558,9 +556,7 @@ def export_to_GFA(
             if time.time() > t + 1:
                 t = time.time()
                 logging.info(
-                    int(s / len(listOfSegments) * 1000) / 10,
-                    "% of links written",
-                    end="\r",
+                    int(s / len(listOfSegments) * 1000) / 10, "% of links written"
                 )
 
             for endOfSegment in range(2):
@@ -613,9 +609,7 @@ def export_to_GFA(
             if time.time() > t + 1:
                 t = time.time()
                 logging.info(
-                    int(s / len(listOfSegments) * 1000) / 10,
-                    "% of sequences written",
-                    end="\r",
+                    int(s / len(listOfSegments) * 1000) / 10, "% of sequences written"
                 )
 
             if rename_contigs:
@@ -759,9 +753,7 @@ def export_to_fasta(
         if time.time() > t + 1:
             t = time.time()
             logging.info(
-                int(s / len(listOfSegments) * 1000) / 10,
-                "% of sequences written",
-                end="\r",
+                int(s / len(listOfSegments) * 1000) / 10, "% of sequences written"
             )
 
         if rename_contigs:
