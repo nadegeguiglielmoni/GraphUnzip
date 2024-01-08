@@ -5,7 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "GraphUnzip"
 authors = [
+    { name = "Roland Faure", email = "roland.faure@irisa.fr" },
     { name = "Nadège Guiglielmoni", email = "nadege.guiglielmoni@ulb.be" },
+    { name = "Jean-François Flot", email = "jean-francois.flot@ulb.be" },
 ]
 
 description = "Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads."
