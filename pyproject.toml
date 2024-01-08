@@ -35,7 +35,7 @@ documentation = "https://github.com/nadegeguiglielmoni/GraphUnzip"
 repository = "https://github.com/nadegeguiglielmoni/GraphUnzip"
 
 [project.scripts]
-graphunzip = "graphunzip.app:main"
+graphunzip = "graphunzip.graphunzip:main"
 
 
 # Create and push tags
