@@ -327,9 +327,7 @@ def inventoriate_bridges(
 ):
     for l, line in enumerate(lines):
         if (l + 1) % 1000 == 0:
-            logging.info(
-                "Inventoried ", l + 1, " long reads over ", len(lines), end="\r"
-            )
+            logging.info(f"Inventoried {l + 1} long-reads over {len(lines)}")
 
         contigs = re.split("[><]", line)
         orientations = "".join(re.findall("[<>]", line))
