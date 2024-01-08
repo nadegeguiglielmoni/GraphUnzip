@@ -318,7 +318,7 @@ class read:
                             use = "gzip"
                         except OSError:
                             use = "internal"
-                    if use is not "internal" and decompressor != "internal":
+                    if use != "internal" and decompressor != "internal":
                         if type(f) is str:
                             self._subprocess = subprocess.Popen(
                                 [use, "--decompress", "--stdout", f],
