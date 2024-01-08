@@ -171,7 +171,7 @@ def run_prog_unzip():
 
     # As a first step, use only the long reads, if available
     if uselr:
-        logging.info("\n*Untangling the graph using long reads*\n")
+        logging.info("Untangling the graph using long reads")
         segments = bridge_with_long_reads(
             segments,
             names,
@@ -181,13 +181,13 @@ def run_prog_unzip():
             multiplicities,
             exhaustive,
         )
-        logging.info("Merging contigs that can be merged...")
+        logging.info("Merging contigs that can be merged.")
         merge_adjacent_contigs(segments)
-        logging.info("\n*Done untangling the graph using long reads*\n")
+        logging.info("Done untangling the graph using long reads.")
 
     # As a second step, use Hi-C and/or linked reads
     if interactionMatrix.count_nonzero() > 0:
-        logging.info("\n*Untangling the graph using Hi-C*\n")
+        logging.info("Untangling the graph using Hi-C")
         segments = solve_with_HiC(
             segments,
             interactionMatrix,
@@ -199,7 +199,7 @@ def run_prog_unzip():
         )
         logging.info("Merging contigs that can be merged...")
         merge_adjacent_contigs(segments)
-        logging.info("\n*Done untangling the graph using Hi-C*\n")
+        logging.info("Done untangling the graph using Hi-C")
 
     elif tagInteractionMatrix.count_nonzero() > 0:
         segments = solve_with_HiC(
@@ -353,7 +353,7 @@ def run_prog_extract():
             cn[name] = 1
 
     logging.info(
-        "================\n\nEverything loaded, moving on to untangling the graph\n\n================"
+        "\n================\n\nEverything loaded, moving on to untangling the graph\n\n================"
     )
 
     supported_links2 = sparse.lil_matrix(
@@ -375,7 +375,7 @@ def run_prog_extract():
     )
     logging.info("Merging contigs that can be merged...")
     merge_adjacent_contigs(segments)
-    logging.info("\n*Done extracting the genome*\n")
+    logging.info("Done extracting the genome")
 
     # now exporting the output
     logging.info("Now exporting the result")

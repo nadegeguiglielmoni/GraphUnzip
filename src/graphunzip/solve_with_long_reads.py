@@ -221,9 +221,7 @@ def bridge_with_long_reads(
     )
 
     # now remove the tips that apparently came from an overestimation in the multiplicity
-    logging.info(
-        "Now we correct the last quirks by looking a posteriori at the graph               "
-    )
+    logging.info("Now we correct the last quirks by looking a posteriori at the graph.")
     merge_adjacent_contigs(segments)
     trim_tips(
         segments,

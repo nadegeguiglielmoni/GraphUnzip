@@ -28,7 +28,7 @@ def main():
 
     run_submodule(command)
 
-    logging.info(f"Finished in {time.time() - starttime} seconds")
+    logging.info(f"Finished in {(time.time() - starttime):.2f} seconds")
 
 
 if __name__ == "__main__":
