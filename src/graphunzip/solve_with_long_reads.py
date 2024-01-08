@@ -438,9 +438,7 @@ def build_consensus_bridges(
 
     for c in range(len(bridges)):
         if (c) % 100 == 0:
-            logging.info(
-                "consensused ", c, " bridges out of ", len(consensus_bridges), end="\r"
-            )
+            logging.info(f"consensused {c} bridges out of {len(consensus_bridges)}")
 
         localContigs = [
             [re.split("[><]", bridges[c][j][k])[1:] for k in range(len(bridges[c][j]))]
@@ -822,12 +820,7 @@ def unzip_graph_with_bridges(
     for se in range(l):
         if (se) % 100 == 0:
             logging.info(
-                "Processed ",
-                se,
-                " contigs out of ",
-                l,
-                ", while untangling with long reads",
-                end="\r",
+                f"Processed {se} contigs out of {l}, while untangling with long reads"
             )
         s = segments[se]
 
