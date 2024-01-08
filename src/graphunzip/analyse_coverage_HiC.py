@@ -6,10 +6,9 @@ Created on Wed Apr 22 17:19:55 2020
 File dedicated to the analysis of the HiC coverage of contigs
 """
 
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
-
-# import basic_functions as bf
 
 
 def determine_HiC_coverage(
@@ -70,7 +69,7 @@ def determine_unconnected_contigs(hiccontactsfile, fragmentList):
             if does_a_contig_interact_with_this_one[i] == False:
                 contigUnconnected += [i]
 
-        print(contigUnconnected)
+        logging.info(contigUnconnected)
 
 
 def restrictionSitesInEachContigs(genomeFastaFile, restrictionSequence):
@@ -88,7 +87,7 @@ def restrictionSitesInEachContigs(genomeFastaFile, restrictionSequence):
                 seq = ""
             else:
                 # if '>' in line :
-                #     print('WHAT ?')
+                #     logging.info('WHAT ?')
                 seq += line.strip("\n")
         restrictionSites[name] = seq.count(restrictionSequence)
 
@@ -106,7 +105,7 @@ def check_if_there_are_restriction_fragments_in_this_contig(
             if "S" in ls[0] and contig in ls[1]:
                 return ls[2].count(restrictionSiteSequence)
 
-    print("There is a problem with the input contig")
+    logging.info("There is a problem with the input contig")
     return 0
 
 
@@ -158,7 +157,7 @@ contigFile = "Arabidopsis/Arabidopsis_hybrid/HiCmapping/info_contigs.txt"
 fastaFile = "Arabidopsis/Arabidopsis_hybrid/assembly.fasta"
 gfaFile = "Arabidopsis/Arabidopsis_hybrid/assembly_graph.gfa"
 
-print(
+logging.info(
     check_if_there_are_restriction_fragments_in_this_contig(
         "contig_6405", "GATC", gfaFile
     )
@@ -180,4 +179,4 @@ print(
 # plt.xlim([0,3])
 
 # correlation_GCcontent_HiCcoverage(coverage, 'data/Assembly.fasta', unconnectedcontigs)
-print("Finished")
+logging.info("Finished")

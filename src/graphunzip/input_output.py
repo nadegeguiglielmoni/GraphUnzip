@@ -5,21 +5,23 @@ Created on Thu Apr 23 15:59:45 2020
 
 File basically dedicated to small functions involving reading and writing files
 """
-import numpy as np
+
+from graphunzip.segment import compute_copiesNumber
+from graphunzip.segment import delete_links_present_twice
+from graphunzip.segment import Segment
+import graphunzip.pybam.pybam as pybam
+
 from scipy import sparse  # to handle interactionMatrix, which should be sparse
-import time  # to inform the user on what the programm is doing on a regular basis
+import numpy as np
+
+import copy
+import gzip
 import os.path  # to check the existence of files
 import pickle  # for writing files and reading them
 import re  # to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
 import shutil  # to remove directories
 import sys  # to exit when there is an error and to set recursion limit
-import gzip
-import graphunzip.pybam.pybam as pybam
-import copy
-
-from graphunzip.segment import Segment
-from graphunzip.segment import compute_copiesNumber
-from graphunzip.segment import delete_links_present_twice
+import time  # to inform the user on what the programm is doing on a regular basis
 
 
 # Read bam file of Hi-C aligned on assembly
@@ -34,7 +36,7 @@ def read_bam(file, names, segments):
     name_of_last_read = "nothing"
     last_alignment = []
     for alignment in pybam.read(file):
-        # print(alignment.sam)
+        # logging.info(alignment.sam)
         ls = alignment.sam.split("\t")
         if ls[0] == name_of_last_read:
             if (
@@ -60,13 +62,13 @@ def read_bam(file, names, segments):
         else:
             name_of_last_read = ls[0]
             last_alignment = ls
-        # print(alignment)
+        # logging.info(alignment)
 
         number_of_lines += 1
         if number_of_lines % 10000 == 0:
-            print("Processed ", number_of_lines, " records", end="\r")
+            logging.info("Processed ", number_of_lines, " records", end="\r")
 
-    # print(interactionMatrix)
+    # logging.info(interactionMatrix)
 
     interactionMatrix.tocsr()
     return interactionMatrix
@@ -110,7 +112,7 @@ def export_to_bam(segments, bamFile, newnames):
     # header = { 'HD': {'VN': '1.0'},
     #         'SQ': [{'LN': 1575, 'SN': 'chr1'},{'LN': 1584, 'SN': 'chr2'}] }
 
-    # print(header)
+    # logging.info(header)
 
     newfile = pysam.AlignmentFile(newbam, "wb", header=header)
     for read in oldfile.fetch(until_eof=True):
@@ -177,7 +179,7 @@ def read_info_contig(file):
 def interactionMatrix(
     hiccontactsfile, fragmentList, names, segments, header=True
 ):  # the header refers to the hiccontactsfile
-    print("Building the interaction matrix")
+    logging.info("Building the interaction matrix")
     t = time.time()
     # create interaction matrix of contig vs contig
     # 1 -> [1...N] N contigs
@@ -196,7 +198,7 @@ def interactionMatrix(
     for line in inFile:
         if time.time() - t > 2:
             t = time.time()
-            print("Built " + str(int(n / len(inFile) * 100)) + "%", end="\r")
+            logging.info("Built " + str(int(n / len(inFile) * 100)) + "%", end="\r")
 
         line = line.strip("\n").split("\t")
 
@@ -238,7 +240,7 @@ def interactionMatrix(
         n += 1
 
     if unknowncontacts != 0:
-        print(
+        logging.warning(
             "WARNING: There are ",
             unknowncontacts,
             " out of ",
@@ -297,7 +299,7 @@ def read_TSV(tsv_file, names, lines):
                     alignment += contig[:-1]
 
                     if contig[:-1] not in names:
-                        print(
+                        logging.error(
                             "ERROR: while reading the .tsv, I am coming across a contig that was not in the .gfa, namely ",
                             contig[:-1],
                             ". I recommend you check that you are using the same GFA that you aligned the long reads on.",
@@ -334,18 +336,18 @@ def linkedReads_interactionMatrix(sam, names):
                     continue
                 else:
                     barcode = record.get_tag(tag)
-                    # print(barcode)
+                    # logging.info(barcode)
                     break
             else:  # in case barcode is not found (no break statement reached in for loop)
                 if l < 10:
-                    print(
+                    logging.info(
                         "Barcode could not be extracted from record ",
                         record,
                         ", ignoring...",
                     )
                     l += 1
                 if l == 9:
-                    print(
+                    logging.info(
                         "Other such lines with unextratable barcodes are present, but I will stop displaying them, I think you get the idea"
                     )
                 continue  # continue the for record loop
@@ -370,7 +372,7 @@ def load_interactionMatrix(file, listOfSegments, names, HiC=False):
     interactionMatrix = pickle.load(f)
 
     if interactionMatrix.shape != (len(listOfSegments) * 2, len(listOfSegments) * 2):
-        print(
+        logging.error(
             "ERROR: the interaction matrix provided ( ",
             file,
             " ) does not seem to match with the GFA file (different number of contigs). \
@@ -424,7 +426,9 @@ def get_contig_GFA(gfaFile, contig, contigOffset):
             return sline[2], depth, extra_tags
 
         else:
-            print("ERROR : Problem in the offset file, not pointing to the right lines")
+            logging.error(
+                "ERROR : Problem in the offset file, not pointing to the right lines"
+            )
 
     return "In get_contig : the contig you are seeking is not in the gfa file"
 
@@ -443,20 +447,20 @@ def export_to_GFA(
     newnames = {}
     # compute the offsetfile : it will be useful for speeding up exportation. It will enable get_contig not to have to look through the whoooooole file each time to find one contig
     noOffsets = False
-    # print('Offsets : ', offsetsFile)
+    # logging.info('Offsets : ', offsetsFile)
     if offsetsFile == "":
         noOffsets = True
         offsetsFile = gfaFile.strip(".gfa") + "_offsets.pickle"
 
     if gfaFile != "" and noOffsets:
-        # print("coucou")
+        # logging.info("coucou")
         line_offset = {}
         offset = 0
         with open(gfaFile) as gfafile:
             for line in gfafile:
                 sline = line.strip("\n").split("\t")
                 if sline[0] == "S":
-                    # print('In export_to_GFA : exporting ', sline[1])
+                    # logging.info('In export_to_GFA : exporting ', sline[1])
                     line_offset[
                         sline[1]
                     ] = offset  # adds pair sline[1]:offset to the dict
@@ -470,9 +474,9 @@ def export_to_GFA(
     #     with open(offsetsFile, 'rb') as o:
     #         line_offset = pickle.load(o)
 
-    # print(line_offset)
+    # logging.info(line_offset)
 
-    # print('Line_offsets computed, launching proper writing of the new GFA')
+    # logging.info('Line_offsets computed, launching proper writing of the new GFA')
     # Now that the preliminary work is done, start writing the new gfa file
 
     # now sort the segments by length, to output at the beginning of the files the longests fragments
@@ -490,7 +494,7 @@ def export_to_GFA(
         for s, segment in enumerate(listOfSegments):
             if time.time() > t + 1:
                 t = time.time()
-                print(
+                logging.info(
                     int(s / len(listOfSegments) * 1000) / 10,
                     "% of sequences written",
                     end="\r",
@@ -502,7 +506,7 @@ def export_to_GFA(
                     sequence, depth, extra_tags = get_contig_GFA(
                         gfaFile, contig, line_offset[contig]
                     )
-                    # print("Here is the depth I got : ", depth)
+                    # logging.info("Here is the depth I got : ", depth)
                     if depth == "":
                         f.write((sequence + "\t" + extra_tags).rstrip("\t") + "\n")
                     else:
@@ -546,13 +550,13 @@ def export_to_GFA(
 
                     f.write(segment.insideCIGARs[c - 1] + "\n")
 
-        print("Done exporting sequences, just a little more time...")
+        logging.info("Done exporting sequences, just a little more time...")
         # then write in the gfa file the links between the ends of supercontigs
 
         for s, segment in enumerate(listOfSegments):
             if time.time() > t + 1:
                 t = time.time()
-                print(
+                logging.info(
                     int(s / len(listOfSegments) * 1000) / 10,
                     "% of links written",
                     end="\r",
@@ -607,7 +611,7 @@ def export_to_GFA(
         for s, segment in enumerate(listOfSegments):
             if time.time() > t + 1:
                 t = time.time()
-                print(
+                logging.info(
                     int(s / len(listOfSegments) * 1000) / 10,
                     "% of sequences written",
                     end="\r",
@@ -724,21 +728,21 @@ def export_to_fasta(
     offsetsFile = gfaFile.strip(".gfa") + "_offsets.pickle"
 
     if gfaFile != "" and noOffsets:
-        # print("coucou")
+        # logging.info("coucou")
         line_offset = {}
         offset = 0
         with open(gfaFile) as gfafile:
             for line in gfafile:
                 sline = line.strip("\n").split("\t")
                 if sline[0] == "S":
-                    # print('In export_to_GFA : exporting ', sline[1])
+                    # logging.info('In export_to_GFA : exporting ', sline[1])
                     line_offset[
                         sline[1]
                     ] = offset  # adds pair sline[1]:offset to the dict
 
                 offset += len(line)
 
-    # print('Line_offsets computed, launching writing of the fasta')
+    # logging.info('Line_offsets computed, launching writing of the fasta')
     # Now that the preliminary work is done, start writing the new fasta file
 
     f = open(exportFile, "w")
@@ -753,7 +757,7 @@ def export_to_fasta(
     for s, segment in enumerate(listOfSegments):
         if time.time() > t + 1:
             t = time.time()
-            print(
+            logging.info(
                 int(s / len(listOfSegments) * 1000) / 10,
                 "% of sequences written",
                 end="\r",
@@ -792,7 +796,7 @@ def export_to_fasta(
 # Return a list in which each element contains a list of linked contigs (accroding to GFA). There is one list for each end of the contig
 # Also returns the list of the contig's names
 def load_gfa(file):
-    print("Loading contigs")
+    logging.info("Loading contigs")
     gfa_read = open(file, "r")
 
     segments = []
@@ -827,7 +831,7 @@ def load_gfa(file):
             ] = index  # now this contig (identified by its name) is attached to index
             index += 1
 
-    print("Loading links")
+    logging.info("Loading links")
     gfa_read = open(file, "r")
 
     cov = 1

@@ -6,19 +6,18 @@ Created on Thu Apr 23 15:30:45 2020
 File dedicated to the algorithm af making bigger contigs, including solving bubbles
 """
 
-import numpy as np
+from graphunzip.segment import Segment
+from graphunzip.transform_gfa import check_segments
+import graphunzip.input_output as io
+import graphunzip.segment as s
 
 # import matplotlib.pyplot as plt
+import numpy as np
 
-import graphunzip.input_output as io
 from bisect import bisect_left  # to look through sorted lists
-
 from copy import deepcopy
+import logging
 import os
-
-from graphunzip.transform_gfa import check_segments
-import graphunzip.segment as s
-from graphunzip.segment import Segment
 
 
 # this function detects and breaks up long (>length) chimeric contigs
@@ -72,7 +71,7 @@ def break_up_chimeras(segments, names, interactionMatrix, length):
                             np.min([interactions[i] for i in localMinimums])
                         )
 
-                        print(
+                        logging.info(
                             "Breaking up contig ",
                             segment.names,
                             " between ",
@@ -156,9 +155,9 @@ def intensity_of_interactions(
         relativeScores.append(relativeScore)
 
     # if 'edge_229' in segment.names:
-    # print('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores, absoluteScores)
-    # #print('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
-    # print('Common contigs : ', commonContigs, '\n')
+    # logging.info('At contig ', segment.names, ' choosing between ',  [i.names for i in candidatesSegments], ' and the result is ', relativeScores, absoluteScores)
+    # #logging.info('Best signature : ', bestSignature, ' and the signatures are : ', [copiesnumber[x] for x in segment.names])
+    # logging.info('Common contigs : ', commonContigs, '\n')
 
     if returnRelativeScore:
         return relativeScores
@@ -334,7 +333,7 @@ def duplicate_around_this_end_of_contig(
                 except (
                     ValueError
                 ):  # that means we're in a small loop which we can't solve
-                    print(
+                    logging.info(
                         "There is merging difficulty around the far end of "
                         + str(merged.names)
                         + " from "
@@ -349,7 +348,7 @@ def duplicate_around_this_end_of_contig(
                     segment.otherEndOfLinks[endOfSegment][m], segment, endOfSegment
                 )
             except ValueError:  # that means we're in a small loop which whe can't solve
-                print(
+                logging.info(
                     "There is merging difficulty around the near end of "
                     + str(merged.names)
                     + " from "
@@ -374,14 +373,18 @@ def duplicate_around_this_end_of_contig(
 # similar to the function above, but simpler: put in one supercontig two smaller supercontig linked by a link unambinguous at both ends
 def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     if len(segment.links[endOfSegment]) != 1:
-        print("ERROR : trying to merge simply two contigs that cannot be merged simply")
+        logging.error(
+            "ERROR : trying to merge simply two contigs that cannot be merged simply"
+        )
         return -1, -1
 
     neighbor = segment.links[endOfSegment][0]
     endOfSegmentNeighbor = segment.otherEndOfLinks[endOfSegment][0]
 
     if len(neighbor.links[endOfSegmentNeighbor]) != 1:
-        print("ERROR : trying to merge simply two contigs that cannot be merged simply")
+        logging.error(
+            "ERROR : trying to merge simply two contigs that cannot be merged simply"
+        )
         return -1, -1
 
     if neighbor == segment:  # then do not merge a contig with itself
@@ -398,7 +401,7 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
         n.remove_end_of_link(segment.otherEndOfLinks[otherEnd][i], segment, otherEnd)
 
     for i, n in enumerate(neighbor.links[otherEndNeighbor]):
-        # print('Removing ', neighbor.names, ' from ', n.names, ' and adding the new contig',listOfSegments[-1].names, ' at end ', neighbor.otherEndOfLinks[otherEndNeighbor][i])
+        # logging.info('Removing ', neighbor.names, ' from ', n.names, ' and adding the new contig',listOfSegments[-1].names, ' at end ', neighbor.otherEndOfLinks[otherEndNeighbor][i])
         n.remove_end_of_link(
             neighbor.otherEndOfLinks[otherEndNeighbor][i], neighbor, otherEndNeighbor
         )
@@ -465,7 +468,7 @@ def merge_contigs(listOfSegments, copiesnumber, multiplicities, names, verbose=F
                         )
 
                     if verbose:
-                        print(
+                        logging.info(
                             "Duplicating contig ",
                             segment.names,
                             " around its end touching ",
@@ -599,7 +602,7 @@ def get_rid_of_bad_links(
                             f.close()
 
                         if verbose:  # or 'edge_289' in segment.names :
-                            print(
+                            logging.info(
                                 "I have to decide, at "
                                 + "_".join(segment.names)
                                 + " between "
@@ -619,8 +622,8 @@ def get_rid_of_bad_links(
                             [i > 1 for i in linksStrength]
                         ):  # the condition is to prevent too much duplicating if there is no mapping or almost
                             # if '262' in segment.names :
-                            #     print('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
-                            #     print([i.names for i in segment.links[0]])
+                            #     logging.info('I have to decide, at '+'_'.join(segment.names)+ ' between '+ '_'.join(segment.links[endOfSegment][n1].names)+ ' and '+'_'.join(segment.links[endOfSegment][n2].names) + ' with these values : '+ str(linksStrength)+'\n')
+                            #     logging.info([i.names for i in segment.links[0]])
                             if linksStrength[0] > linksStrength[1]:
                                 if (
                                     linksStrength[1]
@@ -644,7 +647,7 @@ def get_rid_of_bad_links(
                                         )  # n2 is weak, but this edge is the only outgoing edge from the contig at the other end
                                     else:
                                         if verbose:
-                                            print(
+                                            logging.info(
                                                 "\nRemoving link from ",
                                                 segment.links[endOfSegment][n2].names,
                                                 " to ",
@@ -682,7 +685,7 @@ def get_rid_of_bad_links(
                                         )  # n2 is weak, but this edge is the only outgoing edge from the contig at the other end
                                     else:
                                         if verbose:
-                                            print(
+                                            logging.info(
                                                 "\nRemoving link from ",
                                                 segment.links[endOfSegment][n1].names,
                                                 " to ",
@@ -699,7 +702,7 @@ def get_rid_of_bad_links(
                                     segment.freezeNode(endOfSegment)
                         else:  # linksStrength <= [1,1]
                             segment.freezeNode(endOfSegment)
-                            # print('get_rid_of_bad_links, ...  freeznoding2 : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
+                            # logging.info('get_rid_of_bad_links, ...  freeznoding2 : ' + '\t'.join( ['_'.join(segment.links[endOfSegment][n1].names), '_'.join(segment.links[endOfSegment][n2].names)])+'\n')
 
                         n2 += 1
 
@@ -793,7 +796,7 @@ def solve_ambiguities(
                 cn[name] = 1
 
     listOfSegments = merge_adjacent_contigs(listOfSegments)
-    print("Merged adjacent contigs for the first time")
+    logging.info("Merged adjacent contigs for the first time")
 
     # s.check_if_all_links_are_sorted(listOfSegments)
 
@@ -815,7 +818,7 @@ def solve_ambiguities(
 
         # solve_l_loops(listOfSegments, lr_links)
 
-        print("Got rid of bad links")
+        logging.info("Got rid of bad links")
 
         # for se in listOfSegments :
         #     if 'edge_357' in se.names :
@@ -830,13 +833,13 @@ def solve_ambiguities(
         # while True:
         #     r = 0
 
-        # print('end of merge_contigs : ', [i.names for i in listOfSegments[names['262']].links[0]])
+        # logging.info('end of merge_contigs : ', [i.names for i in listOfSegments[names['262']].links[0]])
 
         # once all the contigs have been duplicated and merged, unfreeze everything so the cycle can start again
         for j in listOfSegments:
             j.unfreeze()
 
-        print(str((i + 1) / steps * 100) + "% of solving ambiguities done")
+        logging.info(str((i + 1) / steps * 100) + "% of solving ambiguities done")
 
         if debugDir != "":
             io.export_to_GFA(

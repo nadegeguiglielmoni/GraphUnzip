@@ -6,19 +6,18 @@ Created on Thu Apr 23 15:30:45 2020
 File dedicated to the algorithm af making bigger contigs, including solving bubbles
 """
 
-import numpy as np
+from graphunzip.segment import Segment
+from graphunzip.transform_gfa import check_segments
+import graphunzip.input_output as io
+import graphunzip.segment as s
 
 # import matplotlib.pyplot as plt
+import numpy as np
 
-import graphunzip.input_output as io
 from bisect import bisect_left  # to look through sorted lists
-
 from copy import deepcopy
+import logging
 import os
-
-from graphunzip.transform_gfa import check_segments
-import graphunzip.segment as s
-from graphunzip.segment import Segment
 
 
 # this function detects and breaks up long (>length) chimeric contigs
@@ -69,7 +68,7 @@ def break_up_chimeras(segments, names, interactionMatrix, length):
                             np.min([interactions[i] for i in localMinimums])
                         )
 
-                        print(
+                        logging.info(
                             "Breaking up contig ",
                             segment.names,
                             " between ",
@@ -96,14 +95,18 @@ def break_up_chimeras(segments, names, interactionMatrix, length):
 # output : actualized listOfSegments with the two contigs merged
 def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
     if len(segment.links[endOfSegment]) != 1:
-        print("ERROR : trying to merge simply two contigs that cannot be merged simply")
+        logging.error(
+            "ERROR : trying to merge simply two contigs that cannot be merged simply"
+        )
         return -1, -1
 
     neighbor = segment.links[endOfSegment][0]
     endOfSegmentNeighbor = segment.otherEndOfLinks[endOfSegment][0]
 
     if len(neighbor.links[endOfSegmentNeighbor]) != 1:
-        print("ERROR : trying to merge simply two contigs that cannot be merged simply")
+        logging.error(
+            "ERROR : trying to merge simply two contigs that cannot be merged simply"
+        )
         return -1, -1
 
     if neighbor == segment:  # then do not merge a contig with itself
@@ -120,7 +123,7 @@ def merge_simply_two_adjacent_contig(segment, endOfSegment, listOfSegments):
         n.remove_end_of_link(segment.otherEndOfLinks[otherEnd][i], segment, otherEnd)
 
     for i, n in enumerate(neighbor.links[otherEndNeighbor]):
-        # print('Removing ', neighbor.names, ' from ', n.names, ' and adding the new contig',listOfSegments[-1].names, ' at end ', neighbor.otherEndOfLinks[otherEndNeighbor][i])
+        # logging.info('Removing ', neighbor.names, ' from ', n.names, ' and adding the new contig',listOfSegments[-1].names, ' at end ', neighbor.otherEndOfLinks[otherEndNeighbor][i])
         n.remove_end_of_link(
             neighbor.otherEndOfLinks[otherEndNeighbor][i], neighbor, otherEndNeighbor
         )

@@ -6,19 +6,19 @@ Created on Fri Oct  8 12:37:18 2021
 @author: rfaure
 """
 
-import re  # to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
-from collections import Counter  # to count the elements in a list quickly
-from scipy import sparse  # to handle sparse matrices
+# from graphunzip.segment import find_this_link
 from graphunzip.determine_multiplicity import determine_multiplicity
 from graphunzip.finish_untangling import merge_adjacent_contigs
 from graphunzip.input_output import read_GAF
 from graphunzip.input_output import read_TSV
-import time
-from copy import deepcopy
-
-# from segment import find_this_link
-
 import graphunzip.segment as sg
+
+from collections import Counter  # to count the elements in a list quickly
+from copy import deepcopy
+from scipy import sparse  # to handle sparse matrices
+import re  # to find all numbers in a mixed number/letters string (such as 31M1D4M), to split on several characters (<> in longReads_interactionMatrix)
+import sys
+import logging
 
 
 # Master function of the file
@@ -40,24 +40,24 @@ def bridge_with_long_reads(
 
     lines = []
     if ".gaf" in gafFile:
-        print("Reading the gaf file...")
+        logging.info("Reading the gaf file...")
         read_GAF(gafFile, 0, 0, lines)
-        print("Finished going through the gaf file.")
+        logging.info("Finished going through the gaf file.")
     elif ".tsv" in gafFile:
-        print("Reading the tsv file...")
+        logging.info("Reading the tsv file...")
         read_TSV(gafFile, names, lines)
-        print("Finished going through the tsv file.")
+        logging.info("Finished going through the tsv file.")
     else:
-        print(
+        logging.error(
             "ERROR: input format of mapped read not recognized. It should be .gaf (from GraphAligner) or .tsv (from SPAligner)"
         )
-        sys.exit()
+        sys.exit(1)
 
     # determine an approximate list of contigs that look haploid
     haploidContigs, haploidContigsNames = determine_haploid_contigs(
         lines, segments, names
     )
-    # print(haploidContigsNames)
+    # logging.info(haploidContigsNames)
     sure_haploids = False
 
     # inventoriate all bridges in the list bridges : sequence of contigs found in the GAF containing at least one haploid contig. Do fill in the longContigs list while you're at it
@@ -83,7 +83,7 @@ def bridge_with_long_reads(
         segments,
     )
 
-    # print("Bridge 1756 : ", bridges[haploidContigsNames['1756']])
+    # logging.info("Bridge 1756 : ", bridges[haploidContigsNames['1756']])
 
     # if exhaustive, delete all links not found in the .gaf
     # if we're in "extract" mode, all contigs that are not present in the gafFile can be deleted
@@ -120,22 +120,22 @@ def bridge_with_long_reads(
     consensus_bridges = [
         ["", ""] for i in range(len(haploidContigs))
     ]  # consensus bridge is essentially the same as bridges, except there is only one bridge left at each side for each contig
-    print("Building consensus bridges from all the long reads")
+    logging.info("Building consensus bridges from all the long reads")
 
     haploidContigs, haploidContigsNames, consensus_bridges = build_consensus_bridges(
         consensus_bridges, bridges, names, haploidContigs, haploidContigsNames
     )
-    print("Done building consensus bridges                 ")
+    logging.info("Done building consensus bridges                 ")
 
-    # print("contig 1756 in haploid : ", "1756" in haploidContigsNames)
-    # print("contig 93 consensus : ", consensus_bridges[haploidContigsNames["93"]])
-    # print("contig 11 consensus : ", consensus_bridges[haploidContigsNames["11"]])
-    # print("contig 2601 consensus : ", consensus_bridges[haploidContigsNames["2601"]])
+    # logging.info("contig 1756 in haploid : ", "1756" in haploidContigsNames)
+    # logging.info("contig 93 consensus : ", consensus_bridges[haploidContigsNames["93"]])
+    # logging.info("contig 11 consensus : ", consensus_bridges[haploidContigsNames["11"]])
+    # logging.info("contig 2601 consensus : ", consensus_bridges[haploidContigsNames["2601"]])
     bridges = []
 
-    # print("contig 121 in haploid : ", "121" in haploidContigsNames)
+    # logging.info("contig 121 in haploid : ", "121" in haploidContigsNames)
 
-    print(
+    logging.info(
         "Now we will determine through an iterative process what contigs of the assembly are present only once in the final genome"
     )
 
@@ -144,7 +144,7 @@ def bridge_with_long_reads(
     ):  # knowing what contigs are really haploid may take several iterations
         leng = len(haploidContigs)
 
-        # print("consensus of 20: ", consensus_bridges[haploidContigsNames['20']])
+        # logging.info("consensus of 20: ", consensus_bridges[haploidContigsNames['20']])
 
         # consensus bridges overlap two by two (e.g. >2>3>4 right of 1 overlaps with <3<2<1 left of 4), so merge them to have a set of non-overlapping consensus bridges
         non_overlapping_bridges = [["", ""] for i in range(len(haploidContigs))]
@@ -164,11 +164,11 @@ def bridge_with_long_reads(
             multiplicities,
         )
 
-        # print("nonoverlap consensus of 20: ", non_overlapping_bridges[haploidContigsNames['20']])
+        # logging.info("nonoverlap consensus of 20: ", non_overlapping_bridges[haploidContigsNames['20']])
         # if this last phase of merge_contig detected no inconstistencies, sure_haploids=True and the program moves on
 
         if not sure_haploids:
-            print(
+            logging.info(
                 "Out of ",
                 leng,
                 " supposed single-copy contigs, ",
@@ -176,7 +176,7 @@ def bridge_with_long_reads(
                 " were not actually haploid. Recomputing until all the single-copy contigs are robust",
             )
 
-    # print("contig 154 in haploid : ", "154" in haploidContigsNames)
+    # logging.info("contig 154 in haploid : ", "154" in haploidContigsNames)
 
     # from the consensus bridges, mark all links that are supported by the long reads
     supported_links = sparse.lil_matrix(
@@ -199,14 +199,14 @@ def bridge_with_long_reads(
     for r, c, m in zip(supported_links.row, supported_links.col, supported_links.data):
         supported_links2[r, c] = max(supported_links2[r, c], m)
         supported_links2[c, r] = max(supported_links2[c, r], m)
-    # print("Link is supported after maxing with strength ", supported_links2[2*names['127'], 2*names['112']])
-    # print("Link is supported after maxing with strength ", supported_links2[2*names['2505'], 2*names['2489']])
+    # logging.info("Link is supported after maxing with strength ", supported_links2[2*names['127'], 2*names['112']])
+    # logging.info("Link is supported after maxing with strength ", supported_links2[2*names['2505'], 2*names['2489']])
 
-    # print("Contig 15 has for consensus : ", consensus_bridges[haploidContigsNames["15"]])
+    # logging.info("Contig 15 has for consensus : ", consensus_bridges[haploidContigsNames["15"]])
 
     # now actually unzip the graph using the instructions in non_overlapping_bridges
 
-    print("Let's move on to actually untangling the graph")
+    logging.info("Let's move on to actually untangling the graph")
     unzip_graph_with_bridges(
         segments,
         non_overlapping_bridges,
@@ -221,7 +221,7 @@ def bridge_with_long_reads(
     )
 
     # now remove the tips that apparently came from an overestimation in the multiplicity
-    print(
+    logging.info(
         "Now we correct the last quirks by looking a posteriori at the graph               "
     )
     merge_adjacent_contigs(segments)
@@ -245,7 +245,7 @@ def bridge_with_long_reads(
             else:
                 index += 1
 
-    # print(non_overlapping_bridges)
+    # logging.info(non_overlapping_bridges)
 
     return segments
 
@@ -327,7 +327,9 @@ def inventoriate_bridges(
 ):
     for l, line in enumerate(lines):
         if (l + 1) % 1000 == 0:
-            print("Inventoried ", l + 1, " long reads over ", len(lines), end="\r")
+            logging.info(
+                "Inventoried ", l + 1, " long reads over ", len(lines), end="\r"
+            )
 
         contigs = re.split("[><]", line)
         orientations = "".join(re.findall("[<>]", line))
@@ -346,7 +348,7 @@ def inventoriate_bridges(
                     segments[names[contigs[c - 1]]].links[or1],
                     segments[names[contigs[c - 1]]].otherEndOfLinks[or1],
                 ):
-                    print(
+                    logging.warning(
                         "WARNING: discrepancy between what's found in the alignment files and the inputted GFA graph. Link ",
                         contigs[c - 1 : c + 1],
                         orientations[c - 1 : c + 1],
@@ -434,11 +436,11 @@ def build_consensus_bridges(
         []
     )  # a list of not actually haploid contigs : at this point, we will rule out as haploid contigs those that consensus back on themselves
 
-    # print(allcontigs[0][1])
+    # logging.info(allcontigs[0][1])
 
     for c in range(len(bridges)):
         if (c) % 100 == 0:
-            print(
+            logging.info(
                 "consensused ", c, " bridges out of ", len(consensus_bridges), end="\r"
             )
 
@@ -469,7 +471,7 @@ def build_consensus_bridges(
                 cons2 = Counter(candidate2).most_common(1)[0]
 
                 # if ('11' in haploidContigs[c].names) :
-                #     print("Consensuing : ", Counter(candidate2))
+                #     logging.info("Consensuing : ", Counter(candidate2))
 
                 if (
                     cons1[1] > 0
@@ -496,7 +498,7 @@ def build_consensus_bridges(
 
                     # inventoriate this bridge in supported_links
 
-                    # print('Adding from ', consensus_bridges[c][end], " c: ", c)
+                    # logging.info('Adding from ', consensus_bridges[c][end], " c: ", c)
 
                     # update the list of reads still there to build the consensu
                     new_kept = []
@@ -515,7 +517,7 @@ def build_consensus_bridges(
 
                 else:  # if there is no consensus let's stop
                     # if "11" in haploidContigs[c].names :
-                    #     print("There are no consensus there: ", candidate1, candidate2)
+                    #     logging.info("There are no consensus there: ", candidate1, candidate2)
                     break
 
                 pos += 1
@@ -582,7 +584,7 @@ def compute_supported_links(
                     firstHapIdx = len(contigs) - 1
 
             # if '7200' in contigs :
-            #     print("Bridge from 433 will look like : ", contigs[:firstHapIdx+1], " ", firstHapIdx)
+            #     logging.info("Bridge from 433 will look like : ", contigs[:firstHapIdx+1], " ", firstHapIdx)
 
             for co in range(firstHapIdx + 1):
                 contig = contigs[co]
@@ -599,7 +601,7 @@ def compute_supported_links(
                     2 * previousContig + previousEnd, 2 * names[contig] + current_end
                 ] += 1
                 # if (contig == "7200" and names['4796'] == previousContig) or (contig == "4796" and names['7200'] == previousContig) :
-                #     print("Increasing the link : ", haploidContigs[c].names[0], ",", consensus_bridges[c][end])
+                #     logging.info("Increasing the link : ", haploidContigs[c].names[0], ",", consensus_bridges[c][end])
                 if non_overlapping:
                     symmetricSupport[
                         2 * names[contig] + current_end,
@@ -626,7 +628,7 @@ def compute_supported_links(
         ):
             supported_links[r, c] = max(supported_links[r, c], m)
 
-    # print("Strength of link : ", supported_links[2*names['4796'], 2*names['7200']])
+    # logging.info("Strength of link : ", supported_links[2*names['4796'], 2*names['7200']])
 
 
 # input: list of all consensus bridges for all haploid contigs, plus a list of the haploid contigs
@@ -704,20 +706,20 @@ def merge_bridges(
                             len(symmetrical) <= firstHapIdx + 1
                         ):  # means the symmetrical did not manage to consensus
                             # if '127' == contigs[firstHapIdx] :
-                            #     print("two incoherent bridges between ", haploidContigs[c].names[0] , " and ", haploidContigs[haploidContigsNames[contigs[firstHapIdx]]].names[0], " : ", consensus_bridges[c][end], " vs ", consensus_bridges[haploidContigsNames[contigs[firstHapIdx]]][otherEnd])
+                            #     logging.info("two incoherent bridges between ", haploidContigs[c].names[0] , " and ", haploidContigs[haploidContigsNames[contigs[firstHapIdx]]].names[0], " : ", consensus_bridges[c][end], " vs ", consensus_bridges[haploidContigsNames[contigs[firstHapIdx]]][otherEnd])
                             not_actually_haploid += [
                                 haploidContigsNames[contigs[firstHapIdx]]
                             ]
                             sure_haploids = False
 
-                            # print("Contig ", contigs[firstHapIdx], " does not look haploid, seen from contig ",  haploidContigs[c].names[0], " : ", contigs[:firstHapIdx+1], ", whose bridge is ", symmetrical[:firstHapIdx+2])
+                            # logging.info("Contig ", contigs[firstHapIdx], " does not look haploid, seen from contig ",  haploidContigs[c].names[0], " : ", contigs[:firstHapIdx+1], ", whose bridge is ", symmetrical[:firstHapIdx+2])
 
                         # else : #if the path is really minoritary, the contig is probably not haploid, or at least you should not count on it
                         #     not_actually_haploid += [c]
                         #     sure_haploids = False
                         #     if haploidContigs[c].names[0] == '7' :
-                        #         print("Contig ", haploidContigs[c].names[0], " does not look haploid, here is its bridge to the next contig ", contigs[firstHapIdx] , " : ", contigs[:firstHapIdx+1], ", whose bridge is ", symmetrical[:firstHapIdx+2])
-                        #     #print("Haploid contigs : ", haploidContigsNames)
+                        #         logging.info("Contig ", haploidContigs[c].names[0], " does not look haploid, here is its bridge to the next contig ", contigs[firstHapIdx] , " : ", contigs[:firstHapIdx+1], ", whose bridge is ", symmetrical[:firstHapIdx+2])
+                        #     #logging.info("Haploid contigs : ", haploidContigsNames)
 
                     else:
                         if (
@@ -812,7 +814,7 @@ def unzip_graph_with_bridges(
     for s in range(len(segments)):
         multiplicities[s] = max(minimum_multiplicity[s], multiplicities[s])
 
-    # print("Multiplicities of contig 127 : ", multiplicities[names['127']])
+    # logging.info("Multiplicities of contig 127 : ", multiplicities[names['127']])
 
     alreadyDuplicated = [
         -1 for i in range(len(names))
@@ -821,7 +823,7 @@ def unzip_graph_with_bridges(
     l = len(segments)
     for se in range(l):
         if (se) % 100 == 0:
-            print(
+            logging.info(
                 "Processed ",
                 se,
                 " contigs out of ",
@@ -858,7 +860,7 @@ def unzip_graph_with_bridges(
                     oldContigsIndices = [names[i] for i in contigs]
 
                     # if '6897' in contigs :
-                    #     print("Unzipping contig ", s.names[0], " with bridge : ",contigs)
+                    #     logging.info("Unzipping contig ", s.names[0], " with bridge : ",contigs)
 
                     haploidCoverage = (
                         segments[names[contigs[0]]].depths[0]
@@ -882,7 +884,7 @@ def unzip_graph_with_bridges(
                     # contig = segments[names[contigs[0]]]
                     # idx = 0
                     # if len(contig.links[end]) > 0 : #delete the good link, since it will be reestablished later (we don't want a double)
-                    #     #print('here edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
+                    #     #logging.info('here edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
                     #     while len(contig.links[end]) > idx :
                     #         neighbor = contig.links[end][idx]
                     #         if ((neighbor.names[0] != contigs[1] and supported_links[names[contigs[0]]*2+end , names[contigs[1]]*2+nextEnd] == 0) \
@@ -892,7 +894,7 @@ def unzip_graph_with_bridges(
                     #         else :
                     #             idx += 1
 
-                    # print('now edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
+                    # logging.info('now edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
 
                     # then take care of all other contigs
                     for c in range(1, len(contigs)):
@@ -902,12 +904,12 @@ def unzip_graph_with_bridges(
                         multiplicity = multiplicities[names[contigs[c]]]
                         multiplicities[names[contigs[c]]] -= 1
                         # if contigs[c] == '7200' :
-                        #     print("Link supported with strength : ", supported_links[2*names["7200"], 2*names["4796"]])
-                        # print("Using once contig 7200 in overlap ", non_overlapping_bridges[haploidContigsNames[s.names[0]]][end], ", now at : ", multiplicities[names[contigs[c]]])
+                        #     logging.info("Link supported with strength : ", supported_links[2*names["7200"], 2*names["4796"]])
+                        # logging.info("Using once contig 7200 in overlap ", non_overlapping_bridges[haploidContigsNames[s.names[0]]][end], ", now at : ", multiplicities[names[contigs[c]]])
                         # neighborMultiplicity = max([1, round(segments[oldContigsIndices[c-1]].depths[0]/haploidCoverage), multiplicities[names[contigs[c-1]]]])
                         neighborMultiplicity = multiplicities[names[contigs[c - 1]]]
 
-                        # print(alreadyDuplicated[names['edge_291']])
+                        # logging.info(alreadyDuplicated[names['edge_291']])
 
                         end1, end0 = 1, 1
                         if orientations[c] == ">":
@@ -938,7 +940,7 @@ def unzip_graph_with_bridges(
                                     )
                                 ]
                             else:
-                                print(
+                                logging.debug(
                                     "Debug WARNING, ",
                                     contigs,
                                     " : looking for ",
@@ -959,10 +961,10 @@ def unzip_graph_with_bridges(
                                     ][end],
                                 )
 
-                        # print("Link supported with strength ", supported_links[names[contigs[c]*2+end1 , names[contigs[c-1]]*2+end0])
+                        # logging.info("Link supported with strength ", supported_links[names[contigs[c]*2+end1 , names[contigs[c-1]]*2+end0])
 
                         # if s.names[0] == '55374' and end == 0 and contigs[c] == '2505' :
-                        #     print("multiplicity of 2505 : " , multiplicity)
+                        #     logging.info("multiplicity of 2505 : " , multiplicity)
 
                         if (
                             multiplicity > 1 and c < len(contigs) - 1
@@ -1033,7 +1035,7 @@ def unzip_graph_with_bridges(
                                 and len(segments[oldContigsIndices[c]].links[end1]) > 1
                             ):  # be sure not to create dead ends
                                 # if "130" in segments[oldContigsIndices[c-1]].names :
-                                #     print("remove links left of ", segments[oldContigsIndices[c]].names, " : ", segments[oldContigsIndices[c-1]].names)
+                                #     logging.info("remove links left of ", segments[oldContigsIndices[c]].names, " : ", segments[oldContigsIndices[c-1]].names)
                                 sg.delete_link(
                                     segments[oldContigsIndices[c]],
                                     end1,
@@ -1046,9 +1048,9 @@ def unzip_graph_with_bridges(
                             contig.divide_depths(multiplicity / (multiplicity - 1))
 
                             # if "3682" in newSegment.names :
-                            #     print("New 3682 : ", non_overlapping_bridges[haploidContigsNames[s.names[0]]][end])
-                            #     print([s.names for s in segments[-1].links[0]])
-                            #     print([s.names for s in segments[-1].links[1]])
+                            #     logging.info("New 3682 : ", non_overlapping_bridges[haploidContigsNames[s.names[0]]][end])
+                            #     logging.info([s.names for s in segments[-1].links[0]])
+                            #     logging.info([s.names for s in segments[-1].links[1]])
 
                         elif c == len(contigs) - 1:  # we're at the end of the bridge
                             supported_links[
@@ -1146,8 +1148,8 @@ def unzip_graph_with_bridges(
                                                 contig.otherEndOfLinks[end1][n],
                                             )
 
-                            # print("RIght of 138 there is ", [i.ID for i in segments[names['138']].links[1]], " ", [i for i in segments[names['119']].otherEndOfLinks[1]], " ", segments[names['119']].ID)
-                            # print("RIght of 119 there is ", [i.ID for i in segments[names['119']].links[1]], " ", [i for i in segments[names['138']].otherEndOfLinks[1]], " ", segments[names['138']].ID)
+                            # logging.info("RIght of 138 there is ", [i.ID for i in segments[names['138']].links[1]], " ", [i for i in segments[names['119']].otherEndOfLinks[1]], " ", segments[names['119']].ID)
+                            # logging.info("RIght of 119 there is ", [i.ID for i in segments[names['119']].links[1]], " ", [i for i in segments[names['138']].otherEndOfLinks[1]], " ", segments[names['138']].ID)
                             if len(contig.links[1 - end1]) > 0 and c < len(contigs) - 1:
                                 nextEnd = 2
                                 for n, neighbor in enumerate(contig.links[1 - end1]):
@@ -1200,9 +1202,9 @@ def unzip_graph_with_bridges(
 
                         CIGAR = nextCIGAR
 
-                    # print('edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
+                    # logging.info('edge 291 neighbors are ', [i.names for i in segments[names['edge_291']].links[0]], " ", contigs)
                 # if supported_links[names['2484']*2+1 , names['2505']*2] == 1:
-                #     print(non_overlapping_bridges[haploidContigsNames[s.names[0]]][end], "  ", [i.names for i in segments[names['2484']].links[1]], " ", s.names[0], " ", end)
+                #     logging.info(non_overlapping_bridges[haploidContigsNames[s.names[0]]][end], "  ", [i.names for i in segments[names['2484']].links[1]], " ", s.names[0], " ", end)
                 #     while True :
                 #         rien = 0
 
@@ -1254,7 +1256,7 @@ def trim_tips(
             ):  # if this contig is a very short dead end, delete it
                 neighbor = seg.links[end][0]
                 neighborEnd = seg.otherEndOfLinks[end][0]
-                # print("Checking if ", seg.names, " is a tip")
+                # logging.info("Checking if ", seg.names, " is a tip")
                 if any(
                     [
                         extended_length(
@@ -1302,7 +1304,7 @@ def trim_tips(
                                 break
 
                         if same:
-                            # print("Found two parallels contigs : ", seg.names, neighbor2.names)
+                            # logging.info("Found two parallels contigs : ", seg.names, neighbor2.names)
                             neighbor2.multiply_end_depths(2, otherEnd2, len(seg.names))
                             sg.delete_link(
                                 seg, end, seg.links[end][0], seg.otherEndOfLinks[end][0]
@@ -1316,7 +1318,7 @@ def trim_tips(
 # a function returning True if you can go far (up to threshold) with neighbors of neighbors of neighbors of...
 # it returns False if it needs to recur deeper than thresholdContigs (even though it might be true)
 def extended_length(segment, end, thresholdLength, thresholdContigs):
-    # print("Extended length called with threshold ", thresholdLength, " on segment , ", sg.names)
+    # logging.info("Extended length called with threshold ", thresholdLength, " on segment , ", sg.names)
 
     if thresholdContigs == 0:
         return False
@@ -1328,7 +1330,7 @@ def extended_length(segment, end, thresholdLength, thresholdContigs):
     longestContig = [i for i in range(len(segment.links[1 - end]))]
     longestContig.sort(key=lambda x: segment.links[1 - end][x].length, reverse=True)
 
-    # print("Longest contigs : ", longestContig, [segment.links[1-end][i].length for i in longestContig])
+    # logging.info("Longest contigs : ", longestContig, [segment.links[1-end][i].length for i in longestContig])
 
     for n in longestContig[
         : min(len(longestContig), 2)

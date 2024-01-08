@@ -3,6 +3,7 @@
 
 import numpy as np
 import random
+import logging
 
 
 # a segment is a supercontig
@@ -23,17 +24,19 @@ class Segment:
         if len(segLinks[0]) != len(segOtherEndOfLinks[0]) or len(segLinks[1]) != len(
             segOtherEndOfLinks[1]
         ):
-            print("ERROR in the links while initializing a segment")
+            logging.error("ERROR in the links while initializing a segment")
             return 0
 
         if any(i != 0 and i != 1 for i in segOtherEndOfLinks[0]) or any(
             i != 0 and i != 1 for i in segOtherEndOfLinks[1]
         ):
-            print("ERROR in the links while initializing a segment")
+            logging.error("ERROR in the links while initializing a segment")
             return 0
 
         if len(segNamesOfContig) != len(segOrientationOfContigs):
-            print("ERROR in initializing the orientations of contigs within a segment")
+            logging.error(
+                "ERROR in initializing the orientations of contigs within a segment"
+            )
             return 0
 
         if segInsideCIGARs == None:
@@ -165,7 +168,7 @@ class Segment:
         )
 
     def print_complete(self):
-        print(
+        logging.info(
             self._namesOfContigs,
             [s.names for s in self._links[0]],
             [s.names for s in self._links[1]],
@@ -302,8 +305,8 @@ class Segment:
                                     names[contig] * 2 + endself,
                                     names[contigInSegment] * 2 + endsegment,
                                 ]
-                                # print(self.names," ", posneighborend, " ", halfneighbor, " ", segmentend, " ",  abs(segmentend * segment.length - posneighborend) < halfneighbor , " ", segment.names)
-                                # print(interaction, " ", interactionMatrix[names[contig]*2, names[contigInSegment]*2]+interactionMatrix[names[contig]*2, names[contigInSegment]*2+1]\
+                                # logging.info(self.names," ", posneighborend, " ", halfneighbor, " ", segmentend, " ",  abs(segmentend * segment.length - posneighborend) < halfneighbor , " ", segment.names)
+                                # logging.info(interaction, " ", interactionMatrix[names[contig]*2, names[contigInSegment]*2]+interactionMatrix[names[contig]*2, names[contigInSegment]*2+1]\
                                 #       + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2+1] + interactionMatrix[names[contig]*2+1, names[contigInSegment]*2])
 
                                 if (
@@ -342,10 +345,10 @@ class Segment:
         l = GFAline.strip("\n").split("\t")
 
         if len(l) < 5:
-            print("ERROR : expected at least 5 fields in line ", GFAline)
+            logging.error("ERROR : expected at least 5 fields in line ", GFAline)
 
         if l[0] != "L":
-            print(
+            logging.error(
                 'ERROR : trying to add a link from a GFA line that does not start with "L"'
             )
 
@@ -363,8 +366,10 @@ class Segment:
                 o2 = 1
 
             if o1 == -1 or o2 == -1:
-                print("ERROR while creating a link : orientations not properly given.")
-                print("Problematic line : ", GFAline)
+                logging.error(
+                    "ERROR while creating a link : orientations not properly given."
+                )
+                logging.info("Problematic line : ", GFAline)
 
             if leftOrRight == 0 and o1 == 0:
                 # then comes a little test to see if the link has already been added (for example if their are several lines in the GFA describing the same link). An 'or' condition to allow it when an end of link is linked with itself
@@ -443,14 +448,14 @@ class Segment:
                         self._CIGARs[1].insert(index, "*")
 
             else:
-                print(
+                logging.error(
                     "ERROR while trying to add a new link from the gfa : could not locate a correct name"
                 )
 
     # this adds the end of a links, but only on this segment, not on the other end
     def add_end_of_link(self, endOfSegment, segment2, endOfSegment2, CIGAR="*"):
-        # print('A', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
-        # print(self._namesOfContigs, segment2.names)
+        # logging.info('A', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
+        # logging.info(self._namesOfContigs, segment2.names)
         index = index_at_which_new_link_should_be_inserted(
             segment2,
             self._links[endOfSegment],
@@ -459,7 +464,7 @@ class Segment:
         )
 
         self._links[endOfSegment].insert(index, segment2)
-        # print('B', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
+        # logging.info('B', len(segment2.otherEndOfLinks[1]), len(segment2.links[1]), len(segment2.CIGARs[1]))
 
         self._otherEndOfLinks[endOfSegment].insert(index, endOfSegment2)
         self._CIGARs[endOfSegment].insert(index, CIGAR)
@@ -541,8 +546,8 @@ class Segment:
         self, endOfSegment, segmentToRemove, endOfSegmentToRemove=None, warning=True
     ):  # endOfSegmentToRemove is there in case there exists two links between self[endOfSegment] and segment to remove. Needed for extra security
         # first determine the index of the segment to remove
-        # print('Removing ', segmentToRemove.names, endOfSegmentToRemove, ' from ', self._namesOfContigs)
-        # print('Among these links :', [i.names for i in self._links[endOfSegment]], self._otherEndOfLinks[endOfSegment])
+        # logging.info('Removing ', segmentToRemove.names, endOfSegmentToRemove, ' from ', self._namesOfContigs)
+        # logging.info('Among these links :', [i.names for i in self._links[endOfSegment]], self._otherEndOfLinks[endOfSegment])
         index = find_this_link(
             segmentToRemove,
             endOfSegmentToRemove,
@@ -559,7 +564,7 @@ class Segment:
             del self._CIGARs[endOfSegment][index]
             return True
         elif index == -1 and warning:
-            print(
+            logging.info(
                 "Trying unsuccesfully to remove ",
                 segmentToRemove.names,
                 " from ",
@@ -596,7 +601,7 @@ class Segment:
     # function to be used on small loops only
     def flatten(self, replicas):
         if self not in self._links[0]:
-            print(
+            logging.error(
                 "ERROR : in segment.flatten, trying to flatten something that is not a loop"
             )
 
@@ -627,8 +632,8 @@ class Segment:
             self._insideCIGARs = newinsideCIGARs
             self._depths = newDepths
 
-            # print('In segment.flatten : ', self._namesOfContigs, self._insideCIGARs, [self._CIGARs[0][self._links[0].index(self)]])
-            # print('Links before any removal, ', [i.names for i in self._links[0]], '\n')
+            # logging.info('In segment.flatten : ', self._namesOfContigs, self._insideCIGARs, [self._CIGARs[0][self._links[0].index(self)]])
+            # logging.info('Links before any removal, ', [i.names for i in self._links[0]], '\n')
             self.remove_end_of_link(0, self)
             self.remove_end_of_link(1, self)
 
@@ -709,7 +714,7 @@ def merge_two_segments(segment1, endOfSegment1, segment2, listOfSegments):
             self_loop_CIGAR = newSegment.CIGARs[0][n]
 
     for n, neighbor in enumerate(newSegment.links[1]):
-        # print(len(newSegment.otherEndOfLinks[1]), len(newSegment.links[1]), len(newSegment.CIGARs[1]))
+        # logging.info(len(newSegment.otherEndOfLinks[1]), len(newSegment.links[1]), len(newSegment.CIGARs[1]))
         neighbor.add_end_of_link(
             newSegment.otherEndOfLinks[1][n],
             newSegment,
@@ -755,7 +760,7 @@ def find_this_link(
         elif segment.ID > listOfLinks[mid].ID:
             lo = mid + 1
         else:
-            # print('Found : ', endOfSegment , listOfEndsOfLinks[mid])
+            # logging.info('Found : ', endOfSegment , listOfEndsOfLinks[mid])
             if endOfSegment == None:
                 return mid
 
@@ -782,9 +787,9 @@ def find_this_link(
     if not warning:
         return -1
 
-    print("In find_this_link : did not find the link")
-    # print([[listOfLinks[se].names, listOfEndsOfLinks[se]] for se in range(len(listOfLinks))])
-    print(
+    logging.info("In find_this_link : did not find the link")
+    # logging.info([[listOfLinks[se].names, listOfEndsOfLinks[se]] for se in range(len(listOfLinks))])
+    logging.info(
         "Did not find ",
         segment.names,
         endOfSegment,
@@ -829,7 +834,7 @@ def check_if_all_links_are_sorted(listOfSegments):
                     segment.links[endOfSegment][n].ID
                     > segment.links[endOfSegment][n + 1].ID
                 ):
-                    print(
+                    logging.info(
                         "Problem in the links of ",
                         segment.names,
                         " : ",
@@ -843,7 +848,7 @@ def check_if_all_links_are_sorted(listOfSegments):
                     segment
                     not in neighbor.links[segment.otherEndOfLinks[endOfSegment][n]]
                 ):
-                    print(
+                    logging.info(
                         "Non-reciprocal links : ",
                         segment.names,
                         segment.ID,
@@ -854,7 +859,7 @@ def check_if_all_links_are_sorted(listOfSegments):
 
 # funtion to delete links that are present twice in the graph (often because they are present twice in the gfa)
 def delete_links_present_twice(segments):
-    # print("Remove link present twice")
+    # logging.info("Remove link present twice")
     removed = 0
     total = 0
     for segment in segments:
@@ -888,7 +893,7 @@ def delete_links_present_twice(segments):
         for r in toBeRemoved:
             segment.remove_end_of_link(r[0], r[1], r[2])
 
-    # print("Removed ", removed , " links out of ", total, " because they were redundant")
+    # logging.info("Removed ", removed , " links out of ", total, " because they were redundant")
 
 
 ## A few lines to test the functions of the file
@@ -901,4 +906,4 @@ def delete_links_present_twice(segments):
 
 # merge_two_segments(s1, 1, s2, listOfSegments)
 
-# print([i.orientations for i in listOfSegments])
+# logging.info([i.orientations for i in listOfSegments])

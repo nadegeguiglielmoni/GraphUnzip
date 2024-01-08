@@ -8,6 +8,8 @@ Created on Tue Oct 25 09:25:27 2022
 
 from graphunzip.determine_multiplicity import determine_multiplicity
 
+import logging
+
 
 def purge_assembly(segments):
     IDs = {}
@@ -51,8 +53,8 @@ def purge_assembly(segments):
             ):  # and "edge_1498" in seg.names and end == 1 :
                 unavoidable_segments = unavoidable_neighbors(seg, end, 0, 10, set())
 
-                # print("Looking at contig ", seg.names, " towards end ", end, " and the touching contigs are : ")
-                # print([i[0].names for i in unavoidable_segments ])
+                # logging.info("Looking at contig ", seg.names, " towards end ", end, " and the touching contigs are : ")
+                # logging.info([i[0].names for i in unavoidable_segments ])
 
                 unavoidable_segments = {
                     i
@@ -74,7 +76,7 @@ def purge_assembly(segments):
                             for alt_contig in alternativePath:
                                 if alt_contig not in allpaths[longestPath]:
                                     alt_contig.cut_all_links()
-                                    print("Deleting ", alt_contig.names[0])
+                                    logging.info("Deleting ", alt_contig.names[0])
                                     toDelete += [IDs[alt_contig.ID]]
 
     toDelete.sort(reverse=True)
@@ -109,7 +111,7 @@ def unavoidable_neighbors(segment, end, depth, maxdepth, path):
     if first == True and len(segment.links[end]) > 0:
         return set()
 
-    # print("Result for contig ", segment.names, " : ", [i[0].names for i in result])
+    # logging.info("Result for contig ", segment.names, " : ", [i[0].names for i in result])
 
     if depth != 0:
         result.add((segment, end))

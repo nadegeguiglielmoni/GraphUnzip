@@ -1,10 +1,11 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import random
 from graphunzip.transform_gfa import load_gfa
 
-# import basic_functions as bf
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+import logging
+import random
 
 
 def short_distance_interactions(fragcontacts, fraglist):
@@ -113,7 +114,7 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
             score += [0]
 
             if contig < 5:
-                print(contig, start_frag, end_frag, cut)
+                logging.info(contig, start_frag, end_frag, cut)
 
             while hiccontacts[contactNumber][0] < start_frag + cut:
                 if (
@@ -131,16 +132,16 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
         ):
             contactNumber += 1
 
-    print(score)
+    logging.info(score)
     plt.hist(score)
 
 
 # hiccontacts = bf.read_abs_fragments_contact_weighted('data/results/abs_fragments_contacts_weighted.txt')
 # hiccontacts = import_from_csv('listsPython/hiccontacts.csv')
-# print(hiccontacts[:20])
-# print(hiccontacts[:100])
+# logging.info(hiccontacts[:20])
+# logging.info(hiccontacts[:100])
 # fragmentList = bf.read_fragment_list("data/results/fragments_list.txt")
-# print(fragmentList[:100])
+# logging.info(fragmentList[:100])
 # infcontigs = read_info_contig('data/results/info_contigs.txt')
 # links = gfa_to_python(1312)
 # short_distance_interactions(hiccontacts, fragmentList)
@@ -156,7 +157,7 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
 # testHiC_vs_GFA(hiccontacts, infcontigs)
 # determine_HiC_coverage(hiccontacts, infcontigs, fragmentList)
 # confirmationOfLinks = import_from_csv('listsPython/confirmationsDeslinks.csv')
-# print(confirmationOfLinks[:19])
+# logging.info(confirmationOfLinks[:19])
 
 # check_links(links)
 # coverage = determine_HiC_coverage(hiccontacts, infcontigs, fragmentList)
@@ -165,8 +166,8 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
 # coverage = [x[0] for x in coverage]
 
 # conf, confweight = HiC_vs_GFAtwo('data/results/abs_fragments_contacts_weighted.txt', links, fragmentList, coverage)
-# print(conf[:20],confweight[:20])
-# print(links[:20])
+# logging.info(conf[:20],confweight[:20])
+# logging.info(links[:20])
 
 # with_how_many_contig_does_one_contig_interact('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
 
@@ -176,8 +177,8 @@ def testHiC_vs_GFA(hiccontacts, info_contigs):
 # im = sp.lil_matrix(interaction_Matrix)
 # pickle.dump(im, "listsPython/interactionMatrix.pickle")
 # bf.export_to_csv(interaction_Matrix, "listsPython/interactionMatrix.csv")
-# print(interaction_Matrix[217][323], interaction_Matrix[217][359])
+# logging.info(interaction_Matrix[217][323], interaction_Matrix[217][359])
 
 # distance_law('data/results/abs_fragments_contacts_weighted.txt', fragmentList)
 
-# print("Finished")
+# logging.info("Finished")
