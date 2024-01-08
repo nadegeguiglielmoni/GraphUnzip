@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GraphUnzip"
+authors = [
+    { name = "Roland Faure", email = "roland.faure@irisa.fr" },
+    { name = "Nadège Guiglielmoni", email = "nadege.guiglielmoni@ulb.be" },
+    { name = "Jean-François Flot", email = "jean-francois.flot@ulb.be" },
+]
+
+description = "Unzips an assembly graph using Hi-C data and/or long reads and/or linked reads."
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "GPL" }
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "License :: OSI Approved :: GNU General Public License (GPL)",
+]
+
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools_scm]
+write_to = "src/graphunzip/_version.py"
+
+[tool.setuptools.dynamic]
+#version = { attr = "graphunzip.__version__" }
+dependencies = { file = "requirements.txt" }
+
+[project.urls]
+homepage = "https://github.com/nadegeguiglielmoni/GraphUnzip"
+documentation = "https://github.com/nadegeguiglielmoni/GraphUnzip"
+repository = "https://github.com/nadegeguiglielmoni/GraphUnzip"
+
+[project.scripts]
+graphunzip = "graphunzip.graphunzip:main"
+
+
+# Create and push tags
+# git tag -a v0.0.4 
+# git push origin v0.0.4
+
+# Check what setuptools_scm thinks the current version is and create _version.py
+# git describe
+# python -m setuptools_scm
+# python setup.py --version
+
+# Build
+# python3 -m pip install --upgrade build && python3 -m build
+# OR
+# Build sdist
+# python setup.py sdist 
+
+# Push to pypi
+# twine upload dist/*
