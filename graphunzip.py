@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed May  6 07:42:14 2020
+Created on Wed May 6 07:42:14 2020
 
 """
+
+__version__="1.0.0"
+__author__="Roland Faure"
 
 import input_output as io
 
@@ -14,8 +17,8 @@ from solve_with_long_reads import bridge_with_long_reads
 #from solve_with_long_reads2 import bridge_with_long_reads2
 from solve_with_HiC import solve_with_HiC
 from determine_multiplicity import determine_multiplicity
+from clean_graph import clean_graph
 #from segment import check_if_all_links_are_sorted
-from purge import purge_assembly
 
 from scipy import sparse
 import numpy as np
@@ -143,6 +146,10 @@ def parse_args_unzip() :
         "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) [optional]"""
     )
 
+    groupInput.add_argument(
+        "-s", "--genomeSize", required = False, default="Empty", help="""Full genome size, counting all haplotypes - e.g. 100m or 3g [optional but recommended]"""
+    )
+
     groupOutput.add_argument(
         "-o",
         "--output",
@@ -222,13 +229,7 @@ def parse_args_unzip() :
         action="store_true",
         help="""(long reads only) All links not found in the .gaf will be removed""",
     )
-    # groupBehavior.add_argument(
-    #     "-s",
-    #     "--clean",
-    #     required = False,
-    #     default=1000,
-    #     help="""Removes small dead-ends shorter than this parameter, which are usually assembly artefacts [default: 1000]""",
-    # )
+
     
     return parser.parse_args(sys.argv[2:])
 
@@ -429,6 +430,7 @@ def main():
         
         interactionFileH = args.HiCinteractions
         interactionFileT = args.linkedReadsInteractions
+
         
         verbose = args.verbose
         rename = not args.dont_rename
@@ -438,9 +440,19 @@ def main():
         reliableCoverage = not args.conservative
         exhaustive = args.exhaustive
         noisy = args.noisy
-        
-        #clean = args.clean
-        
+
+        genomeSize = 0 
+        #convert genome size to integer
+        if args.genomeSize != "Empty":
+            if args.genomeSize[-1] == "g":
+                genomeSize = int(args.genomeSize[:-1])*1000000000
+            elif args.genomeSize[-1] == "m":
+                genomeSize = int(args.genomeSize[:-1])*1000000
+            elif args.genomeSize[-1] == "k":
+                genomeSize = int(args.genomeSize[:-1])*1000
+            else:
+                genomeSize = int(args.genomeSize)
+                
         # Loading the data
         print("Loading the GFA file")
         segments, names = io.load_gfa(
@@ -453,7 +465,7 @@ def main():
         someDepth0 = 0
         someLength0 = 0
         for s in segments :
-            if s.depth == 0:
+            if s.depth == 0 and s.length > 0:
                 if reliableCoverage :
                     if someDepth0 < 10 :
                         print("WARNING: contig ", s.names, " has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode")
@@ -462,7 +474,7 @@ def main():
                 someDepth0 += 1
             if s.length == 0 :
                 s.length1()
-                print("WARNING: contig ", s.names, " has length = 0. This might infer in handling the coverage")
+                # print("WARNING: contig ", s.names, " has length = 0. This might infer in handling the coverage")
             
         if someDepth0 == len(segments) and reliableCoverage :
             print("WARNING: could not read coverage information in the input GFA. Coverage information for each contig is highly recommended. Continuing nevertheless, switching to --conservative mode")
@@ -493,8 +505,7 @@ def main():
                 print("ERROR: could not access ", lrFile)
                 sys.exit(1)   
             uselr = True
-            
-                
+                      
         if interactionFileT != "Empty":
             
             if not os.path.exists(interactionFileT) :
@@ -511,6 +522,13 @@ def main():
             sys.exit()
 
         print("================\n\nEverything loaded, moving on to untangling the graph\n\n================")
+
+        #if noisy, clean the graph of small dead-ends and bubbles
+        if genomeSize != 0 and reliableCoverage :
+            print("Because --genome-size was used, cleaning the graph of small dead-ends and bubbles")
+            clean_graph(segments, genomeSize)
+            #merge all segments
+            merge_adjacent_contigs(segments)
         
         #creating copiesnuber (cn), a dictionnary inventoring how many times each contig appears
         cn = {}

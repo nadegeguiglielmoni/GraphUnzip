@@ -7,6 +7,8 @@ Created on Fri Oct  8 13:02:36 2021
 """
 
 from scipy import sparse
+import sys
+import segment
 
 #main function of the file : tries to estimate how many copies of each contig is actually present in the actual assembly, based on the topology of the graph and the coverage
 #input : a gfa (as a list of segments), with mandatory coverage information ; names (to know at what index to put each contig) ; reliable_coverage if the depth is reliable, noisy if some contigs probably are artefacts and we want to be sure
@@ -36,6 +38,7 @@ def determine_multiplicity(segments, supported_links=sparse.lil_matrix((0,0)), r
 
     #print(len(segments), refCoverages, weightedNumberOfRefContigs)
     refCoverage = refCoverages / weightedNumberOfRefContigs
+    # print("Reference coverage is ", refCoverage)
     
     if (refCoverage == 1 or refCoverage == 0) and reliable_coverage :
         reliable_coverage = False
@@ -249,8 +252,14 @@ def propagate_multiplicity(multiplicities, segments, IDs, contigIdx, supported_l
                             #print("Inferring multiplicity of ", neighbor.names, " at ", round(computed_multiplicity[s] * neighbor.depths[0]/covTot) , ", from contig ", seg.names)
                         propagate_multiplicity(multiplicities, segments, IDs, IDs[neighbor.ID], supported_links, refCoverage)
         
-        
-        
+
+
+    
+                
+
+                                               
+
+         
         
         
         
