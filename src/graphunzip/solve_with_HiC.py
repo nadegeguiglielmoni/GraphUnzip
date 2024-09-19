@@ -93,7 +93,7 @@ def solve_with_HiC(
     alt_contigs = set()  # alt contigs when using --haploid
 
     while go_on > 0 and limit_counter < limit:
-        logging.info("\n**** ROUND ", limit_counter + 1, "****")
+        logging.info("\n**** ROUND %s****" , limit_counter + 1)
         # first make sure confidently haploid contigs are marked as such
         if confidentCoverage:
             for s in segments:
@@ -190,18 +190,7 @@ def solve_with_HiC(
             untangled_paths, segments, haploidContigs, confidentCoverage
         )
 
-        logging.info(
-            "Finished round of untangling number ",
-            limit_counter,
-            ". Untangled ",
-            go_on,
-            " contigs. Going on one supplementary round if ",
-            go_on,
-            "> 0 and if ",
-            limit_counter,
-            "<",
-            limit,
-        )
+        logging.info("Untangled %s contigs. Going on one supplementary round if %s > 0 and if %s < %s" % (go_on, go_on, limit_counter, limit))
 
     # at the end of the process, duplicate also the multiploid contigs, even those for which graphunzip did not solve the knot
     if confidentCoverage and not haploid:
@@ -832,7 +821,7 @@ def normalize(matrix, verbose):
 
     for rounds in range(10):
         if verbose:
-            logging.info("Round ", rounds, "/10")
+            logging.info("Round %s/10", rounds)
         for i in range(W.shape[0]):
             row_sum = W.data[W.indptr[i] : W.indptr[i + 1]].sum()
             if row_sum != 0:
@@ -878,9 +867,9 @@ def find_paths(
         fullnames[seg.full_name() + str(int(seg.ID * 1000))] = s
 
     for kn, k in enumerate(solvedKnots):
-        logging.info(
-            f"Found the path for {float(kn) / len(solvedKnots) * 100}% of the knots"
-        )
+        # logging.info(
+        #     f"Found the path for {float(kn) / len(solvedKnots) * 100}% of the knots"
+        # )
 
         untangled_paths += [[]]
 

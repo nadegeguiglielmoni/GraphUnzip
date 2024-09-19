@@ -18,106 +18,16 @@ def parse_args_command():
 
     parser.add_argument(
         "command",
-        choices=["unzip", "purge", "extract", "HiC-IM", "linked-reads-IM"],
+        choices=["unzip", "HiC-IM", "linked-reads-IM"],
         help="""
         Sub-command must be one of:
         unzip (untangle the GFA file),
-        purge (retain only haploid contigs),
-        extract (extract haploid assembly with a close reference genome),
         HiC-IM (to prepare Hi-C data) or
         linked-reads-IM (to prepare linked reads data)
         """,
     )
 
     return parser.parse_args(sys.argv[1:2])
-
-
-def parse_args_purge():
-    """
-    Gets the arguments from the command line.
-    """
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "-g", "--gfa", required=True, help="""GFA file to be purged (required)"""
-    )
-
-    parser.add_argument(
-        "-o",
-        "--output",
-        required=False,
-        default="output.gfa",
-        help="""Output the purged GFA assemby [default: output.gfa]""",
-    )
-    parser.add_argument(
-        "-f",
-        "--fasta_output",
-        required=False,
-        default="None",
-        help="""Optional fasta output [default: None]""",
-    )
-    parser.add_argument(
-        "--dont_merge",
-        required=False,
-        action="store_true",
-        help="""If you don't want the output to have all possible contigs merged""",
-    )
-
-    return parser.parse_args(sys.argv[2:])
-
-
-def parse_args_extract():
-    """
-    Gets the arguments from the command line.
-    """
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "-g",
-        "--gfa",
-        required=True,
-        help="""GFA file from which the assembly will be extracted (required)""",
-    )
-
-    parser.add_argument(
-        "-l",
-        "--genome",
-        required=True,
-        help="""Genome mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) (required)""",
-    )
-
-    parser.add_argument(
-        "-o",
-        "--output",
-        required=False,
-        default="output.gfa",
-        help="""Output the GFA assemby of the genome [default: output.gfa]""",
-    )
-    parser.add_argument(
-        "-f",
-        "--fasta_output",
-        required=False,
-        default="None",
-        help="""Optional fasta output [default: None]""",
-    )
-
-    parser.add_argument(
-        "-r",
-        "--dont_rename",
-        action="store_true",
-        help="""Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs""",
-    )
-
-    parser.add_argument(
-        "--dont_merge",
-        required=False,
-        action="store_true",
-        help="""If you don't want the output to have all possible contigs merged""",
-    )
-
-    return parser.parse_args(sys.argv[2:])
 
 
 def parse_args_unzip():
@@ -130,9 +40,10 @@ def parse_args_unzip():
     groupOutput = parser.add_argument_group("Output of GraphUnzip")
     groupBehavior = parser.add_argument_group("Behavior of GraphUnzip")
     groupOther = parser.add_argument_group("Other options")
-
-    groupInput.add_argument("-g", "--gfa", required=True, help="""GFA file to phase""")
-
+    
+    
+    groupInput.add_argument("-g", "--gfa", required = True, help="""GFA file to phase""")
+ 
     groupInput.add_argument(
         "-i",
         "--HiCinteractions",
@@ -148,11 +59,11 @@ def parse_args_unzip():
         help="""File containing the linked-reads interaction matrix from linked-reads-IM [optional]""",
     )
     groupInput.add_argument(
-        "-l",
-        "--longreads",
-        required=False,
-        default="Empty",
-        help="""Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) [optional]""",
+        "-l", "--longreads", required = False, default="Empty", help="""Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) [optional]"""
+    )
+
+    groupInput.add_argument(
+        "-s", "--genomeSize", required = False, default="Empty", help="""Full genome size, counting all haplotypes - e.g. 100m or 3g [optional but recommended]"""
     )
 
     groupOutput.add_argument(
@@ -176,11 +87,11 @@ def parse_args_unzip():
         default="None",
         help="""bam file of the Hi-C reads aligned on assembly. GraphUnzip will output bam_file.new.bam corresponding to the new bam file, ready to be used for scaffolding [optional]""",
     )
-
+    
     groupOther.add_argument(
         "-v",
         "--verbose",
-        required=False,
+        required = False,
         action="store_true",
     )
     groupOther.add_argument(
@@ -202,7 +113,7 @@ def parse_args_unzip():
         action="store_true",
         help="""If you don't want the output to have all possible contigs merged""",
     )
-
+    
     groupBehavior.add_argument(
         "-H",
         "--haploid",
@@ -215,7 +126,7 @@ def parse_args_unzip():
         action="store_true",
         help="""(Hi-C only) Output very robust contigs. Use this option if the coverage information of the graph is not reliable""",
     )
-
+    
     groupBehavior.add_argument(
         "-B",
         "--bold",
@@ -234,14 +145,8 @@ def parse_args_unzip():
         action="store_true",
         help="""(long reads only) All links not found in the .gaf will be removed""",
     )
-    # groupBehavior.add_argument(
-    #     "-s",
-    #     "--clean",
-    #     required = False,
-    #     default=1000,
-    #     help="""Removes small dead-ends shorter than this parameter, which are usually assembly artefacts [default: 1000]""",
-    # )
 
+    
     return parser.parse_args(sys.argv[2:])
 
 

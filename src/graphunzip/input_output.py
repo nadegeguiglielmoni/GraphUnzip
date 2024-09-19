@@ -102,9 +102,8 @@ def export_to_bam(segments, bamFile, newnames):
                 head.append({"LN": s.length, "SN": newnames[s.full_name()]})
                 indices[n] = len(head) - 1
 
-    for n in names.keys():
-        if n in duplicatedcontigs:
-            names.remove(n)
+    for n in duplicatedcontigs:
+        del names[n]
 
     oldfile = pysam.AlignmentFile(bamFile, "rb")
 

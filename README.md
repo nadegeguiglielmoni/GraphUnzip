@@ -36,10 +36,6 @@ pip install git+https://github.com/nadegeguiglielmoni/GraphUnzip.git
 pip install graphunzip
 ```
 
-4) Install from Bioconda.
-```bash
-conda install -c bioconda graphunzip
-```
 
 Run `graphunzip --help` to verify installation.
 
@@ -52,11 +48,12 @@ Run `graphunzip --help` to verify installation.
 
 An assembly graph in [GFA 1.0 format](https://github.com/GFA-spec/GFA-spec) and any combination of :
 
-1. Hi-C data : GraphUnzip needs either 1) the Hi-C reads mapped to the assembly in name-sorted bam format or 2) a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats). You can use [hicstuff](https://github.com/koszullab/hicstuff) to obtain these files, using preferably iterative mode :
+1. Hi-C data : GraphUnzip needs either 1) the Hi-C reads mapped to the assembly in name-sorted bam format or 2) a sparse contact matrix and a fragment list using the [formats outputted by hicstuff](https://github.com/koszullab/hicstuff#File-formats). You can use e.g. bwa to obtain these files:
 
 ```bash
 awk '/^S/{print ">"$2"\n"$3}' assembly.gfa > assembly.fasta  		#produce a fasta file from the gfa
-hicstuff pipeline -t 8 --mapping=iterative -o mapping/ -g assembly.fasta -e DpnII HiC_reads_forward.fq HiC_reads_reverse.fq
+bwa index assembly.fasta
+bwa mem -5SP -t 16 assembly.fasta /path/to/reads_1.fq /path/to/reads_2.fq | samtools view - -@ 16 -S -h -b -F 3340 | samtools sort -n > mapped.bam
 ```
 and/or
 
@@ -85,7 +82,7 @@ To use `GraphUnzip`, you generally need to proceed in two steps :
 
 ```bash
 #for Hi-C
-graphunzip HiC-IM -m path/to/abs_fragments_contacts_weighted.txt -F path/to/fragments_list.txt -g assembly.gfa --HiC_IM hic_interactionmatrix.txt
+graphunzip HiC-IM -b mapped.bam -g assembly.gfa --HiC_IM hic_interactionmatrix.txt
 
 #for linked reads
 graphunzip linked-reads-IM --barcoded_SAM reads_aligned_on_assembly.sam -g assembly.gfa --linked_reads_IM linkedreads_interactionmatrix.txt
@@ -103,10 +100,8 @@ graphunzip unzip -g assembly.gfa -i hic_interactionmatrix.txt -k linkedreads_int
 
 ### Options
 
-GraphUnzip has 5 sub-modules:  
+GraphUnzip has 3 sub-modules:  
 - unzip: untangle the GFA file
-- purge: retain only haploid contigs
-- extract: extract haploid assembly with a close reference genome
 - HiC-IM: to prepare Hi-C data
 - linked-reads-IM: to prepare linked reads data
 
@@ -117,8 +112,6 @@ usage: graphunzip [-h] command
 positional arguments:
   command     Sub-command must be one of: 
               unzip (untangle the GFA file), 
-              purge (retain only haploid contigs), 
-              extract (extract haploid assembly with a close reference genome), 
               HiC-IM (to prepare Hi-C data) or 
               linked-reads-IM (to prepare linked reads data)
 
@@ -130,8 +123,8 @@ optional arguments:
 To run command unzip:
 ```
 graphunzip unzip -h
-usage: graphunzip [-h] -g GFA [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-o OUTPUT]
-                     [-f FASTA_OUTPUT] [-v] [-r] [--dont_merge] [-c] [-b]
+usage: graphunzip.py [-h] -g GFA [-i HICINTERACTIONS] [-k LINKEDREADSINTERACTIONS] [-l LONGREADS] [-s GENOMESIZE] [-o OUTPUT] [-f FASTA_OUTPUT] [-b BAM_FILE] [-v] [-r]
+                     [--dont_merge] [-H] [-c] [-B] [-n] [-e]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -144,23 +137,30 @@ Input of GraphUnzip:
                         File containing the linked-reads interaction matrix from linked-reads-IM [optional]
   -l LONGREADS, --longreads LONGREADS
                         Long reads mapped to the GFA with GraphAligner (GAF format) or SPAligner (TSV format) [optional]
+  -s GENOMESIZE, --genomeSize GENOMESIZE
+                        Full genome size, counting all haplotypes - e.g. 100m or 3g [optional but recommended]
 
 Output of GraphUnzip:
   -o OUTPUT, --output OUTPUT
                         Output GFA [default: output.gfa]
   -f FASTA_OUTPUT, --fasta_output FASTA_OUTPUT
                         Optional fasta output [default: None]
+  -b BAM_FILE, --bam_file BAM_FILE
+                        bam file of the Hi-C reads aligned on assembly. GraphUnzip will output bam_file.new.bam corresponding to the new bam file, ready to be used for
+                        scaffolding [optional]
 
 Behavior of GraphUnzip:
+  -H, --haploid         Use this option if you wish to obtain a collapsed assembly of a multiploid genome.
   -c, --conservative    (Hi-C only) Output very robust contigs. Use this option if the coverage information of the graph is not reliable
-  -b, --bold            (Hi-C only)[default] Proposes the best untangling it can get (can be misled by approximate coverage information). Use this option if the contig coverage information of the graph can be trusted
+  -B, --bold            (Hi-C only)[default] Proposes the best untangling it can get (can be misled by approximate coverage information). Use this option if the contig
+                        coverage information of the graph can be trusted
+  -n, --noisy           (Hi-C only) Use this option if you expect that the assembly may contain artefactual contigs, e.g. when you use the .p_utg.gfa of hifiasm
   -e, --exhaustive      (long reads only) All links not found in the .gaf will be removed
 
 Other options:
   -v, --verbose
   -r, --dont_rename     Use if you don't want to name the resulting supercontigs with short names but want to keep the names of the original contigs
   --dont_merge          If you don't want the output to have all possible contigs merged
-
 ```
 
 To run command HiC-IM:
@@ -172,12 +172,13 @@ optional arguments:
   -h, --help            show this help message and exit
   -g GFA_GRAPH, --gfa_graph GFA_GRAPH
                         GFA file that will be untangled (required)
+  -b BAM, --bam BAM     Bam file of Hi-C reads aligned on assembly and sorted by name (if using bam format)
   -m MATRIX, --matrix MATRIX
-                        Sparse Hi-C contact map (required)
+                        Sparse Hi-C contact map (if using instaGRAAL format)
   -F FRAGMENTS, --fragments FRAGMENTS
-                        Fragments list (required)
-  --HiC_IM HIC_IM       Output file for the Hi-C interaction matrix (required)
-
+                        Fragments list (if using instaGRAAL format)
+  -i HIC_IM, --HiC_IM HIC_IM
+                        Output file for the Hi-C interaction matrix (required)
 ```
 
 To run command linked-reads-IM:
