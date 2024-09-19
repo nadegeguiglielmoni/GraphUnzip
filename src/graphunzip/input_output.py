@@ -86,13 +86,18 @@ def export_to_bam(segments, bamFile, newnames):
             if n in names :
                 duplicatedcontigs.add(n)
             else:
-                names[n] = (s.orientations[i] , np.sum([s.lengths[j] for j in range(i)]), newnames[s.full_name()])
-                head.append({'LN':s.length, 'SN':newnames[s.full_name()]})
-                indices[n] = len(head)-1
-        
+
+                names[n] = (
+                    s.orientations[i],
+                    np.sum([s.lengths[j] for j in range(i)]),
+                    newnames[s.full_name()],
+                )
+                head.append({"LN": s.length, "SN": newnames[s.full_name()]})
+                indices[n] = len(head) - 1
+
     for n in duplicatedcontigs:
         del names[n]
-    
+
     oldfile = pysam.AlignmentFile(bamFile, "rb")
     
     

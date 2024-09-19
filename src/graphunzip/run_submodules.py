@@ -1,8 +1,6 @@
 from graphunzip.arg_helpers import (
-    parse_args_extract,
     parse_args_HiC,
     parse_args_linked,
-    parse_args_purge,
     parse_args_unzip,
 )
 import graphunzip.input_output as io
@@ -16,8 +14,7 @@ from graphunzip.transform_gfa import gfa_to_fasta
 from graphunzip.determine_multiplicity import determine_multiplicity
 from graphunzip.solve_with_HiC import solve_with_HiC
 
-# from segment import check_if_all_links_are_sorted
-from graphunzip.purge import purge_assembly
+from graphunzip.clean_graph import clean_graph
 
 from scipy import sparse
 
@@ -63,7 +60,17 @@ def run_prog_unzip():
     exhaustive = args.exhaustive
     noisy = args.noisy
 
-    # clean = args.clean
+    genomeSize = 0 
+    #convert genome size to integer
+    if args.genomeSize != "Empty":
+        if args.genomeSize[-1] == "g":
+            genomeSize = int(args.genomeSize[:-1])*1000000000
+        elif args.genomeSize[-1] == "m":
+            genomeSize = int(args.genomeSize[:-1])*1000000
+        elif args.genomeSize[-1] == "k":
+            genomeSize = int(args.genomeSize[:-1])*1000
+        else:
+            genomeSize = int(args.genomeSize)
 
     # Loading the data
     logging.info("Loading the GFA file")
@@ -77,9 +84,9 @@ def run_prog_unzip():
     someDepth0 = 0
     someLength0 = 0
     for s in segments:
-        if s.depth == 0:
-            if reliableCoverage:
-                if someDepth0 < 10:
+        if s.depth == 0 and s.length > 1:
+            if reliableCoverage :
+                if someDepth0 < 10 :
                     logging.warning(
                         f"WARNING: contig {s.names} has no readable coverage information or coverage=0. If this is a widespread issue, please use --conservative mode",
                     )
@@ -90,11 +97,12 @@ def run_prog_unzip():
             someDepth0 += 1
         if s.length == 0:
             s.length1()
-            logging.warning(
-                "WARNING: contig ",
-                s.names,
-                " has length = 0. This might infer in handling the coverage",
-            )
+
+        if someDepth0 == len(segments) and reliableCoverage :
+            print("WARNING: could not read coverage information in the input GFA. Coverage information for each contig is highly recommended. Continuing nevertheless, switching to --conservative mode")
+            reliableCoverage = False
+
+        
 
     if someDepth0 == len(segments) and reliableCoverage:
         logging.warning(
@@ -103,11 +111,7 @@ def run_prog_unzip():
         reliableCoverage = False
     elif someDepth0 > 0 and reliableCoverage:
         logging.warning(
-            "WARNING: ",
-            someDepth0,
-            " contigs out of ",
-            len(segments),
-            " had no coverage information or coverage=0. If this is a widespread issue, please use --conservative mode",
+            "WARNING: {0} contigs out of {1} had no coverage information or coverage=0. If this is a widespread issue, please use --conservative mode".format(someDepth0, len(segments))
         )
 
     interactionMatrix = sparse.csr_matrix((len(segments), len(segments)))
@@ -153,6 +157,13 @@ def run_prog_unzip():
     logging.info(
         "================\n\nEverything loaded, moving on to untangling the graph\n\n================"
     )
+
+    #if noisy, clean the graph of small dead-ends and bubbles
+    if genomeSize != 0 and reliableCoverage :
+        logging.info("Because --genome-size was used, cleaning the graph of small dead-ends and bubbles")
+        clean_graph(segments, genomeSize)
+        #merge all segments
+        merge_adjacent_contigs(segments)
 
     # creating copiesnuber (cn), a dictionnary inventoring how many times each contig appears
     cn = {}
@@ -275,7 +286,7 @@ def run_prog_hic():
 
             # exporting it as to never have to do it again
 
-            logging.info("Exporting Hi-C interaction matrix as ", outputIMH)
+            logging.info("Exporting Hi-C interaction matrix as %s", outputIMH)
             with open(outputIMH, "wb") as o:
                 pickle.dump(interactionMatrix, o)
 
@@ -290,7 +301,7 @@ def run_prog_hic():
             interactionMatrix = io.read_bam(bamfile, names, segments)
             useHiC = True
 
-            logging.info("Exporting Hi-C interaction matrix as ", outputIMH)
+            logging.info("Exporting Hi-C interaction matrix as %s", outputIMH)
             with open(outputIMH, "wb") as o:
                 pickle.dump(interactionMatrix, o)
         else:
@@ -323,97 +334,3 @@ def run_prog_linked():
     logging.info("Exporting barcoded interaction matrix as ", outputIMT)
     with open(outputIMT, "wb") as o:
         pickle.dump(tagInteractionMatrix, o)
-
-
-def run_prog_extract():
-    args = parse_args_extract()
-
-    gfaFile = args.gfa
-    outFile = args.output
-    fastaFile = args.fasta_output
-
-    lrFile = args.genome
-
-    rename = not args.dont_rename
-    merge = not args.dont_merge
-
-    # Loading the data
-    logging.info("Loading the GFA file")
-    segments, names = io.load_gfa(
-        gfaFile
-    )  # outputs the list of segments as well as names, which is a dict linking the names of the contigs to their index in interactionMatrix, listOfContigs...
-    if len(segments) == 0:
-        logging.error("ERROR: could not read the GFA")
-        sys.exit(1)
-
-    # creating copiesnuber (cn), a dictionnary inventoring how many times each contig appears
-    cn = {}
-    for segment in segments:
-        for name in segment.names:
-            cn[name] = 1
-
-    logging.info(
-        " \n\n================\n\nEverything loaded, moving on to untangling the graph\n\n================"
-    )
-
-    supported_links2 = sparse.lil_matrix(
-        (len(names) * 2, len(names) * 2)
-    )  # supported links considering the topography of the graph
-    refHaploidy, multiplicities = determine_multiplicity(
-        segments, supported_links2, reliable_coverage=False
-    )  # multiplicities can be seen as a mininimum multiplicity of each contig regarding the topology of the graph
-
-    segments = bridge_with_long_reads(
-        segments,
-        names,
-        cn,
-        lrFile,
-        supported_links2,
-        multiplicities,
-        exhaustive=True,
-        extract=True,
-    )
-    logging.info("Merging contigs that can be merged.")
-    merge_adjacent_contigs(segments)
-    logging.info("Done extracting the genome.")
-
-    # now exporting the output
-    logging.info(f"Now exporting the result to: {outFile}")
-    io.export_to_GFA(
-        segments,
-        gfaFile,
-        exportFile=outFile,
-        merge_adjacent_contigs=merge,
-        rename_contigs=rename,
-    )
-
-    if fastaFile != "None":
-        io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)
-
-
-def run_prog_purge():
-    args = parse_args_purge()
-
-    gfaFile = args.gfa
-
-    outFile = args.output
-    fastaFile = args.fasta_output
-
-    merge = not args.dont_merge
-    rename = False
-
-    segments, names = io.load_gfa(gfaFile)
-
-    purge_assembly(segments)
-
-    logging.info(f"Now exporting the result to: {outFile}")
-    io.export_to_GFA(
-        segments,
-        gfaFile,
-        exportFile=outFile,
-        merge_adjacent_contigs=merge,
-        rename_contigs=rename,
-    )
-
-    if fastaFile != "None":
-        io.export_to_fasta(segments, gfaFile, fastaFile, rename_contigs=rename)

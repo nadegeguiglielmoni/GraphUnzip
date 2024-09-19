@@ -72,16 +72,20 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
     go_on = 1
     limit = 10
     limit_counter = 0
-    alt_contigs = set() #alt contigs when using --haploid
-    
-    while go_on > 0 and limit_counter < limit: 
-        
-        print("\n**** ROUND ", limit_counter+1 , "****")
-        #first make sure confidently haploid contigs are marked as such
-        if confidentCoverage :
-            for s in segments :
-                if s.full_name() not in haploidContigsNames :
-                    if s.length > 100000 and s.depth < 1.2 * refCoverage and not haploid : #this look haploid
+
+    alt_contigs = set()  # alt contigs when using --haploid
+
+    while go_on > 0 and limit_counter < limit:
+        logging.info("\n**** ROUND %s****" , limit_counter + 1)
+        # first make sure confidently haploid contigs are marked as such
+        if confidentCoverage:
+            for s in segments:
+                if s.full_name() not in haploidContigsNames:
+                    if (
+                        s.length > 100000
+                        and s.depth < 1.2 * refCoverage
+                        and not haploid
+                    ):  # this look haploid
                         haploidContigsNames[s.full_name()] = len(haploidContigs)
                         haploidContigs.append(s)
         
@@ -114,13 +118,17 @@ def solve_with_HiC(segments, interactionMatrix, names, haploidContigs = [], copi
         #         if 'edge_128' in p:
         #             print("Path : ", p)
 
-        
-        print("Finished determining the paths, now modifying the graph and duplicating necessary contigs")
-        segments, haploidContigs, haploidContigsNames, go_on = untangle_knots(untangled_paths, segments, haploidContigs, confidentCoverage)
-        
-        print("Finished round of untangling number ", limit_counter , ". Untangled ", go_on, " contigs. Going on one supplementary round if ", go_on, "> 0 and if ", limit_counter, "<", limit)
-      
-    #at the end of the process, duplicate also the multiploid contigs, even those for which graphunzip did not solve the knot
+
+        logging.info(
+            "Finished determining the paths, now modifying the graph and duplicating necessary contigs"
+        )
+        segments, haploidContigs, haploidContigsNames, go_on = untangle_knots(
+            untangled_paths, segments, haploidContigs, confidentCoverage
+        )
+
+        logging.info("Untangled %s contigs. Going on one supplementary round if %s > 0 and if %s < %s" % (go_on, go_on, limit_counter, limit))
+
+    # at the end of the process, duplicate also the multiploid contigs, even those for which graphunzip did not solve the knot
     if confidentCoverage and not haploid:
         duplicate_multiploid_contigs(segments, haploidContigs, haploidContigsNames)
       
@@ -578,11 +586,12 @@ def match_haploidContigs(segments, names, interactionMatrix, list_of_neighbors, 
 def normalize(matrix, verbose) :
     
     W = matrix.tocsr()
-    W = W.astype('float64')
-    
-    for rounds in range(10) :
-        if verbose :
-            print("Round ", rounds, "/10", end='\r')
+
+    W = W.astype("float64")
+
+    for rounds in range(10):
+        if verbose:
+            logging.info("Round %s/10", rounds)
         for i in range(W.shape[0]):
                 row_sum = W.data[W.indptr[i]:W.indptr[i+1]].sum()
                 if row_sum != 0:
@@ -612,13 +621,15 @@ def find_paths(contacts, segments, knots, solvedKnots, haploidContigsNames, hapl
     unused_contigs = set()
     
     fullnames = {}
-    for s, seg in enumerate(segments) :
-        fullnames[seg.full_name()+str(int(seg.ID*1000))] = s
-    
-    for kn, k in enumerate(solvedKnots) :
-        
-        print("Found the path for ", float(kn)/len(solvedKnots)*100, "% of the knots", end = '\r')
-        
+
+    for s, seg in enumerate(segments):
+        fullnames[seg.full_name() + str(int(seg.ID * 1000))] = s
+
+    #for kn, k in enumerate(solvedKnots):
+        # logging.info(
+        #     f"Found the path for {float(kn) / len(solvedKnots) * 100}% of the knots"
+        # )
+
         untangled_paths += [[]]
         
         knot = knots[k]
