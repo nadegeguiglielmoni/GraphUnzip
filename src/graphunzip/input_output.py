@@ -14,7 +14,7 @@ import re #to find all numbers in a mixed number/letters string (such as 31M1D4M
 import shutil #to remove directories
 import sys #to exit when there is an error and to set recursion limit
 import gzip
-import pybam.pybam as pybam
+import graphunzip.pybam
 import copy
 
 from segment import Segment
