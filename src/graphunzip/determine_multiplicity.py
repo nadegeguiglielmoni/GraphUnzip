@@ -8,7 +8,7 @@ Created on Fri Oct  8 13:02:36 2021
 
 from scipy import sparse
 import sys
-import segment
+import graphunzip.segment as segment
 
 #main function of the file : tries to estimate how many copies of each contig is actually present in the actual assembly, based on the topology of the graph and the coverage
 #input : a gfa (as a list of segments), with mandatory coverage information ; names (to know at what index to put each contig) ; reliable_coverage if the depth is reliable, noisy if some contigs probably are artefacts and we want to be sure

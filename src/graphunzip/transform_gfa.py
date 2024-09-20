@@ -5,7 +5,7 @@ This file is for handling the gfa : loading it into python lists, transforming i
 import time
 import sys
 
-from segment import Segment
+from graphunzip.segment import Segment
 
 
 def gfa_to_fasta(gfaFilename, fastaFilename = ''):
