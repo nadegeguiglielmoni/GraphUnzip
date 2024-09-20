@@ -21,7 +21,7 @@ There are 4 options available for installing GraphUnzip:
 This is the best way to ensure you have the latest development version.
 
 ```bash
-git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git && cd graphunzip && pip install -e .
+git clone https://github.com/nadegeguiglielmoni/GraphUnzip.git && cd GraphUnzip && pip install -e .
 ```
 
 2) Pip install directly from this git repository.

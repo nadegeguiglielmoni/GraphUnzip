@@ -29,12 +29,8 @@ def run_submodule(command):
         run_prog_hic()
     elif command == "linked-reads-IM":
         run_prog_linked()
-    elif command == "extract":
-        run_prog_extract()
     elif command == "unzip":
         run_prog_unzip()
-    elif command == "purge":
-        run_prog_purge()
 
 
 def run_prog_unzip():

@@ -11,6 +11,9 @@ from graphunzip.run_submodules import run_submodule
 import logging
 import time
 
+__version__ = "3.0.0"
+__author__ = "Roland Faure"
+
 
 def main():
     # Set up logger
